@@ -15,9 +15,11 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className="antialiased">
-        <div className="flex h-screen bg-gray-50">
+        <div className="flex h-screen bg-white">
           <Sidebar />
-          <main className="flex-1 overflow-auto">{children}</main>
+          <main className="flex-1 overflow-auto bg-[radial-gradient(#e5e7eb_1px,transparent_1px)] [background-size:16px_16px]">
+            {children}
+          </main>
         </div>
       </body>
     </html>

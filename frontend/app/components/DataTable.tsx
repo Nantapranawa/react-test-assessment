@@ -8,27 +8,34 @@ interface DataTableProps {
 
 export default function DataTable({ columns, data, rowCount }: DataTableProps) {
   return (
-    <div className="bg-white rounded-xl shadow-md overflow-hidden">
+    <div className="bg-white rounded-lg shadow-sm border border-zinc-200 overflow-hidden">
       {/* Table Header Info */}
-      <div className="px-6 py-4 border-b border-gray-200">
-        <h3 className="text-lg font-semibold text-gray-800">
-          Data Preview
-        </h3>
-        <p className="text-sm text-gray-500 mt-1">
-          Showing {rowCount} row{rowCount !== 1 ? 's' : ''}
-        </p>
+      <div className="px-6 py-4 border-b border-zinc-100 flex items-center justify-between bg-zinc-50/50">
+        <div>
+          <h3 className="text-sm font-bold text-zinc-900 uppercase tracking-widest">
+            Dataset Preview
+          </h3>
+          <p className="text-[10px] text-zinc-500 font-bold uppercase mt-1">
+            Total records identified: {rowCount}
+          </p>
+        </div>
+        <div className="flex space-x-1">
+          <div className="w-1.5 h-1.5 rounded-full bg-red-600"></div>
+          <div className="w-1.5 h-1.5 rounded-full bg-zinc-300"></div>
+          <div className="w-1.5 h-1.5 rounded-full bg-zinc-300"></div>
+        </div>
       </div>
 
       {/* Table */}
       <div className="overflow-x-auto">
         <table className="w-full">
           {/* Header */}
-          <thead className="bg-linear-to-r from-blue-600 to-blue-700 text-white">
+          <thead className="bg-zinc-950 text-white">
             <tr>
               {columns.map((col) => (
                 <th
                   key={col}
-                  className="px-6 py-4 text-left text-sm font-semibold"
+                  className="px-6 py-4 text-left text-[10px] font-black uppercase tracking-[0.2em] border-r border-zinc-800 last:border-0"
                 >
                   {col}
                 </th>
@@ -37,19 +44,17 @@ export default function DataTable({ columns, data, rowCount }: DataTableProps) {
           </thead>
 
           {/* Body */}
-          <tbody>
+          <tbody className="divide-y divide-zinc-100">
             {data.map((row, idx) => (
               <tr
                 key={idx}
-                className={`border-b border-gray-200 transition ${
-                  idx % 2 === 0 ? 'bg-gray-50' : 'bg-white'
-                } hover:bg-blue-50`}
+                className="hover:bg-zinc-50 transition-colors group cursor-default"
               >
                 {columns.map((col) => (
-                  <td key={`${idx}-${col}`} className="px-6 py-4 text-sm text-gray-800">
+                  <td key={`${idx}-${col}`} className="px-6 py-4 text-sm text-zinc-600 group-hover:text-zinc-950 transition-colors border-r border-zinc-50 last:border-0">
                     {row[col] !== null && row[col] !== undefined
                       ? String(row[col])
-                      : '-'}
+                      : <span className="text-red-400 font-bold text-[10px]">NULL</span>}
                   </td>
                 ))}
               </tr>
@@ -59,10 +64,11 @@ export default function DataTable({ columns, data, rowCount }: DataTableProps) {
       </div>
 
       {/* Footer */}
-      <div className="px-6 py-4 bg-gray-50 border-t border-gray-200">
-        <p className="text-xs text-gray-600">
-          Total records: <span className="font-semibold">{rowCount}</span>
-        </p>
+      <div className="px-6 py-3 bg-zinc-50 border-t border-zinc-100">
+        <div className="flex items-center justify-between text-[10px] font-bold uppercase tracking-tight text-zinc-400">
+          <span>Processed by ExcelLab Engine</span>
+          <span className="text-red-600">Secure Protocol</span>
+        </div>
       </div>
     </div>
   );

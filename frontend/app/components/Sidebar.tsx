@@ -9,39 +9,39 @@ export default function Sidebar() {
   const isActive = (path: string) => pathname === path;
 
   return (
-    <aside className="w-64 bg-blue-900 text-white shadow-lg">
+    <aside className="w-64 bg-zinc-950 text-white shadow-2xl z-10 border-r border-zinc-900">
       {/* Header */}
-      <div className="p-6 border-b border-blue-800">
-        <h1 className="text-2xl font-bold">Dashboard</h1>
-        <p className="text-blue-200 text-sm mt-1">Excel Data Manager</p>
+      <div className="p-8 border-b border-zinc-900">
+        <h1 className="text-2xl font-black tracking-tighter uppercase italic">
+          <span className="text-red-600">Excel</span>Lab
+        </h1>
+        <p className="text-zinc-500 text-[10px] uppercase tracking-widest font-bold mt-2">
+          Data Systems v1.0
+        </p>
       </div>
 
       {/* Navigation */}
-      <nav className="p-4">
+      <nav className="p-4 mt-4">
         <Link
           href="/"
-          className={`flex items-center px-4 py-3 rounded-lg mb-2 transition ${
-            isActive('/')
-              ? 'bg-blue-700 text-white'
-              : 'text-blue-100 hover:bg-blue-800'
-          }`}
+          className={`flex items-center px-4 py-3 rounded-md mb-2 transition-all duration-300 ${isActive('/')
+            ? 'bg-red-600 text-white shadow-[0_0_20px_rgba(220,38,38,0.3)]'
+            : 'text-zinc-400 hover:text-white hover:bg-zinc-900'
+            }`}
         >
-          <svg
-            className="w-5 h-5 mr-3"
-            fill="currentColor"
-            viewBox="0 0 20 20"
-          >
-            <path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z" />
+          <svg className="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
           </svg>
-          <span>Home</span>
+          <span className="font-bold text-sm uppercase tracking-tight">Terminal</span>
         </Link>
       </nav>
 
       {/* Footer */}
-      <div className="absolute bottom-0 w-64 p-4 border-t border-blue-800">
-        <p className="text-blue-200 text-xs text-center">
-          © 2026 Excel Dashboard
-        </p>
+      <div className="absolute bottom-0 w-64 p-6 border-t border-zinc-900 bg-zinc-950/50 backdrop-blur-md">
+        <div className="flex items-center justify-center space-x-2 grayscale opacity-50 hover:grayscale-0 hover:opacity-100 transition-all cursor-default text-zinc-400">
+          <div className="w-2 h-2 rounded-full bg-red-600 animate-pulse"></div>
+          <p className="text-[10px] font-bold uppercase tracking-tighter">System Online</p>
+        </div>
       </div>
     </aside>
   );
