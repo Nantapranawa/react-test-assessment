@@ -50,22 +50,22 @@ export default function FileUpload({ onDataLoaded, variant = 'large' }: { onData
         />
         <label
           htmlFor="excel-input-compact"
-          className="flex items-center px-4 py-2 bg-zinc-950 text-white text-[10px] font-black uppercase tracking-widest cursor-pointer hover:bg-red-600 transition-all shadow-md disabled:opacity-50 active:scale-95 border-b-2 border-red-600"
+          className="flex items-center px-5 py-2.5 bg-zinc-950 text-white text-sm font-semibold rounded-lg cursor-pointer hover:bg-zinc-800 transition-all shadow-sm disabled:opacity-50 active:scale-95 border-b border-zinc-800"
         >
           {loading ? (
-            <svg className="animate-spin h-3 w-3 text-white" fill="none" viewBox="0 0 24 24">
+            <svg className="animate-spin h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
               <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
               <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
             </svg>
           ) : (
-            <svg className="w-3 h-3 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M12 4v16m8-8H4" />
+            <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
             </svg>
           )}
-          Import New Source
+          Upload Dataset
         </label>
         {error && (
-          <div className="absolute top-full left-0 mt-2 p-2 bg-red-600 text-white text-[8px] font-black uppercase z-50">
+          <div className="absolute top-full right-0 mt-2 p-3 bg-red-50 text-red-600 text-xs font-bold rounded-lg border border-red-100 shadow-lg z-50">
             {error}
           </div>
         )}
@@ -73,23 +73,19 @@ export default function FileUpload({ onDataLoaded, variant = 'large' }: { onData
     );
   }
 
-  // --- LARGE VARIANT UI (ORIGINAL) ---
+  // --- LARGE VARIANT UI ---
   return (
-    <div className="bg-white p-12 rounded-lg shadow-sm border border-zinc-200 text-center hover:border-red-500 transition-all duration-500 group relative overflow-hidden">
+    <div className="bg-white p-16 rounded-2xl shadow-sm border border-zinc-200 text-center hover:border-red-200 transition-all duration-300 group relative overflow-hidden">
 
-      {/* --- VISUAL ELEMENT: PROGRESS BAR --- 
-          Only visible when a file is being processed. Slides from left to right.
-      */}
-      <div className="absolute top-0 left-0 w-full h-1 bg-zinc-100">
-        <div className={`h-full bg-red-600 transition-all duration-1000 ${loading ? 'w-full' : 'w-0'}`}></div>
+      {/* --- VISUAL ELEMENT: PROGRESS BAR --- */}
+      <div className="absolute top-0 left-0 w-full h-1 bg-zinc-50">
+        <div className={`h-full bg-red-600 transition-all duration-700 ${loading ? 'w-full' : 'w-0'}`}></div>
       </div>
 
-      {/* --- VISUAL ELEMENT: DECORATIVE ICON --- 
-          The floating square icon with an arrow.
-      */}
-      <div className="w-16 h-16 bg-zinc-950 rounded-sm rotate-45 flex items-center justify-center mx-auto mb-10 group-hover:bg-red-600 transition-colors duration-500">
+      {/* --- VISUAL ELEMENT: DECORATIVE ICON --- */}
+      <div className="w-16 h-16 bg-zinc-50 rounded-2xl flex items-center justify-center mx-auto mb-8 group-hover:bg-red-50 transition-colors duration-300">
         <svg
-          className="w-6 h-6 text-white -rotate-45"
+          className="w-8 h-8 text-zinc-400 group-hover:text-red-600 transition-colors"
           fill="none"
           stroke="currentColor"
           viewBox="0 0 24 24"
@@ -97,21 +93,21 @@ export default function FileUpload({ onDataLoaded, variant = 'large' }: { onData
           <path
             strokeLinecap="round"
             strokeLinejoin="round"
-            strokeWidth={2}
-            d="M4 16v1a2 2 0 002 2h12a2 2 0 002-2v-1m-4-8l-4-4m0 0L8 8m4-4v12"
+            strokeWidth={1.5}
+            d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
           />
         </svg>
       </div>
 
       {/* --- VISUAL ELEMENT: TITLE & DESCRIPTION --- */}
-      <h3 className="text-sm font-black text-zinc-900 mb-2 uppercase tracking-[0.3em]">
-        Data Ingestion <span className="text-red-600">Portal</span>
+      <h3 className="text-xl font-bold text-zinc-900 mb-2">
+        Upload <span className="text-red-600">Excel File</span>
       </h3>
-      <p className="text-zinc-500 text-[10px] uppercase font-bold tracking-widest mb-10 max-w-xs mx-auto">
-        System accepts .XLSX and .XLS source files for real-time processing
+      <p className="text-zinc-500 text-base font-medium mb-10 max-w-sm mx-auto">
+        Select a .xlsx or .xls spreadsheet to analyze and process talent data.
       </p>
 
-      {/* HIDDEN INPUT: The actual file input box (hidden because it looks ugly by default) */}
+      {/* HIDDEN INPUT */}
       <input
         type="file"
         accept=".xlsx,.xls"
@@ -121,32 +117,28 @@ export default function FileUpload({ onDataLoaded, variant = 'large' }: { onData
         id="excel-input"
       />
 
-      {/* --- VISUAL ELEMENT: UPLOAD BUTTON --- 
-          This label is styled to look like a premium button. Clicking it triggers the hidden input above.
-      */}
+      {/* --- VISUAL ELEMENT: UPLOAD BUTTON --- */}
       <label
         htmlFor="excel-input"
-        className="inline-flex items-center px-10 py-4 bg-zinc-950 text-white text-[10px] font-black uppercase tracking-[0.2em] rounded-none cursor-pointer hover:bg-red-600 transition-all shadow-xl disabled:opacity-50 active:scale-95"
+        className="inline-flex items-center px-12 py-4 bg-zinc-950 text-white text-base font-bold rounded-xl cursor-pointer hover:bg-zinc-800 transition-all shadow-md disabled:opacity-50 active:scale-95"
       >
         {loading ? (
           <>
-            <svg className="animate-spin -ml-1 mr-3 h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
+            <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" fill="none" viewBox="0 0 24 24">
               <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
               <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
             </svg>
-            Processing Stream...
+            Uploading...
           </>
         ) : (
-          'Initialize Upload'
+          'Choose File'
         )}
       </label>
 
-      {/* --- VISUAL ELEMENT: ERROR MESSAGE --- 
-          Appears only if the upload fails (e.g., wrong file type or server down).
-      */}
+      {/* --- VISUAL ELEMENT: ERROR MESSAGE --- */}
       {error && (
-        <div className="mt-8 p-4 bg-red-600 text-white text-[10px] font-black uppercase tracking-widest animate-pulse shadow-lg">
-          [ Error ] {error}
+        <div className="mt-8 p-4 bg-red-50 text-red-600 text-base font-bold rounded-xl border border-red-100 animate-in fade-in slide-in-from-top-2">
+          {error}
         </div>
       )}
     </div>

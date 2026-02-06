@@ -13,51 +13,42 @@ export default function Home() {
 
   return (
     <div className="p-8">
-      {/* --- VISUAL ELEMENT: PAGE HEADER --- 
-          The main 'Systems Dashboard' title with a vertical red border.
-      */}
-      <div className="mb-12 border-l-4 border-red-600 pl-6">
-        <h1 className="text-4xl font-black text-zinc-950 mb-2 uppercase tracking-tighter">
-          Systems <span className="text-red-600">Dashboard</span>
+      {/* --- VISUAL ELEMENT: PAGE HEADER --- */}
+      <div className="mb-10 flex flex-col gap-1">
+        <h1 className="text-3xl font-bold text-zinc-900 tracking-tight">
+          Dashboard <span className="text-red-600">Overview</span>
         </h1>
-        <p className="text-zinc-500 text-xs font-bold uppercase tracking-[0.2em]">
-          Excel Data Processing
+        <p className="text-zinc-500 text-base font-medium">
+          Analytics and data management system
         </p>
       </div>
 
       {/* --- MAIN CONTENT CONTAINER --- */}
-      <div className="grid grid-cols-1 gap-12">
+      <div className="grid grid-cols-1 gap-10">
 
-        {/* --- SECTION: STAGE 01 (FILE UPLOAD) --- 
-            Now conditionally hidden when data is loaded.
-        */}
+        {/* --- SECTION: DATA IMPORT --- */}
         {!tableData && (
-          <div className="animate-in fade-in slide-in-from-bottom-4 duration-700">
-            <div className="flex items-center space-x-3 mb-6">
-              <div className="px-2 py-1 bg-zinc-950 text-white text-[10px] font-black uppercase tracking-widest">Stage 01</div>
-              <h2 className="text-xs font-black text-zinc-400 uppercase tracking-widest">Source Acquisition</h2>
+          <div className="animate-in fade-in slide-in-from-bottom-2 duration-500">
+            <div className="flex items-center space-x-2 mb-4">
+              <span className="w-1.5 h-1.5 rounded-full bg-zinc-900"></span>
+              <h2 className="text-base font-bold text-zinc-900">Import Interface</h2>
             </div>
             <FileUpload onDataLoaded={handleDataLoaded} />
           </div>
         )}
 
-        {/* --- SECTION: STAGE 02 (MAINTENANCE VIEW) --- 
-            When data is uploaded, this page goes into 'Maintenance' mode as requested.
-        */}
+        {/* --- SECTION: MAINTENANCE VIEW --- */}
         {tableData && (
-          <div className="animate-in fade-in zoom-in-95 duration-700">
-            <div className="flex items-center space-x-3 mb-6">
-              <div className="px-2 py-1 bg-red-600 text-white text-[10px] font-black uppercase tracking-widest">Stage 02</div>
-              <h2 className="text-xs font-black text-zinc-400 uppercase tracking-widest">System Status</h2>
+          <div className="animate-in fade-in zoom-in-95 duration-500">
+            <div className="flex items-center space-x-2 mb-4">
+              <span className="w-1.5 h-1.5 rounded-full bg-red-600"></span>
+              <h2 className="text-base font-bold text-zinc-900">Processing Status</h2>
             </div>
 
-            <div className="p-20 text-center bg-zinc-950 text-white rounded-none border border-red-600 shadow-2xl relative overflow-hidden group">
-              <div className="absolute top-0 right-0 p-4">
-                <div className="w-12 h-12 border-t-2 border-r-2 border-red-600 animate-pulse"></div>
-              </div>
-              <div className="w-20 h-20 bg-red-600/10 border border-red-600 flex items-center justify-center mx-auto mb-8 rotate-45 group-hover:scale-110 transition-transform duration-500">
+            <div className="p-16 text-center bg-zinc-50 rounded-2xl border border-zinc-200 shadow-sm relative overflow-hidden">
+              <div className="w-16 h-16 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-6">
                 <svg
-                  className="w-10 h-10 text-red-600 -rotate-45"
+                  className="w-8 h-8 text-red-600"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -66,36 +57,29 @@ export default function Home() {
                     strokeLinecap="round"
                     strokeLinejoin="round"
                     strokeWidth={2}
-                    d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+                    d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
                   />
                 </svg>
               </div>
-              <h3 className="text-xl font-black mb-4 uppercase tracking-[0.3em]">Visual Under Maintenance</h3>
-              <p className="text-zinc-500 text-[10px] font-bold uppercase tracking-widest max-w-md mx-auto italic">
-                Data stream active in Talent Management module. This interface is temporarily offline for visualization optimization.
+              <h3 className="text-2xl font-bold text-zinc-900 mb-3">Visualization Under Maintenance</h3>
+              <p className="text-zinc-500 text-base font-medium max-w-md mx-auto">
+                Detailed analytics have been routed to the <strong>Talent Management</strong> module. Please navigate there to view the processed data streams and talent metrics.
               </p>
-              <div className="mt-8 flex justify-center space-x-4">
-                <div className="w-2 h-2 rounded-full bg-red-600 animate-ping"></div>
-                <div className="w-2 h-2 rounded-full bg-red-600 animate-ping delay-75"></div>
-                <div className="w-2 h-2 rounded-full bg-red-600 animate-ping delay-150"></div>
+              <div className="mt-8 flex justify-center space-x-2">
+                <div className="w-1.5 h-1.5 rounded-full bg-red-600/40"></div>
+                <div className="w-1.5 h-1.5 rounded-full bg-red-600"></div>
+                <div className="w-1.5 h-1.5 rounded-full bg-red-600/40"></div>
               </div>
             </div>
           </div>
         )}
 
-        {/* --- VISUAL ELEMENT: EMPTY STATE --- 
-            This placeholder shows up when NO DATA has been uploaded yet.
-        */}
+        {/* --- VISUAL ELEMENT: EMPTY STATE --- */}
         {!tableData && (
-          <div className="p-20 text-center bg-zinc-50/50 rounded-none border border-zinc-100 shadow-sm transition-all relative overflow-hidden group">
-            {/* Decorative corner element */}
-            <div className="absolute top-0 right-0 p-4">
-              <div className="w-12 h-12 border-t-2 border-r-2 border-zinc-200 group-hover:border-red-600 transition-colors duration-500"></div>
-            </div>
-            {/* Large central icon */}
-            <div className="w-20 h-20 bg-white shadow-sm border border-zinc-100 flex items-center justify-center mx-auto mb-8 rotate-45 group-hover:border-red-500 transition-colors">
+          <div className="p-16 text-center bg-zinc-50/50 rounded-2xl border border-zinc-100 shadow-sm transition-all group">
+            <div className="w-20 h-20 bg-white shadow-sm border border-zinc-100 rounded-2xl flex items-center justify-center mx-auto mb-6 group-hover:border-red-200 transition-colors">
               <svg
-                className="w-8 h-8 text-zinc-300 -rotate-45 group-hover:text-red-600 transition-colors duration-500"
+                className="w-8 h-8 text-zinc-300 group-hover:text-red-500 transition-colors duration-300"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -104,12 +88,12 @@ export default function Home() {
                   strokeLinecap="round"
                   strokeLinejoin="round"
                   strokeWidth={1.5}
-                  d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"
+                  d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1.001.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
                 />
               </svg>
             </div>
-            <p className="text-sm font-black text-zinc-950 mb-2 uppercase tracking-[0.2em]">Awaiting Data Feed</p>
-            <p className="text-zinc-500 text-[10px] font-bold uppercase tracking-widest">System ready for Excel source ingestion.</p>
+            <p className="text-xl font-bold text-zinc-900 mb-1">Awaiting Data Feed</p>
+            <p className="text-zinc-500 text-base font-medium">Please upload an Excel file to begin processing.</p>
           </div>
         )}
       </div>

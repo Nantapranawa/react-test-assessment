@@ -15,22 +15,22 @@ export default function TalentManagementPage() {
     return (
         <div className="p-8">
             {/* PAGE HEADER */}
-            <div className="mb-12 border-l-4 border-red-600 pl-6">
-                <h1 className="text-4xl font-black text-zinc-950 mb-2 uppercase tracking-tighter">
+            <div className="mb-10 flex flex-col gap-1">
+                <h1 className="text-3xl font-bold text-zinc-900 tracking-tight">
                     Talent <span className="text-red-600">Management</span>
                 </h1>
-                <p className="text-zinc-500 text-xs font-bold uppercase tracking-[0.2em]">
-                    Internal Personnel Development & Tracking System
+                <p className="text-zinc-500 text-base font-medium">
+                    Personnel development and resource allocation tracking
                 </p>
             </div>
 
             {/* CONDITIONAL CONTENT */}
             {tableData ? (
-                <div className="animate-in fade-in zoom-in-95 duration-700">
+                <div className="animate-in fade-in zoom-in-95 duration-500">
                     <div className="flex items-center justify-between mb-6">
-                        <div className="flex items-center space-x-3">
-                            <div className="px-2 py-1 bg-zinc-950 text-white text-[10px] font-black uppercase tracking-widest">Active Feed</div>
-                            <h2 className="text-xs font-black text-zinc-400 uppercase tracking-widest">Live Talent Matrix</h2>
+                        <div className="flex items-center space-x-2">
+                            <span className="w-1.5 h-1.5 rounded-full bg-red-600"></span>
+                            <h2 className="text-base font-bold text-zinc-900">Active Talent Matrix</h2>
                         </div>
 
                         {/* COMPACT UPLOAD BUTTON for swapping data */}
@@ -44,13 +44,10 @@ export default function TalentManagementPage() {
                     />
                 </div>
             ) : (
-                <div className="p-20 text-center bg-zinc-50/50 rounded-none border border-zinc-100 shadow-sm transition-all relative overflow-hidden group">
-                    <div className="absolute top-0 right-0 p-4">
-                        <div className="w-12 h-12 border-t-2 border-r-2 border-zinc-200 group-hover:border-red-600 transition-colors duration-500"></div>
-                    </div>
-                    <div className="w-20 h-20 bg-white shadow-sm border border-zinc-100 flex items-center justify-center mx-auto mb-8 rotate-45 group-hover:border-red-500 transition-colors">
+                <div className="p-16 text-center bg-zinc-50/50 rounded-2xl border border-zinc-100 shadow-sm transition-all group">
+                    <div className="w-20 h-20 bg-white shadow-sm border border-zinc-100 rounded-2xl flex items-center justify-center mx-auto mb-6 group-hover:border-red-200 transition-colors">
                         <svg
-                            className="w-8 h-8 text-zinc-300 -rotate-45 group-hover:text-red-600 transition-colors duration-500"
+                            className="w-8 h-8 text-zinc-300 group-hover:text-red-500 transition-colors duration-300"
                             fill="none"
                             stroke="currentColor"
                             viewBox="0 0 24 24"
@@ -63,14 +60,14 @@ export default function TalentManagementPage() {
                             />
                         </svg>
                     </div>
-                    <p className="text-sm font-black text-zinc-950 mb-2 uppercase tracking-[0.2em]">Data Ingestion Required</p>
-                    <p className="text-zinc-500 text-[10px] font-bold uppercase tracking-widest mb-8">No active dataset detected in system memory.</p>
+                    <p className="text-xl font-bold text-zinc-900 mb-1">No Dataset Detected</p>
+                    <p className="text-zinc-500 text-base font-medium mb-8">Please initialize the data feed from the main dashboard.</p>
 
                     <Link
                         href="/"
-                        className="inline-flex items-center px-8 py-3 bg-zinc-950 text-white text-[10px] font-black uppercase tracking-widest hover:bg-red-600 transition-all shadow-lg active:scale-95"
+                        className="inline-flex items-center px-10 py-3 bg-zinc-950 text-white text-base font-bold rounded-xl hover:bg-zinc-800 transition-all shadow-md active:scale-95"
                     >
-                        Go to Home to Upload Source
+                        Return to Dashboard
                     </Link>
                 </div>
             )}
