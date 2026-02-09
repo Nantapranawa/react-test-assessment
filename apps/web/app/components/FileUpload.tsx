@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 
-export default function FileUpload({ onDataLoaded, variant = 'compact' }: { onDataLoaded: (data: any) => void; variant?: 'large' | 'compact' }) {
+export default function FileUpload({ onDataLoaded }: { onDataLoaded: (data: any) => void }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 

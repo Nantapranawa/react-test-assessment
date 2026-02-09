@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import * as XLSX from 'xlsx';
+import ExcelJS from 'exceljs';
 
 export const getRoot = (req: Request, res: Response) => {
     res.json({ message: "Hello from TypeScript Backend!" });
@@ -9,21 +9,56 @@ export const getData = (req: Request, res: Response) => {
     res.json({ users: ["Alice", "Bob", "Charlie"] });
 };
 
-export const uploadExcel = (req: Request, res: Response) => {
+export const uploadExcel = async (req: Request, res: Response) => {
     try {
         if (!req.file) {
             return res.status(400).json({ success: false, error: "No file uploaded" });
         }
 
-        const workbook = XLSX.read(req.file.buffer, { type: 'buffer' });
-        const sheetName = workbook.SheetNames[0];
-        const sheet = workbook.Sheets[sheetName];
+        const workbook = new ExcelJS.Workbook();
+        await workbook.xlsx.load(req.file.buffer as any);
 
-        // Use defval: null to match Python's fillna behavior for numeric columns if needed
-        const data = XLSX.utils.sheet_to_json(sheet, { defval: null });
+        const worksheet = workbook.worksheets[0];
 
-        // Get columns from the header row
-        const headers = XLSX.utils.sheet_to_json(sheet, { header: 1 })[0] as string[];
+        if (!worksheet) {
+            return res.status(400).json({ success: false, error: "No worksheet found in the file" });
+        }
+
+        // Get headers from the first row
+        const headers: string[] = [];
+        const firstRow = worksheet.getRow(1);
+        firstRow.eachCell((cell, colNumber) => {
+            headers[colNumber - 1] = cell.value?.toString() || `Column${colNumber}`;
+        });
+
+        // Get data rows (starting from row 2)
+        const data: Record<string, any>[] = [];
+        worksheet.eachRow((row, rowNumber) => {
+            if (rowNumber === 1) return; // Skip header row
+
+            const rowData: Record<string, any> = {};
+            row.eachCell((cell, colNumber) => {
+                const header = headers[colNumber - 1];
+                if (header) {
+                    // Handle different cell value types
+                    let value = cell.value;
+                    if (value && typeof value === 'object' && 'result' in value) {
+                        // Handle formula cells - use the calculated result
+                        value = value.result;
+                    }
+                    rowData[header] = value ?? null;
+                }
+            });
+
+            // Ensure all headers have a value (even if null)
+            headers.forEach(header => {
+                if (!(header in rowData)) {
+                    rowData[header] = null;
+                }
+            });
+
+            data.push(rowData);
+        });
 
         res.json({
             success: true,

@@ -2,15 +2,10 @@
 
 import { useData } from '../lib/DataContext';
 import DataTable from '../components/DataTable';
-import FileUpload from '../components/FileUpload';
 import Link from 'next/link';
 
 export default function TalentManagementPage() {
-    const { tableData, setTableData } = useData();
-
-    const handleDataLoaded = (data: any) => {
-        setTableData(data);
-    };
+    const { tableData } = useData();
 
     return (
         <div className="p-8">
@@ -32,9 +27,6 @@ export default function TalentManagementPage() {
                             <span className="w-1.5 h-1.5 rounded-full bg-red-600"></span>
                             <h2 className="text-base font-bold text-zinc-900">Active Talent Matrix</h2>
                         </div>
-
-                        {/* COMPACT UPLOAD BUTTON for swapping data */}
-                        <FileUpload onDataLoaded={handleDataLoaded} variant="compact" />
                     </div>
 
                     <DataTable
