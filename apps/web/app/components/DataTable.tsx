@@ -37,7 +37,7 @@ export default function DataTable({ columns, data, rowCount }: DataTableProps) {
                   key={col}
                   className="px-6 py-5 text-left text-sm font-semibold tracking-wide border-r border-zinc-800 last:border-0"
                 >
-                  {col}
+                  {col.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')}
                 </th>
               ))}
             </tr>
@@ -51,6 +51,36 @@ export default function DataTable({ columns, data, rowCount }: DataTableProps) {
               >
                 {columns.map((col) => {
                   const isNameColumn = col.toLowerCase().includes('name');
+                  const isStatusColumn = col === 'availability_status';
+
+                  if (isStatusColumn) {
+                    const status = row[col] ? String(row[col]) : 'Not Yet Contacted';
+                    const lowerStatus = status.toLowerCase();
+
+                    let badgeClass = "bg-zinc-100 text-zinc-600 border-zinc-200"; // Default / Not Yet Contacted
+
+                    if (lowerStatus.includes("accepted")) {
+                      badgeClass = "bg-emerald-100 text-emerald-700 border-emerald-200";
+                    } else if (lowerStatus.includes("rejected")) {
+                      badgeClass = "bg-red-100 text-red-700 border-red-200";
+                    } else if (lowerStatus.includes("pending")) {
+                      badgeClass = "bg-amber-100 text-amber-700 border-amber-200";
+                    } else if (lowerStatus.includes("reschedule")) {
+                      badgeClass = "bg-blue-100 text-blue-700 border-blue-200";
+                    }
+
+                    return (
+                      <td
+                        key={`${idx}-${col}`}
+                        className="px-6 py-5 border-r border-zinc-50 last:border-0 transition-colors group-hover:text-zinc-950"
+                      >
+                        <span className={`px-3 py-1 rounded-full text-xs font-semibold border ${badgeClass} inline-flex items-center justify-center min-w-[100px]`}>
+                          {status}
+                        </span>
+                      </td>
+                    );
+                  }
+
                   return (
                     <td
                       key={`${idx}-${col}`}

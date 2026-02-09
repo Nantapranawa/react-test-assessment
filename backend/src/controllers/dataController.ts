@@ -1,12 +1,39 @@
 import { Request, Response } from 'express';
 import ExcelJS from 'exceljs';
+import { prisma } from '../lib/prisma';
 
 export const getRoot = (req: Request, res: Response) => {
     res.json({ message: "Hello from TypeScript Backend!" });
 };
 
-export const getData = (req: Request, res: Response) => {
-    res.json({ users: ["Alice", "Bob", "Charlie"] });
+export const getData = async (req: Request, res: Response) => {
+    try {
+        const employees = await prisma.employee.findMany({
+            orderBy: {
+                id: 'asc'
+            }
+        });
+
+        // Map data to the format expected by the frontend
+        if (employees.length > 0) {
+            const columns = Object.keys(employees[0]).filter(key => key !== 'id');
+            res.json({
+                success: true,
+                columns: columns,
+                data: employees,
+                row_count: employees.length
+            });
+        } else {
+            res.json({
+                success: true,
+                columns: [],
+                data: [],
+                row_count: 0
+            });
+        }
+    } catch (error: any) {
+        res.status(500).json({ success: false, error: error.message });
+    }
 };
 
 export const uploadExcel = async (req: Request, res: Response) => {
@@ -24,49 +51,85 @@ export const uploadExcel = async (req: Request, res: Response) => {
             return res.status(400).json({ success: false, error: "No worksheet found in the file" });
         }
 
-        // Get headers from the first row
+        // Get headers from the first row and normalize them
         const headers: string[] = [];
         const firstRow = worksheet.getRow(1);
         firstRow.eachCell((cell, colNumber) => {
-            headers[colNumber - 1] = cell.value?.toString() || `Column${colNumber}`;
+            // Normalize header: lowercase, trim, and replace spaces with underscores to match DB schema
+            const header = cell.value?.toString().toLowerCase().trim().replace(/\s+/g, '_') || `column${colNumber}`;
+            headers[colNumber - 1] = header;
         });
 
+        // Ensure availability_status is part of the headers for frontend display
+        if (!headers.includes('availability_status')) {
+            headers.push('availability_status');
+        }
+
         // Get data rows (starting from row 2)
-        const data: Record<string, any>[] = [];
+        const employees: any[] = [];
         worksheet.eachRow((row, rowNumber) => {
             if (rowNumber === 1) return; // Skip header row
 
-            const rowData: Record<string, any> = {};
+            const employeeData: any = {};
             row.eachCell((cell, colNumber) => {
                 const header = headers[colNumber - 1];
                 if (header) {
-                    // Handle different cell value types
                     let value = cell.value;
+
+                    // Handle formula cells
                     if (value && typeof value === 'object' && 'result' in value) {
-                        // Handle formula cells - use the calculated result
-                        value = value.result;
+                        value = (value as any).result;
                     }
-                    rowData[header] = value ?? null;
+
+                    // Type casting to match Prisma Schema
+                    if (header === 'no' || header === 'bp') {
+                        if (value === null || value === undefined || value === '') {
+                            value = 0;
+                        } else {
+                            const parsed = parseInt(value.toString().replace(/[^0-9]/g, ''));
+                            value = isNaN(parsed) ? 0 : parsed;
+                        }
+                    } else if (header === 'nik' || header === 'phone') {
+                        value = value ? value.toString().trim() : (header === 'phone' ? null : '');
+                    } else {
+                        value = value ? value.toString().trim() : '';
+                    }
+
+                    employeeData[header] = value;
                 }
             });
 
-            // Ensure all headers have a value (even if null)
-            headers.forEach(header => {
-                if (!(header in rowData)) {
-                    rowData[header] = null;
-                }
-            });
+            // Ensure availability_status has a default if missing or empty
+            if (!employeeData.availability_status) {
+                employeeData.availability_status = "Not Yet Contacted";
+            }
 
-            data.push(rowData);
+            // Only add if we have at least some data and required fields are present
+            if (Object.keys(employeeData).length > 0 && (employeeData.nama || employeeData.nik)) {
+                employees.push(employeeData);
+            }
+        });
+
+        if (employees.length === 0) {
+            return res.status(400).json({ success: false, error: "No valid data found in Excel" });
+        }
+
+        // SAVE TO DATABASE
+        // Changed skipDuplicates to true because NIK and Phone are now UNIQUE
+        const result = await prisma.employee.createMany({
+            data: employees,
+            skipDuplicates: true
         });
 
         res.json({
             success: true,
+            message: `${result.count} employees saved successfully`,
             columns: headers,
-            data: data,
-            row_count: data.length
+            data: employees,
+            row_count: employees.length
         });
     } catch (error: any) {
+        console.error("Upload error:", error);
         res.status(500).json({
             success: false,
             error: error.message
