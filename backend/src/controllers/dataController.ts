@@ -56,7 +56,13 @@ export const uploadExcel = async (req: Request, res: Response) => {
         const firstRow = worksheet.getRow(1);
         firstRow.eachCell((cell, colNumber) => {
             // Normalize header: lowercase, trim, and replace spaces with underscores to match DB schema
-            const header = cell.value?.toString().toLowerCase().trim().replace(/\s+/g, '_') || `column${colNumber}`;
+            let header = cell.value?.toString().toLowerCase().trim().replace(/\s+/g, '_') || `column${colNumber}`;
+
+            // Map 'ready' to 'tc_result' to match Prisma schema
+            if (header === 'ready') {
+                header = 'tc_result';
+            }
+
             headers[colNumber - 1] = header;
         });
 

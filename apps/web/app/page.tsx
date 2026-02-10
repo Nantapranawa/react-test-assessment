@@ -5,11 +5,13 @@ import FileUpload from './components/FileUpload';
 import DataTable from './components/DataTable';
 
 export default function Home() {
-  const { tableData, setTableData } = useData();
+  const { tableData, setTableData, loading } = useData();
 
   const handleDataLoaded = (data: any) => {
     setTableData(data);
   };
+
+  const hasData = tableData && tableData.data && tableData.data.length > 0;
 
   return (
     <div className="p-8">
@@ -27,7 +29,7 @@ export default function Home() {
       <div className="grid grid-cols-1 gap-10">
 
         {/* --- SECTION: DATA IMPORT --- */}
-        {!tableData && (
+        {!hasData && !loading && (
           <div className="animate-in fade-in slide-in-from-bottom-2 duration-500">
             <div className="flex items-center space-x-2 mb-4">
               <span className="w-1.5 h-1.5 rounded-full bg-zinc-900"></span>
@@ -38,7 +40,7 @@ export default function Home() {
         )}
 
         {/* --- SECTION: MAINTENANCE VIEW --- */}
-        {tableData && (
+        {hasData && (
           <div className="animate-in fade-in zoom-in-95 duration-500">
             <div className="flex items-center space-x-2 mb-4">
               <span className="w-1.5 h-1.5 rounded-full bg-red-600"></span>
@@ -75,7 +77,7 @@ export default function Home() {
         )}
 
         {/* --- VISUAL ELEMENT: EMPTY STATE --- */}
-        {!tableData && (
+        {!hasData && !loading && (
           <div className="p-16 text-center bg-zinc-50/50 rounded-2xl border border-zinc-100 shadow-sm transition-all group">
             <div className="w-20 h-20 bg-white shadow-sm border border-zinc-100 rounded-2xl flex items-center justify-center mx-auto mb-6 group-hover:border-red-200 transition-colors">
               <svg

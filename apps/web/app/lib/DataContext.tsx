@@ -11,6 +11,7 @@ interface TableData {
 interface DataContextType {
     tableData: TableData | null;
     setTableData: (data: TableData | null) => void;
+    refreshData: () => Promise<void>;
     loading: boolean;
 }
 
@@ -20,27 +21,31 @@ export function DataProvider({ children }: { children: ReactNode }) {
     const [tableData, setTableData] = useState<TableData | null>(null);
     const [loading, setLoading] = useState(true);
 
-    useEffect(() => {
-        const fetchData = async () => {
-            try {
-                const response = await fetch('http://localhost:8000/api/data/list');
-                const result = await response.json();
+    const refreshData = async () => {
+        try {
+            const response = await fetch('http://localhost:8000/api/data/list');
+            const result = await response.json();
 
-                if (result.success && result.row_count > 0) {
-                    setTableData(result);
-                }
-            } catch (error) {
-                console.error("Failed to fetch initial data:", error);
-            } finally {
-                setLoading(false);
+            if (result.success) {
+                setTableData(result);
             }
-        };
+        } catch (error) {
+            console.error("Failed to refresh data:", error);
+        } finally {
+            setLoading(false);
+        }
+    };
 
-        fetchData();
+    useEffect(() => {
+        refreshData();
+
+        // Auto-refresh every 5 seconds for "real-time" sync
+        const interval = setInterval(refreshData, 5000);
+        return () => clearInterval(interval);
     }, []);
 
     return (
-        <DataContext.Provider value={{ tableData, setTableData, loading }}>
+        <DataContext.Provider value={{ tableData, setTableData, refreshData, loading }}>
             {children}
         </DataContext.Provider>
     );

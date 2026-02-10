@@ -30,7 +30,7 @@ model Employee {
   expired             String
   ac_result           String
   phone               String? @unique
-  ready               String
+  tc_result           String
   availability_status String  @default("Not Yet Contacted")
   usulan_ubis         String  @default("Unknown")
   batches             Batch[]

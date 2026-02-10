@@ -35,6 +35,16 @@ export const createBatch = async (req: Request, res: Response) => {
             }
         });
 
+        // Update employees status to "Batch Draft"
+        await prisma.employee.updateMany({
+            where: {
+                id: { in: employeeIds }
+            },
+            data: {
+                availability_status: "Batch Draft"
+            }
+        });
+
         res.json({
             success: true,
             data: batch
@@ -51,6 +61,12 @@ export const listBatches = async (req: Request, res: Response) => {
             include: {
                 _count: {
                     select: { employees: true }
+                },
+                employees: {
+                    select: {
+                        bp: true,
+                        availability_status: true
+                    }
                 }
             },
             orderBy: {
@@ -73,7 +89,11 @@ export const getBatch = async (req: Request, res: Response) => {
         const batch = await prisma.batch.findUnique({
             where: { id: parseInt(id) },
             include: {
-                employees: true
+                employees: {
+                    orderBy: {
+                        id: 'asc' // Stable order by ID
+                    }
+                }
             }
         });
 
@@ -86,6 +106,122 @@ export const getBatch = async (req: Request, res: Response) => {
             data: batch
         });
     } catch (error: any) {
+        res.status(500).json({ success: false, error: error.message });
+    }
+};
+
+export const deleteBatch = async (req: Request, res: Response) => {
+    try {
+        const { id } = req.params;
+        const batchId = parseInt(id);
+
+        const batch = await prisma.batch.findUnique({
+            where: { id: batchId },
+            include: {
+                employees: {
+                    select: {
+                        id: true,
+                        availability_status: true
+                    }
+                }
+            }
+        });
+
+        if (!batch) {
+            return res.status(404).json({ success: false, error: "Batch not found" });
+        }
+
+        // Check if ALL employees are "Batch Draft"
+        const allDraft = batch.employees.every(emp => emp.availability_status === "Batch Draft");
+
+        if (!allDraft) {
+            return res.status(400).json({ success: false, error: "Cannot delete batch. Not all employees are 'Batch Draft'." });
+        }
+
+        // Transaction:
+        // 1. Update status of employees in this batch to "Not Yet Contacted"
+        // 2. Delete the batch (this automatically removes the relation in the join table)
+        await prisma.$transaction([
+            prisma.employee.updateMany({
+                where: {
+                    id: { in: batch.employees.map(e => e.id) }
+                },
+                data: {
+                    availability_status: "Not Yet Contacted"
+                }
+            }),
+            prisma.batch.delete({
+                where: { id: batchId }
+            })
+        ]);
+
+        res.json({ success: true, message: "Batch deleted and employees reverted to 'Not Yet Contacted'" });
+
+    } catch (error: any) {
+        res.status(500).json({ success: false, error: error.message });
+    }
+};
+
+export const replaceEmployee = async (req: Request, res: Response) => {
+    try {
+        const { id: batchIdStr } = req.params;
+        const { oldEmployeeId, newEmployeeId } = req.body;
+        const batchId = parseInt(batchIdStr);
+
+        if (!oldEmployeeId || !newEmployeeId) {
+            return res.status(400).json({ success: false, error: "Missing old or new employee ID" });
+        }
+
+        const batch = await prisma.batch.findUnique({
+            where: { id: batchId },
+            include: { employees: { select: { id: true } } }
+        });
+
+        if (!batch) {
+            return res.status(404).json({ success: false, error: "Batch not found" });
+        }
+
+        const isOldEmployeeInBatch = batch.employees.some(e => e.id === oldEmployeeId);
+        if (!isOldEmployeeInBatch) {
+            return res.status(400).json({ success: false, error: "Old employee not found in this batch" });
+        }
+
+        // Transaction to ensure atomic replacement and status updates
+        await prisma.$transaction([
+            // 1. Update batch relationships
+            prisma.batch.update({
+                where: { id: batchId },
+                data: {
+                    employees: {
+                        disconnect: { id: oldEmployeeId },
+                        connect: { id: newEmployeeId }
+                    }
+                }
+            }),
+            // 2. Revert old employee status
+            prisma.employee.update({
+                where: { id: oldEmployeeId },
+                data: { availability_status: "Not Yet Contacted" }
+            }),
+            // 3. Set new employee status
+            prisma.employee.update({
+                where: { id: newEmployeeId },
+                data: { availability_status: "Batch Draft" }
+            })
+        ]);
+
+        const newEmployee = await prisma.employee.findUnique({
+            where: { id: newEmployeeId }
+        });
+
+        res.json({
+            success: true,
+            message: "Employee replaced successfully",
+            data: newEmployee
+        });
+
+    } catch (error: any) {
+        console.error("Replace employee error:", error);
         res.status(500).json({ success: false, error: error.message });
     }
 };

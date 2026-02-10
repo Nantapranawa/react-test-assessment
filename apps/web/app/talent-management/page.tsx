@@ -5,7 +5,7 @@ import { useData } from '../lib/DataContext';
 import { useRouter } from 'next/navigation';
 
 export default function TalentManagementPage() {
-    const { tableData, loading } = useData();
+    const { tableData, loading, refreshData } = useData();
     const router = useRouter();
 
     // State
@@ -13,8 +13,10 @@ export default function TalentManagementPage() {
     const [selectedBP1, setSelectedBP1] = useState<Set<number>>(new Set());
     const [selectedBP2, setSelectedBP2] = useState<Set<number>>(new Set());
     const [isModalOpen, setIsModalOpen] = useState(false);
-    const [location, setLocation] = useState('');
-    const [assessmentDate, setAssessmentDate] = useState('');
+    const [locationBP1, setLocationBP1] = useState('');
+    const [assessmentDateBP1, setAssessmentDateBP1] = useState('');
+    const [locationBP2, setLocationBP2] = useState('');
+    const [assessmentDateBP2, setAssessmentDateBP2] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     // Constants
@@ -55,28 +57,52 @@ export default function TalentManagementPage() {
         }
     };
 
-    const isSelectionComplete = selectedBP1.size === QUOTA_BP1 && selectedBP2.size === QUOTA_BP2;
+    const isBP1Ready = selectedBP1.size === QUOTA_BP1;
+    const isBP2Ready = selectedBP2.size === QUOTA_BP2;
+    const isSelectionComplete = isBP1Ready || isBP2Ready;
+    const isBothSelected = isBP1Ready && isBP2Ready;
 
     const handleCreateBatch = async () => {
         setIsSubmitting(true);
         try {
-            const allSelectedIds = [...Array.from(selectedBP1), ...Array.from(selectedBP2)];
+            const promises = [];
 
-            const response = await fetch('http://localhost:8000/api/batches', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    location,
-                    assessmentDate,
-                    employeeIds: allSelectedIds
-                })
-            });
+            if (isBP1Ready) {
+                promises.push(fetch('http://localhost:8000/api/batches', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        location: locationBP1,
+                        assessmentDate: assessmentDateBP1,
+                        employeeIds: Array.from(selectedBP1),
+                        batchName: "BP 1 Batch"
+                    })
+                }));
+            }
 
-            const result = await response.json();
-            if (result.success) {
+            if (isBP2Ready) {
+                promises.push(fetch('http://localhost:8000/api/batches', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        location: locationBP2,
+                        assessmentDate: assessmentDateBP2,
+                        employeeIds: Array.from(selectedBP2),
+                        batchName: "BP 2 Batch"
+                    })
+                }));
+            }
+
+            const responses = await Promise.all(promises);
+            const results = await Promise.all(responses.map(r => r.json()));
+
+            const failures = results.filter(r => !r.success);
+
+            if (failures.length === 0) {
+                await refreshData();
                 router.push('/batch-management');
             } else {
-                alert('Failed to create batch: ' + result.error);
+                alert('Failed to create some batches: ' + failures.map(f => f.error).join(', '));
             }
         } catch (error) {
             alert('An error occurred');
@@ -117,7 +143,7 @@ export default function TalentManagementPage() {
                                 <th className="px-6 py-5 font-bold tracking-wider">Expired</th>
                                 <th className="px-6 py-5 font-bold tracking-wider">Result</th>
                                 <th className="px-6 py-5 font-bold tracking-wider">Phone</th>
-                                <th className="px-6 py-5 font-bold tracking-wider">Ready</th>
+                                <th className="px-6 py-5 font-bold tracking-wider">TC Result</th>
                                 <th className="px-6 py-5 font-bold tracking-wider">Ubis</th>
                                 <th className="px-6 py-5 font-bold tracking-wider">Status</th>
                             </tr>
@@ -135,6 +161,7 @@ export default function TalentManagementPage() {
                                 else if (lowerStatus.includes("rejected")) badgeClass = "bg-red-50 text-red-700 border-red-100";
                                 else if (lowerStatus.includes("pending")) badgeClass = "bg-amber-50 text-amber-700 border-amber-100";
                                 else if (lowerStatus.includes("reschedule")) badgeClass = "bg-blue-50 text-blue-700 border-blue-100";
+                                else if (lowerStatus.includes("draft")) badgeClass = "bg-orange-50 text-orange-700 border-orange-100";
 
                                 return (
                                     <tr key={employee.id} className={`hover:bg-zinc-50/80 transition-all duration-200 group ${isSelected ? 'bg-red-50/40' : ''}`}>
@@ -157,7 +184,7 @@ export default function TalentManagementPage() {
                                         <td className="px-6 py-5 text-zinc-600 whitespace-nowrap">{employee.expired}</td>
                                         <td className="px-6 py-5 text-zinc-600">{employee.ac_result}</td>
                                         <td className="px-6 py-5 text-zinc-500">{employee.phone || '-'}</td>
-                                        <td className="px-6 py-5 text-zinc-600">{employee.ready}</td>
+                                        <td className="px-6 py-5 text-zinc-600">{employee.tc_result}</td>
                                         <td className="px-6 py-5 text-zinc-600">{employee.usulan_ubis}</td>
                                         <td className="px-6 py-5">
                                             <span className={`px-3 py-1 rounded-full text-[10px] font-bold border uppercase tracking-wider inline-flex items-center transform transition-transform group-hover:scale-105 whitespace-nowrap ${badgeClass}`}>
@@ -260,54 +287,84 @@ export default function TalentManagementPage() {
                             </button>
                         </div>
 
-                        <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-8">
-                            {/* Form */}
-                            <div className="space-y-4">
-                                <div>
-                                    <label className="block text-sm font-medium text-zinc-700 mb-1">Batch Location</label>
-                                    <input
-                                        type="text"
-                                        value={location}
-                                        onChange={(e) => setLocation(e.target.value)}
-                                        className="w-full px-3 py-2 border border-zinc-300 rounded-lg focus:ring-2 focus:ring-red-500/20 focus:border-red-500 text-sm"
-                                        placeholder="e.g. Jakarta HQ"
-                                    />
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-zinc-700 mb-1">Assessment Date</label>
-                                    <input
-                                        type="date"
-                                        value={assessmentDate}
-                                        onChange={(e) => setAssessmentDate(e.target.value)}
-                                        className="w-full px-3 py-2 border border-zinc-300 rounded-lg focus:ring-2 focus:ring-red-500/20 focus:border-red-500 text-sm"
-                                    />
-                                </div>
-                            </div>
+                        <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-8 max-h-[70vh] overflow-y-auto">
+                            {/* BP 1 Section */}
+                            {(isBP1Ready) && (
+                                <div className={`space-y-4 ${isBothSelected ? 'border-r pr-4 border-zinc-200' : 'col-span-2'}`}>
+                                    <h3 className="text-lg font-bold text-zinc-800 flex items-center">
+                                        <div className="w-2 h-2 rounded-full bg-red-600 mr-2"></div>
+                                        BP 1 Batch Configuration
+                                    </h3>
 
-                            {/* Summary */}
-                            <div className="bg-zinc-50 rounded-lg p-4 border border-zinc-100">
-                                <h3 className="text-sm font-bold text-zinc-900 mb-3">Selected Candidates</h3>
-                                <div className="space-y-4 max-h-[200px] overflow-y-auto pr-2 custom-scrollbar">
                                     <div>
-                                        <p className="text-xs font-semibold text-zinc-500 mb-1">BP 1 ({selectedBP1.size})</p>
-                                        <ul className="text-sm text-zinc-700 space-y-1">
+                                        <label className="block text-sm font-medium text-zinc-700 mb-1">Location</label>
+                                        <input
+                                            type="text"
+                                            value={locationBP1}
+                                            onChange={(e) => setLocationBP1(e.target.value)}
+                                            className="w-full px-3 py-2 border border-zinc-300 rounded-lg focus:ring-2 focus:ring-red-500/20 focus:border-red-500 text-sm"
+                                            placeholder="e.g. Jakarta HQ"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-zinc-700 mb-1">Assessment Date</label>
+                                        <input
+                                            type="date"
+                                            value={assessmentDateBP1}
+                                            onChange={(e) => setAssessmentDateBP1(e.target.value)}
+                                            className="w-full px-3 py-2 border border-zinc-300 rounded-lg focus:ring-2 focus:ring-red-500/20 focus:border-red-500 text-sm"
+                                        />
+                                    </div>
+                                    <div className="bg-zinc-50 rounded-lg p-3 border border-zinc-100">
+                                        <p className="text-xs font-semibold text-zinc-500 mb-2">Selected Candidates ({selectedBP1.size})</p>
+                                        <ul className="text-sm text-zinc-700 space-y-1 max-h-[100px] overflow-y-auto custom-scrollbar">
                                             {Array.from(selectedBP1).map(id => {
                                                 const emp = tableData?.data.find((e: any) => e.id === id);
-                                                return <li key={id} className="truncate">• {emp?.nama}</li>
-                                            })}
-                                        </ul>
-                                    </div>
-                                    <div>
-                                        <p className="text-xs font-semibold text-zinc-500 mb-1">BP 2 ({selectedBP2.size})</p>
-                                        <ul className="text-sm text-zinc-700 space-y-1">
-                                            {Array.from(selectedBP2).map(id => {
-                                                const emp = tableData?.data.find((e: any) => e.id === id);
-                                                return <li key={id} className="truncate">• {emp?.nama}</li>
+                                                return <li key={id} className="truncate text-xs">• {emp?.nama}</li>
                                             })}
                                         </ul>
                                     </div>
                                 </div>
-                            </div>
+                            )}
+
+                            {/* BP 2 Section */}
+                            {(isBP2Ready) && (
+                                <div className={`space-y-4 ${isBothSelected ? '' : 'col-span-2'}`}>
+                                    <h3 className="text-lg font-bold text-zinc-800 flex items-center">
+                                        <div className="w-2 h-2 rounded-full bg-zinc-800 mr-2"></div>
+                                        BP 2 Batch Configuration
+                                    </h3>
+
+                                    <div>
+                                        <label className="block text-sm font-medium text-zinc-700 mb-1">Location</label>
+                                        <input
+                                            type="text"
+                                            value={locationBP2}
+                                            onChange={(e) => setLocationBP2(e.target.value)}
+                                            className="w-full px-3 py-2 border border-zinc-300 rounded-lg focus:ring-2 focus:ring-red-500/20 focus:border-red-500 text-sm"
+                                            placeholder="e.g. Bandung Office"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-zinc-700 mb-1">Assessment Date</label>
+                                        <input
+                                            type="date"
+                                            value={assessmentDateBP2}
+                                            onChange={(e) => setAssessmentDateBP2(e.target.value)}
+                                            className="w-full px-3 py-2 border border-zinc-300 rounded-lg focus:ring-2 focus:ring-red-500/20 focus:border-red-500 text-sm"
+                                        />
+                                    </div>
+                                    <div className="bg-zinc-50 rounded-lg p-3 border border-zinc-100">
+                                        <p className="text-xs font-semibold text-zinc-500 mb-2">Selected Candidates ({selectedBP2.size})</p>
+                                        <ul className="text-sm text-zinc-700 space-y-1 max-h-[100px] overflow-y-auto custom-scrollbar">
+                                            {Array.from(selectedBP2).map(id => {
+                                                const emp = tableData?.data.find((e: any) => e.id === id);
+                                                return <li key={id} className="truncate text-xs">• {emp?.nama}</li>
+                                            })}
+                                        </ul>
+                                    </div>
+                                </div>
+                            )}
                         </div>
 
                         <div className="p-6 border-t border-zinc-100 bg-zinc-50/50 flex justify-end space-x-3">
@@ -319,7 +376,7 @@ export default function TalentManagementPage() {
                             </button>
                             <button
                                 onClick={handleCreateBatch}
-                                disabled={isSubmitting || !location || !assessmentDate}
+                                disabled={isSubmitting || (isBP1Ready && (!locationBP1 || !assessmentDateBP1)) || (isBP2Ready && (!locationBP2 || !assessmentDateBP2))}
                                 className="px-6 py-2 bg-red-600 text-white rounded-lg font-medium text-sm hover:bg-red-700 shadow-lg shadow-red-600/20 disabled:opacity-50 disabled:shadow-none transition-all"
                             >
                                 {isSubmitting ? 'Saving...' : 'Save & Create Batch'}
