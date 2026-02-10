@@ -53,6 +53,20 @@ export default function Sidebar() {
           </svg>
           <span className="text-sm font-semibold">Talent Management</span>
         </Link>
+
+        <Link
+          href="/batch-management"
+          className={`flex items-center px-4 py-3 rounded-lg transition-all duration-200 ${isActive('/batch-management')
+            ? 'bg-red-600 text-white shadow-lg shadow-red-900/20'
+            : 'text-zinc-400 hover:text-white hover:bg-zinc-900'
+            }`}
+        >
+          {/* ICON: Folder/Batch icon */}
+          <svg className="w-5 h-5 mr-3 opacity-80" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M5 19a2 2 0 01-2-2V7a2 2 0 012-2h4l2 2h4a2 2 0 012 2v8a2 2 0 01-2 2H5z" />
+          </svg>
+          <span className="text-sm font-semibold">Batch Management</span>
+        </Link>
       </nav>
 
       {/* --- VISUAL ELEMENT: SYSTEM STATUS INDICATOR --- 

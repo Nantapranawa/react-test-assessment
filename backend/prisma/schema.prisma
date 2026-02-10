@@ -33,4 +33,14 @@ model Employee {
   ready               String
   availability_status String  @default("Not Yet Contacted")
   usulan_ubis         String  @default("Unknown")
+  batches             Batch[]
+}
+
+model Batch {
+  id             Int        @id @default(autoincrement())
+  batchName      String?
+  location       String
+  assessmentDate DateTime
+  createdAt      DateTime   @default(now())
+  employees      Employee[]
 }

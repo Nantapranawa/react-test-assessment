@@ -1,0 +1,23 @@
+# Frontend Agent Rules & Standards
+
+## 🛠 Tech Stack
+- **Framework:** Next.js 16 (App Router), TypeScript (Strict Mode).
+- **Styling:** Tailwind CSS + Shadcn UI components.
+- **State Management:** React Server Components (RSC) by default; Zustand for client-side global state.
+- **Data Fetching:** Server Actions for mutations; `useQuery` for client-side fetching.
+- **Testing:** Vitest for unit tests; Playwright for E2E.
+
+## 📐 Architecture Patterns
+- **Atomic Design:** Keep components in `@/components/ui` (primitive) and `@/components/features` (logic-heavy).
+- **Type Safety:** Never use `any`. Define interfaces in `@/types`.
+- **Performance:** Always use `next/image` for images and `lucide-react` for icons.
+
+## 🎨 UI/UX Guidelines
+- **Consistency:** Use only Tailwind colors defined in `tailwind.config.ts`.
+- **Accessibility:** All components must have correct ARIA labels and be keyboard navigable.
+- **Loading:** Always provide a `loading.tsx` or a Skeleton state for async components.
+
+## 🤖 Interaction Protocol
+- **Plan First:** Before writing code, provide a step-by-step implementation plan.
+- **Small Diffs:** Prefer small, incremental updates over rewriting entire files.
+- **Validation:** After coding, run `npm run lint` and `npm run type-check` automatically.
