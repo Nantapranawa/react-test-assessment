@@ -29,6 +29,11 @@ export default function BatchManagementPage() {
     const [replaceSearchTerm, setReplaceSearchTerm] = useState('');
     const [isReplacing, setIsReplacing] = useState(false);
 
+    // Delete state
+    const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+    const [batchToDelete, setBatchToDelete] = useState<number | null>(null);
+    const [isDeleting, setIsDeleting] = useState(false);
+
     const { tableData, refreshData: refreshTalentPool } = useData();
 
     useEffect(() => {
@@ -72,25 +77,33 @@ export default function BatchManagementPage() {
         }
     };
 
-    const handleDeleteBatch = async (id: number) => {
-        if (!confirm('Are you sure you want to delete this batch? The employees will be reverted to "Not Yet Contacted" status.')) {
-            return;
-        }
+    const handleDeleteClick = (id: number) => {
+        setBatchToDelete(id);
+        setIsDeleteModalOpen(true);
+    };
 
+    const confirmDeleteBatch = async () => {
+        if (!batchToDelete) return;
+
+        setIsDeleting(true);
         try {
-            const res = await fetch(`http://localhost:8000/api/batches/${id}`, {
+            const res = await fetch(`http://localhost:8000/api/batches/${batchToDelete}`, {
                 method: 'DELETE',
             });
             const result = await res.json();
             if (result.success) {
                 // Refresh batches
                 fetchBatches();
+                setIsDeleteModalOpen(false);
+                setBatchToDelete(null);
             } else {
                 alert(result.error);
             }
         } catch (error) {
             console.error('Failed to delete batch', error);
             alert('Failed to delete batch');
+        } finally {
+            setIsDeleting(false);
         }
     };
 
@@ -211,7 +224,7 @@ export default function BatchManagementPage() {
                                                         <button
                                                             onClick={(e) => {
                                                                 e.stopPropagation();
-                                                                if (isDeletable) handleDeleteBatch(batch.id);
+                                                                if (isDeletable) handleDeleteClick(batch.id);
                                                             }}
                                                             className={`${isDeletable ? 'text-red-500 hover:text-red-700' : 'text-zinc-300 cursor-not-allowed'} transition-colors`}
                                                             title={isDeletable ? "Delete Batch" : "Cannot delete: Some employees have advanced status"}
@@ -286,7 +299,7 @@ export default function BatchManagementPage() {
                                                         <button
                                                             onClick={(e) => {
                                                                 e.stopPropagation();
-                                                                if (isDeletable) handleDeleteBatch(batch.id);
+                                                                if (isDeletable) handleDeleteClick(batch.id);
                                                             }}
                                                             className={`${isDeletable ? 'text-red-500 hover:text-red-700' : 'text-zinc-300 cursor-not-allowed'} transition-colors`}
                                                             title={isDeletable ? "Delete Batch" : "Cannot delete: Some employees have advanced status"}
@@ -475,6 +488,47 @@ export default function BatchManagementPage() {
                                 className="px-4 py-2 text-zinc-500 hover:text-zinc-900 font-bold text-xs uppercase tracking-widest transition-colors"
                             >
                                 Close
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+            {/* Delete Confirmation Modal */}
+            {isDeleteModalOpen && (
+                <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+                    <div className="bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200">
+                        <div className="p-6 border-b border-zinc-100 flex items-center space-x-4 bg-red-50/50">
+                            <div className="p-3 bg-red-100 text-red-600 rounded-full">
+                                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                                </svg>
+                            </div>
+                            <div>
+                                <h3 className="text-lg font-bold text-zinc-900">Delete Batch #{batchToDelete}</h3>
+                                <p className="text-sm text-zinc-500">This action cannot be undone immediately.</p>
+                            </div>
+                        </div>
+
+                        <div className="p-6">
+                            <p className="text-zinc-600 text-sm leading-relaxed">
+                                Are you sure you want to delete this batch? All employees in this batch will be reverted to <strong className="text-zinc-900">"Not Yet Contacted"</strong> status and will be available for selection again.
+                            </p>
+                        </div>
+
+                        <div className="p-4 border-t border-zinc-100 bg-zinc-50 flex justify-end space-x-3">
+                            <button
+                                onClick={() => setIsDeleteModalOpen(false)}
+                                className="px-4 py-2 bg-white border border-zinc-200 text-zinc-700 font-medium text-sm rounded-lg hover:bg-zinc-50 hover:text-zinc-900 transition-colors shadow-sm"
+                                disabled={isDeleting}
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={confirmDeleteBatch}
+                                className="px-4 py-2 bg-red-600 text-white font-medium text-sm rounded-lg hover:bg-red-700 transition-colors shadow-lg shadow-red-600/20 disabled:opacity-50"
+                                disabled={isDeleting}
+                            >
+                                {isDeleting ? 'Deleting...' : 'Yes, Delete Batch'}
                             </button>
                         </div>
                     </div>
