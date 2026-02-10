@@ -31,7 +31,7 @@ model Employee {
   ac_result           String
   phone               String? @unique
   tc_result           String
-  availability_status String  @default("Not Yet Contacted")
+  availability_status String  @default("No Invitation")
   usulan_ubis         String  @default("Unknown")
   batches             Batch[]
 }

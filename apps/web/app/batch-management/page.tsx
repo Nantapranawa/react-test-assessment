@@ -152,11 +152,11 @@ export default function BatchManagementPage() {
         if (!tableData?.data || !replacingEmployee) return [];
         const lowerSearch = replaceSearchTerm.toLowerCase();
 
-        // Show only employees with same BP AND status is "Not Yet Contacted"
+        // Show only employees with same BP AND status is "No Invitation"
         // OR any status that isn't "Batch Draft" (though "Batch Draft" means they are in a batch)
         return tableData.data.filter((emp: any) =>
             emp.bp === replacingEmployee.bp &&
-            emp.availability_status === "Not Yet Contacted" &&
+            emp.availability_status === "No Invitation" &&
             (emp.nama.toLowerCase().includes(lowerSearch) || emp.nik.toString().includes(lowerSearch))
         );
     }, [tableData, replacingEmployee, replaceSearchTerm]);
@@ -183,7 +183,7 @@ export default function BatchManagementPage() {
                 <div className="bg-white rounded-xl shadow-sm border border-zinc-200 overflow-hidden">
                     <div className="overflow-x-auto">
                         <table className="w-full text-left">
-                            <thead className="bg-zinc-50 border-b border-zinc-100 text-xs uppercase text-zinc-500 font-semibold">
+                            <thead className="bg-zinc-50 border-b border-zinc-100 text-sm uppercase text-zinc-500 font-semibold">
                                 <tr>
                                     <th className="px-6 py-4">Batch ID</th>
                                     <th className="px-6 py-4">Location</th>
@@ -200,41 +200,43 @@ export default function BatchManagementPage() {
                                         <td className="px-6 py-4 text-zinc-600">{batch.location}</td>
                                         <td className="px-6 py-4 text-zinc-600">{new Date(batch.assessmentDate).toLocaleDateString()}</td>
                                         <td className="px-6 py-4">
-                                            <span className="bg-zinc-100 text-zinc-700 text-xs px-2 py-1 rounded-full border border-zinc-200 font-medium">
+                                            <span className="bg-zinc-100 text-zinc-700 text-sm px-2 py-1 rounded-full border border-zinc-200 font-medium">
                                                 {batch._count?.employees || 0} Employees
                                             </span>
                                         </td>
-                                        <td className="px-6 py-4 text-zinc-500 text-sm">{new Date(batch.createdAt).toLocaleDateString()}</td>
+                                        <td className="px-6 py-4 text-zinc-500 text-base">{new Date(batch.createdAt).toLocaleDateString()}</td>
                                         <td className="px-6 py-4">
-                                            <div className="flex items-center space-x-3">
+                                            <div className="flex items-center justify-between w-full">
                                                 <button
                                                     onClick={() => handleViewDetails(batch.id)}
-                                                    className="text-red-600 hover:text-red-700 font-medium text-sm transition-colors"
+                                                    className="text-red-600 hover:text-red-700 font-medium text-base transition-colors"
                                                 >
                                                     View Details
                                                 </button>
-                                                <button
-                                                    className="bg-zinc-900 text-white px-3 py-1.5 rounded-md text-xs font-medium hover:bg-red-600 transition-colors"
-                                                >
-                                                    Send Message
-                                                </button>
-                                                {(() => {
-                                                    const isDeletable = batch.employees?.every(e => e.availability_status === "Batch Draft");
-                                                    return (
-                                                        <button
-                                                            onClick={(e) => {
-                                                                e.stopPropagation();
-                                                                if (isDeletable) handleDeleteClick(batch.id);
-                                                            }}
-                                                            className={`${isDeletable ? 'text-red-500 hover:text-red-700' : 'text-zinc-300 cursor-not-allowed'} transition-colors`}
-                                                            title={isDeletable ? "Delete Batch" : "Cannot delete: Some employees have advanced status"}
-                                                        >
-                                                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
-                                                                <path strokeLinecap="round" strokeLinejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" />
-                                                            </svg>
-                                                        </button>
-                                                    );
-                                                })()}
+                                                <div className="flex items-center space-x-4">
+                                                    {(() => {
+                                                        const isDeletable = batch.employees?.every(e => e.availability_status === "Batch Draft");
+                                                        return (
+                                                            <button
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    if (isDeletable) handleDeleteClick(batch.id);
+                                                                }}
+                                                                className={`${isDeletable ? 'text-red-500 hover:text-red-700' : 'text-zinc-300 cursor-not-allowed'} transition-colors`}
+                                                                title={isDeletable ? "Delete Batch" : "Cannot delete: Some employees have advanced status"}
+                                                            >
+                                                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
+                                                                    <path strokeLinecap="round" strokeLinejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" />
+                                                                </svg>
+                                                            </button>
+                                                        );
+                                                    })()}
+                                                    <button
+                                                        className="bg-zinc-900 text-white px-3 py-1.5 rounded-md text-sm font-medium hover:bg-red-600 transition-colors"
+                                                    >
+                                                        Send Message
+                                                    </button>
+                                                </div>
                                             </div>
                                         </td>
                                     </tr>
@@ -258,7 +260,7 @@ export default function BatchManagementPage() {
                 <div className="bg-white rounded-xl shadow-sm border border-zinc-200 overflow-hidden">
                     <div className="overflow-x-auto">
                         <table className="w-full text-left">
-                            <thead className="bg-zinc-50 border-b border-zinc-100 text-xs uppercase text-zinc-500 font-semibold">
+                            <thead className="bg-zinc-50 border-b border-zinc-100 text-sm uppercase text-zinc-500 font-semibold">
                                 <tr>
                                     <th className="px-6 py-4">Batch ID</th>
                                     <th className="px-6 py-4">Location</th>
@@ -275,41 +277,43 @@ export default function BatchManagementPage() {
                                         <td className="px-6 py-4 text-zinc-600">{batch.location}</td>
                                         <td className="px-6 py-4 text-zinc-600">{new Date(batch.assessmentDate).toLocaleDateString()}</td>
                                         <td className="px-6 py-4">
-                                            <span className="bg-zinc-100 text-zinc-700 text-xs px-2 py-1 rounded-full border border-zinc-200 font-medium">
+                                            <span className="bg-zinc-100 text-zinc-700 text-sm px-2 py-1 rounded-full border border-zinc-200 font-medium">
                                                 {batch._count?.employees || 0} Employees
                                             </span>
                                         </td>
-                                        <td className="px-6 py-4 text-zinc-500 text-sm">{new Date(batch.createdAt).toLocaleDateString()}</td>
+                                        <td className="px-6 py-4 text-zinc-500 text-base">{new Date(batch.createdAt).toLocaleDateString()}</td>
                                         <td className="px-6 py-4">
-                                            <div className="flex items-center space-x-3">
+                                            <div className="flex items-center justify-between w-full">
                                                 <button
                                                     onClick={() => handleViewDetails(batch.id)}
-                                                    className="text-red-600 hover:text-red-700 font-medium text-sm transition-colors"
+                                                    className="text-red-600 hover:text-red-700 font-medium text-base transition-colors"
                                                 >
                                                     View Details
                                                 </button>
-                                                <button
-                                                    className="bg-zinc-900 text-white px-3 py-1.5 rounded-md text-xs font-medium hover:bg-red-600 transition-colors"
-                                                >
-                                                    Send Message
-                                                </button>
-                                                {(() => {
-                                                    const isDeletable = batch.employees?.every(e => e.availability_status === "Batch Draft");
-                                                    return (
-                                                        <button
-                                                            onClick={(e) => {
-                                                                e.stopPropagation();
-                                                                if (isDeletable) handleDeleteClick(batch.id);
-                                                            }}
-                                                            className={`${isDeletable ? 'text-red-500 hover:text-red-700' : 'text-zinc-300 cursor-not-allowed'} transition-colors`}
-                                                            title={isDeletable ? "Delete Batch" : "Cannot delete: Some employees have advanced status"}
-                                                        >
-                                                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
-                                                                <path strokeLinecap="round" strokeLinejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" />
-                                                            </svg>
-                                                        </button>
-                                                    );
-                                                })()}
+                                                <div className="flex items-center space-x-4">
+                                                    {(() => {
+                                                        const isDeletable = batch.employees?.every(e => e.availability_status === "Batch Draft");
+                                                        return (
+                                                            <button
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    if (isDeletable) handleDeleteClick(batch.id);
+                                                                }}
+                                                                className={`${isDeletable ? 'text-red-500 hover:text-red-700' : 'text-zinc-300 cursor-not-allowed'} transition-colors`}
+                                                                title={isDeletable ? "Delete Batch" : "Cannot delete: Some employees have advanced status"}
+                                                            >
+                                                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
+                                                                    <path strokeLinecap="round" strokeLinejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" />
+                                                                </svg>
+                                                            </button>
+                                                        );
+                                                    })()}
+                                                    <button
+                                                        className="bg-zinc-900 text-white px-3 py-1.5 rounded-md text-sm font-medium hover:bg-red-600 transition-colors"
+                                                    >
+                                                        Send Message
+                                                    </button>
+                                                </div>
                                             </div>
                                         </td>
                                     </tr>
@@ -343,7 +347,7 @@ export default function BatchManagementPage() {
                                 <div className="p-10 text-center text-zinc-400">Loading details...</div>
                             ) : selectedBatch?.employees ? (
                                 <table className="w-full text-left">
-                                    <thead className="bg-zinc-50 border-b border-zinc-100 text-xs uppercase text-zinc-500">
+                                    <thead className="bg-zinc-50 border-b border-zinc-100 text-sm uppercase text-zinc-500">
                                         <tr>
                                             <th className="px-6 py-3">Selection Type (BP)</th>
                                             <th className="px-6 py-3">Name</th>
@@ -356,7 +360,7 @@ export default function BatchManagementPage() {
                                     </thead>
                                     <tbody className="divide-y divide-zinc-100">
                                         {selectedBatch.employees?.map((emp: any) => {
-                                            const status = emp.availability_status || 'Not Yet Contacted';
+                                            const status = emp.availability_status || 'No Invitation';
                                             const lowerStatus = status.toLowerCase();
                                             let badgeClass = "bg-zinc-100 text-zinc-600 border-zinc-200";
                                             if (lowerStatus.includes("accepted")) badgeClass = "bg-emerald-50 text-emerald-700 border-emerald-100";
@@ -369,11 +373,11 @@ export default function BatchManagementPage() {
                                                 <tr key={emp.id} className="hover:bg-zinc-50/30">
                                                     <td className="px-6 py-3 font-medium text-zinc-900">BP {emp.bp}</td>
                                                     <td className="px-6 py-3 text-zinc-600">{emp.nama}</td>
-                                                    <td className="px-6 py-3 text-zinc-500 font-mono text-xs">{emp.nik}</td>
-                                                    <td className="px-6 py-3 text-zinc-600 text-sm">{selectedBatch.assessmentDate && new Date(selectedBatch.assessmentDate).toLocaleDateString()}</td>
-                                                    <td className="px-6 py-3 text-zinc-500 text-sm">{emp.posisi}</td>
+                                                    <td className="px-6 py-3 text-zinc-500 font-mono text-sm">{emp.nik}</td>
+                                                    <td className="px-6 py-3 text-zinc-600 text-base">{selectedBatch.assessmentDate && new Date(selectedBatch.assessmentDate).toLocaleDateString()}</td>
+                                                    <td className="px-6 py-3 text-zinc-500 text-base">{emp.posisi}</td>
                                                     <td className="px-6 py-3">
-                                                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold border uppercase tracking-wider ${badgeClass}`}>
+                                                        <span className={`px-2 py-0.5 rounded-full text-xs font-bold border uppercase tracking-wider ${badgeClass}`}>
                                                             {status}
                                                         </span>
                                                     </td>
@@ -384,7 +388,7 @@ export default function BatchManagementPage() {
                                                                     setReplacingEmployee(emp);
                                                                     setIsReplaceModalOpen(true);
                                                                 }}
-                                                                className="text-xs font-bold text-zinc-900 hover:text-red-600 transition-colors uppercase tracking-tight underline underline-offset-4"
+                                                                className="text-sm font-bold text-zinc-900 hover:text-red-600 transition-colors uppercase tracking-tight underline underline-offset-4"
                                                             >
                                                                 Replace
                                                             </button>
@@ -445,7 +449,7 @@ export default function BatchManagementPage() {
 
                         <div className="overflow-y-auto flex-1 p-0">
                             <table className="w-full text-left table-fixed">
-                                <thead className="bg-zinc-100 border-b border-zinc-200 text-[10px] uppercase text-zinc-500 font-bold sticky top-0 z-10">
+                                <thead className="bg-zinc-100 border-b border-zinc-200 text-xs uppercase text-zinc-500 font-bold sticky top-0 z-10">
                                     <tr>
                                         <th className="px-6 py-3 w-1/3">Candidate Name</th>
                                         <th className="px-6 py-3 w-1/4">NIK</th>
@@ -459,13 +463,13 @@ export default function BatchManagementPage() {
                                             <td className="px-6 py-4">
                                                 <div className="font-bold text-zinc-900 truncate">{candidate.nama}</div>
                                             </td>
-                                            <td className="px-6 py-4 text-zinc-500 font-mono text-xs">{candidate.nik}</td>
-                                            <td className="px-6 py-4 text-zinc-600 text-sm truncate">{candidate.posisi}</td>
+                                            <td className="px-6 py-4 text-zinc-500 font-mono text-sm">{candidate.nik}</td>
+                                            <td className="px-6 py-4 text-zinc-600 text-base truncate">{candidate.posisi}</td>
                                             <td className="px-6 py-4 text-right pr-6">
                                                 <button
                                                     onClick={() => handleReplaceEmployee(candidate.id)}
                                                     disabled={isReplacing}
-                                                    className="bg-zinc-900 text-white px-4 py-1.5 rounded-lg text-xs font-bold hover:bg-red-600 disabled:opacity-50 transition-all uppercase tracking-tight"
+                                                    className="bg-zinc-900 text-white px-4 py-1.5 rounded-lg text-sm font-bold hover:bg-red-600 disabled:opacity-50 transition-all uppercase tracking-tight"
                                                 >
                                                     {isReplacing ? '...' : 'Select'}
                                                 </button>
@@ -511,7 +515,7 @@ export default function BatchManagementPage() {
 
                         <div className="p-6">
                             <p className="text-zinc-600 text-sm leading-relaxed">
-                                Are you sure you want to delete this batch? All employees in this batch will be reverted to <strong className="text-zinc-900">"Not Yet Contacted"</strong> status and will be available for selection again.
+                                Are you sure you want to delete this batch? All employees in this batch will be reverted to <strong className="text-zinc-900">"No Invitation"</strong> status and will be available for selection again.
                             </p>
                         </div>
 

@@ -139,7 +139,7 @@ export const deleteBatch = async (req: Request, res: Response) => {
         }
 
         // Transaction:
-        // 1. Update status of employees in this batch to "Not Yet Contacted"
+        // 1. Update status of employees in this batch to "No Invitation"
         // 2. Delete the batch (this automatically removes the relation in the join table)
         await prisma.$transaction([
             prisma.employee.updateMany({
@@ -147,7 +147,7 @@ export const deleteBatch = async (req: Request, res: Response) => {
                     id: { in: batch.employees.map(e => e.id) }
                 },
                 data: {
-                    availability_status: "Not Yet Contacted"
+                    availability_status: "No Invitation"
                 }
             }),
             prisma.batch.delete({
@@ -155,7 +155,7 @@ export const deleteBatch = async (req: Request, res: Response) => {
             })
         ]);
 
-        res.json({ success: true, message: "Batch deleted and employees reverted to 'Not Yet Contacted'" });
+        res.json({ success: true, message: "Batch deleted and employees reverted to 'No Invitation'" });
 
     } catch (error: any) {
         res.status(500).json({ success: false, error: error.message });
@@ -201,7 +201,7 @@ export const replaceEmployee = async (req: Request, res: Response) => {
             // 2. Revert old employee status
             prisma.employee.update({
                 where: { id: oldEmployeeId },
-                data: { availability_status: "Not Yet Contacted" }
+                data: { availability_status: "No Invitation" }
             }),
             // 3. Set new employee status
             prisma.employee.update({

@@ -107,7 +107,7 @@ export const uploadExcel = async (req: Request, res: Response) => {
 
             // Ensure availability_status has a default if missing or empty
             if (!employeeData.availability_status) {
-                employeeData.availability_status = "Not Yet Contacted";
+                employeeData.availability_status = "No Invitation";
             }
 
             // Only add if we have at least some data and required fields are present

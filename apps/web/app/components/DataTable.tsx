@@ -35,7 +35,7 @@ export default function DataTable({ columns, data, rowCount }: DataTableProps) {
               {columns.map((col) => (
                 <th
                   key={col}
-                  className="px-6 py-5 text-left text-sm font-semibold tracking-wide border-r border-zinc-800 last:border-0"
+                  className="px-6 py-5 text-left text-base font-semibold tracking-wide border-r border-zinc-800 last:border-0"
                 >
                   {col.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')}
                 </th>
@@ -54,10 +54,10 @@ export default function DataTable({ columns, data, rowCount }: DataTableProps) {
                   const isStatusColumn = col === 'availability_status';
 
                   if (isStatusColumn) {
-                    const status = row[col] ? String(row[col]) : 'Not Yet Contacted';
+                    const status = row[col] ? String(row[col]) : 'No Invitation';
                     const lowerStatus = status.toLowerCase();
 
-                    let badgeClass = "bg-zinc-100 text-zinc-600 border-zinc-200"; // Default / Not Yet Contacted
+                    let badgeClass = "bg-zinc-100 text-zinc-600 border-zinc-200"; // Default / No Invitation
 
                     if (lowerStatus.includes("accepted")) {
                       badgeClass = "bg-emerald-100 text-emerald-700 border-emerald-200";
@@ -74,7 +74,7 @@ export default function DataTable({ columns, data, rowCount }: DataTableProps) {
                         key={`${idx}-${col}`}
                         className="px-6 py-5 border-r border-zinc-50 last:border-0 transition-colors group-hover:text-zinc-950"
                       >
-                        <span className={`px-3 py-1 rounded-full text-xs font-semibold border ${badgeClass} inline-flex items-center justify-center min-w-[100px]`}>
+                        <span className={`px-3 py-1 rounded-full text-sm font-semibold border ${badgeClass} inline-flex items-center justify-center min-w-[100px]`}>
                           {status}
                         </span>
                       </td>
@@ -89,7 +89,7 @@ export default function DataTable({ columns, data, rowCount }: DataTableProps) {
                     >
                       {row[col] !== null && row[col] !== undefined
                         ? String(row[col])
-                        : <span className="text-red-500/60 font-medium italic text-sm">N/A</span>}
+                        : <span className="text-red-500/60 font-medium italic text-base">N/A</span>}
                     </td>
                   );
                 })}

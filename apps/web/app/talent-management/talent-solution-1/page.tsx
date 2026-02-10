@@ -131,8 +131,8 @@ export default function TalentManagementPage() {
                     </span>
                 </div>
                 <div className="overflow-x-auto">
-                    <table className="w-full text-sm text-left">
-                        <thead className="text-[11px] text-white uppercase bg-zinc-950 border-b border-zinc-800">
+                    <table className="w-full text-base text-left">
+                        <thead className="text-xs text-white uppercase bg-zinc-950 border-b border-zinc-800">
                             <tr>
                                 <th className="px-6 py-5 font-bold tracking-wider">Select</th>
                                 <th className="px-6 py-5 font-bold tracking-wider">No</th>
@@ -154,7 +154,7 @@ export default function TalentManagementPage() {
                                 const isDisabled = !isSelected && isQuotaReached;
 
                                 // Status badge logic
-                                const status = employee.availability_status || 'Not Yet Contacted';
+                                const status = employee.availability_status || 'No Invitation';
                                 const lowerStatus = status.toLowerCase();
                                 let badgeClass = "bg-zinc-100 text-zinc-600 border-zinc-200";
                                 if (lowerStatus.includes("accepted")) badgeClass = "bg-emerald-50 text-emerald-700 border-emerald-100";
@@ -178,7 +178,7 @@ export default function TalentManagementPage() {
                                         </td>
                                         <td className="px-6 py-5 text-zinc-500 font-medium">{employee.no}</td>
                                         <td className="px-6 py-5 font-bold text-zinc-900 whitespace-nowrap">{employee.nama}</td>
-                                        <td className="px-6 py-5 text-zinc-500 font-mono text-xs">{employee.nik}</td>
+                                        <td className="px-6 py-5 text-zinc-500 font-mono text-sm">{employee.nik}</td>
                                         <td className="px-6 py-5 text-zinc-600 font-medium whitespace-nowrap">{employee.posisi}</td>
                                         <td className="px-6 py-5 text-zinc-600">{employee.eligible}</td>
                                         <td className="px-6 py-5 text-zinc-600 whitespace-nowrap">{employee.expired}</td>
@@ -187,7 +187,7 @@ export default function TalentManagementPage() {
                                         <td className="px-6 py-5 text-zinc-600">{employee.tc_result}</td>
                                         <td className="px-6 py-5 text-zinc-600">{employee.usulan_ubis}</td>
                                         <td className="px-6 py-5">
-                                            <span className={`px-3 py-1 rounded-full text-[10px] font-bold border uppercase tracking-wider inline-flex items-center transform transition-transform group-hover:scale-105 whitespace-nowrap ${badgeClass}`}>
+                                            <span className={`px-3 py-1 rounded-full text-xs font-bold border uppercase tracking-wider inline-flex items-center transform transition-transform group-hover:scale-105 whitespace-nowrap ${badgeClass}`}>
                                                 {status}
                                             </span>
                                         </td>
