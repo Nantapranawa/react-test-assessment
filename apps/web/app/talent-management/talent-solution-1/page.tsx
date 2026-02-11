@@ -15,8 +15,10 @@ export default function TalentManagementPage() {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [locationBP1, setLocationBP1] = useState('');
     const [assessmentDateBP1, setAssessmentDateBP1] = useState('');
+    const [assessmentTimeBP1, setAssessmentTimeBP1] = useState('');
     const [locationBP2, setLocationBP2] = useState('');
     const [assessmentDateBP2, setAssessmentDateBP2] = useState('');
+    const [assessmentTimeBP2, setAssessmentTimeBP2] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     // Constants
@@ -68,12 +70,17 @@ export default function TalentManagementPage() {
             const promises = [];
 
             if (isBP1Ready) {
+                // Combine date and time
+                const dateTime = assessmentTimeBP1
+                    ? `${assessmentDateBP1}T${assessmentTimeBP1}:00`
+                    : `${assessmentDateBP1}T00:00:00`;
+
                 promises.push(fetch('http://localhost:8000/api/batches', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         location: locationBP1,
-                        assessmentDate: assessmentDateBP1,
+                        assessmentDate: dateTime,
                         employeeIds: Array.from(selectedBP1),
                         batchName: "BP 1 Batch"
                     })
@@ -81,12 +88,17 @@ export default function TalentManagementPage() {
             }
 
             if (isBP2Ready) {
+                // Combine date and time
+                const dateTime = assessmentTimeBP2
+                    ? `${assessmentDateBP2}T${assessmentTimeBP2}:00`
+                    : `${assessmentDateBP2}T00:00:00`;
+
                 promises.push(fetch('http://localhost:8000/api/batches', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         location: locationBP2,
-                        assessmentDate: assessmentDateBP2,
+                        assessmentDate: dateTime,
                         employeeIds: Array.from(selectedBP2),
                         batchName: "BP 2 Batch"
                     })
@@ -297,23 +309,34 @@ export default function TalentManagementPage() {
                                     </h3>
 
                                     <div>
-                                        <label className="block text-sm font-medium text-zinc-700 mb-1">Location</label>
+                                        <label className="block text-base font-semibold text-zinc-700 mb-1">Location</label>
                                         <input
                                             type="text"
                                             value={locationBP1}
                                             onChange={(e) => setLocationBP1(e.target.value)}
-                                            className="w-full px-3 py-2 border border-zinc-300 rounded-lg focus:ring-2 focus:ring-red-500/20 focus:border-red-500 text-sm"
-                                            placeholder="e.g. Jakarta HQ"
+                                            className="w-full px-3 py-2 border border-zinc-300 rounded-lg focus:ring-2 focus:ring-red-500/20 focus:border-red-500 text-base text-zinc-900 bg-white"
+                                            placeholder="e.g. Telkom Hub"
                                         />
                                     </div>
-                                    <div>
-                                        <label className="block text-sm font-medium text-zinc-700 mb-1">Assessment Date</label>
-                                        <input
-                                            type="date"
-                                            value={assessmentDateBP1}
-                                            onChange={(e) => setAssessmentDateBP1(e.target.value)}
-                                            className="w-full px-3 py-2 border border-zinc-300 rounded-lg focus:ring-2 focus:ring-red-500/20 focus:border-red-500 text-sm"
-                                        />
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div>
+                                            <label className="block text-base font-semibold text-zinc-700 mb-1">Assessment Date</label>
+                                            <input
+                                                type="date"
+                                                value={assessmentDateBP1}
+                                                onChange={(e) => setAssessmentDateBP1(e.target.value)}
+                                                className="w-full px-3 py-2 border border-zinc-300 rounded-lg focus:ring-2 focus:ring-red-500/20 focus:border-red-500 text-base text-zinc-900 bg-white accent-red-600"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-base font-semibold text-zinc-700 mb-1">Time</label>
+                                            <input
+                                                type="time"
+                                                value={assessmentTimeBP1}
+                                                onChange={(e) => setAssessmentTimeBP1(e.target.value)}
+                                                className="w-full px-3 py-2 border border-zinc-300 rounded-lg focus:ring-2 focus:ring-red-500/20 focus:border-red-500 text-base text-zinc-900 bg-white accent-red-600"
+                                            />
+                                        </div>
                                     </div>
                                     <div className="bg-zinc-50 rounded-lg p-3 border border-zinc-100">
                                         <p className="text-xs font-semibold text-zinc-500 mb-2">Selected Candidates ({selectedBP1.size})</p>
@@ -336,23 +359,34 @@ export default function TalentManagementPage() {
                                     </h3>
 
                                     <div>
-                                        <label className="block text-sm font-medium text-zinc-700 mb-1">Location</label>
+                                        <label className="block text-base font-semibold text-zinc-700 mb-1">Location</label>
                                         <input
                                             type="text"
                                             value={locationBP2}
                                             onChange={(e) => setLocationBP2(e.target.value)}
-                                            className="w-full px-3 py-2 border border-zinc-300 rounded-lg focus:ring-2 focus:ring-red-500/20 focus:border-red-500 text-sm"
-                                            placeholder="e.g. Bandung Office"
+                                            className="w-full px-3 py-2 border border-zinc-300 rounded-lg focus:ring-2 focus:ring-red-500/20 focus:border-red-500 text-base text-zinc-900 bg-white"
+                                            placeholder="e.g. Grha Merah Putih"
                                         />
                                     </div>
-                                    <div>
-                                        <label className="block text-sm font-medium text-zinc-700 mb-1">Assessment Date</label>
-                                        <input
-                                            type="date"
-                                            value={assessmentDateBP2}
-                                            onChange={(e) => setAssessmentDateBP2(e.target.value)}
-                                            className="w-full px-3 py-2 border border-zinc-300 rounded-lg focus:ring-2 focus:ring-red-500/20 focus:border-red-500 text-sm"
-                                        />
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div>
+                                            <label className="block text-base font-semibold text-zinc-700 mb-1">Assessment Date</label>
+                                            <input
+                                                type="date"
+                                                value={assessmentDateBP2}
+                                                onChange={(e) => setAssessmentDateBP2(e.target.value)}
+                                                className="w-full px-3 py-2 border border-zinc-300 rounded-lg focus:ring-2 focus:ring-red-500/20 focus:border-red-500 text-base text-zinc-900 bg-white accent-red-600"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-base font-semibold text-zinc-700 mb-1">Time</label>
+                                            <input
+                                                type="time"
+                                                value={assessmentTimeBP2}
+                                                onChange={(e) => setAssessmentTimeBP2(e.target.value)}
+                                                className="w-full px-3 py-2 border border-zinc-300 rounded-lg focus:ring-2 focus:ring-red-500/20 focus:border-red-500 text-base text-zinc-900 bg-white accent-red-600"
+                                            />
+                                        </div>
                                     </div>
                                     <div className="bg-zinc-50 rounded-lg p-3 border border-zinc-100">
                                         <p className="text-xs font-semibold text-zinc-500 mb-2">Selected Candidates ({selectedBP2.size})</p>
@@ -376,7 +410,7 @@ export default function TalentManagementPage() {
                             </button>
                             <button
                                 onClick={handleCreateBatch}
-                                disabled={isSubmitting || (isBP1Ready && (!locationBP1 || !assessmentDateBP1)) || (isBP2Ready && (!locationBP2 || !assessmentDateBP2))}
+                                disabled={isSubmitting || (isBP1Ready && (!locationBP1 || !assessmentDateBP1 || !assessmentTimeBP1)) || (isBP2Ready && (!locationBP2 || !assessmentDateBP2 || !assessmentTimeBP2))}
                                 className="px-6 py-2 bg-red-600 text-white rounded-lg font-medium text-sm hover:bg-red-700 shadow-lg shadow-red-600/20 disabled:opacity-50 disabled:shadow-none transition-all"
                             >
                                 {isSubmitting ? 'Saving...' : 'Save & Create Batch'}

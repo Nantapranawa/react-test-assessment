@@ -34,6 +34,12 @@ export default function BatchManagementPage() {
     const [batchToDelete, setBatchToDelete] = useState<number | null>(null);
     const [isDeleting, setIsDeleting] = useState(false);
 
+    // Message Modal State
+    const [isMessageModalOpen, setIsMessageModalOpen] = useState(false);
+    const [messageBatch, setMessageBatch] = useState<Batch | null>(null);
+    const [messageLoading, setMessageLoading] = useState(false);
+    const [selectedTemplate, setSelectedTemplate] = useState('');
+
     const { tableData, refreshData: refreshTalentPool } = useData();
 
     useEffect(() => {
@@ -148,6 +154,28 @@ export default function BatchManagementPage() {
         }
     };
 
+    const handleOpenMessageModal = async (id: number) => {
+        setMessageLoading(true);
+        setIsMessageModalOpen(true);
+        setSelectedTemplate(''); // Reset template
+        try {
+            const res = await fetch(`http://localhost:8000/api/batches/${id}`);
+            const result = await res.json();
+            if (result.success) {
+                // Sort once initially to establish stable rows
+                const sortedEmployees = [...(result.data.employees || [])].sort((a: any, b: any) => {
+                    if (a.bp !== b.bp) return a.bp - b.bp;
+                    return a.id - b.id;
+                });
+                setMessageBatch({ ...result.data, employees: sortedEmployees });
+            }
+        } catch (error) {
+            console.error('Failed to fetch batch details', error);
+        } finally {
+            setMessageLoading(false);
+        }
+    };
+
     const filteredCandidates = useMemo(() => {
         if (!tableData?.data || !replacingEmployee) return [];
         const lowerSearch = replaceSearchTerm.toLowerCase();
@@ -198,7 +226,12 @@ export default function BatchManagementPage() {
                                     <tr key={batch.id} className="hover:bg-zinc-50/50 transition-colors">
                                         <td className="px-6 py-4 font-medium text-zinc-900">#{batch.id}</td>
                                         <td className="px-6 py-4 text-zinc-600">{batch.location}</td>
-                                        <td className="px-6 py-4 text-zinc-600">{new Date(batch.assessmentDate).toLocaleDateString()}</td>
+                                        <td className="px-6 py-4 text-zinc-600">
+                                            <div className="flex flex-col">
+                                                <span className="font-medium">{new Date(batch.assessmentDate).toLocaleDateString()}</span>
+                                                <span className="text-xs text-zinc-500">{new Date(batch.assessmentDate).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                                            </div>
+                                        </td>
                                         <td className="px-6 py-4">
                                             <span className="bg-zinc-100 text-zinc-700 text-sm px-2 py-1 rounded-full border border-zinc-200 font-medium">
                                                 {batch._count?.employees || 0} Employees
@@ -232,6 +265,7 @@ export default function BatchManagementPage() {
                                                         );
                                                     })()}
                                                     <button
+                                                        onClick={() => handleOpenMessageModal(batch.id)}
                                                         className="bg-zinc-900 text-white px-3 py-1.5 rounded-md text-sm font-medium hover:bg-red-600 transition-colors"
                                                     >
                                                         Send Message
@@ -275,7 +309,12 @@ export default function BatchManagementPage() {
                                     <tr key={batch.id} className="hover:bg-zinc-50/50 transition-colors">
                                         <td className="px-6 py-4 font-medium text-zinc-900">#{batch.id}</td>
                                         <td className="px-6 py-4 text-zinc-600">{batch.location}</td>
-                                        <td className="px-6 py-4 text-zinc-600">{new Date(batch.assessmentDate).toLocaleDateString()}</td>
+                                        <td className="px-6 py-4 text-zinc-600">
+                                            <div className="flex flex-col">
+                                                <span className="font-medium">{new Date(batch.assessmentDate).toLocaleDateString()}</span>
+                                                <span className="text-xs text-zinc-500">{new Date(batch.assessmentDate).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                                            </div>
+                                        </td>
                                         <td className="px-6 py-4">
                                             <span className="bg-zinc-100 text-zinc-700 text-sm px-2 py-1 rounded-full border border-zinc-200 font-medium">
                                                 {batch._count?.employees || 0} Employees
@@ -309,6 +348,7 @@ export default function BatchManagementPage() {
                                                         );
                                                     })()}
                                                     <button
+                                                        onClick={() => handleOpenMessageModal(batch.id)}
                                                         className="bg-zinc-900 text-white px-3 py-1.5 rounded-md text-sm font-medium hover:bg-red-600 transition-colors"
                                                     >
                                                         Send Message
@@ -335,7 +375,12 @@ export default function BatchManagementPage() {
                         <div className="p-6 border-b border-zinc-100 flex justify-between items-center bg-zinc-50/50">
                             <div>
                                 <h2 className="text-xl font-bold text-zinc-900">Batch Details #{selectedBatch?.id}</h2>
-                                <p className="text-sm text-zinc-500">{selectedBatch?.location} - {selectedBatch?.assessmentDate && new Date(selectedBatch.assessmentDate).toLocaleDateString()}</p>
+                                <p className="text-sm text-zinc-500">
+                                    {selectedBatch?.location} - {selectedBatch?.assessmentDate && new Date(selectedBatch.assessmentDate).toLocaleDateString()}
+                                    <span className="ml-2 font-mono bg-zinc-100 px-2 py-0.5 rounded text-xs text-zinc-600">
+                                        {selectedBatch?.assessmentDate && new Date(selectedBatch.assessmentDate).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                    </span>
+                                </p>
                             </div>
                             <button onClick={() => setIsDetailsOpen(false)} className="text-zinc-400 hover:text-zinc-600 transition-colors">
                                 <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
@@ -374,7 +419,12 @@ export default function BatchManagementPage() {
                                                     <td className="px-6 py-3 font-medium text-zinc-900">BP {emp.bp}</td>
                                                     <td className="px-6 py-3 text-zinc-600">{emp.nama}</td>
                                                     <td className="px-6 py-3 text-zinc-500 font-mono text-sm">{emp.nik}</td>
-                                                    <td className="px-6 py-3 text-zinc-600 text-base">{selectedBatch.assessmentDate && new Date(selectedBatch.assessmentDate).toLocaleDateString()}</td>
+                                                    <td className="px-6 py-3 text-zinc-600 text-base">
+                                                        <div className="flex flex-col">
+                                                            <span>{selectedBatch.assessmentDate && new Date(selectedBatch.assessmentDate).toLocaleDateString()}</span>
+                                                            <span className="text-xs text-zinc-400">{selectedBatch.assessmentDate && new Date(selectedBatch.assessmentDate).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                                                        </div>
+                                                    </td>
                                                     <td className="px-6 py-3 text-zinc-500 text-base">{emp.posisi}</td>
                                                     <td className="px-6 py-3">
                                                         <span className={`px-2 py-0.5 rounded-full text-xs font-bold border uppercase tracking-wider ${badgeClass}`}>
@@ -533,6 +583,142 @@ export default function BatchManagementPage() {
                                 disabled={isDeleting}
                             >
                                 {isDeleting ? 'Deleting...' : 'Yes, Delete Batch'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Message Modal */}
+            {isMessageModalOpen && (
+                <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+                    <div className="bg-white rounded-xl shadow-2xl w-full max-w-5xl overflow-hidden animate-in zoom-in-95 duration-200 flex flex-col max-h-[90vh]">
+                        {/* Header */}
+                        <div className="p-6 border-b border-zinc-100 flex justify-between items-center bg-zinc-900 text-white">
+                            <div>
+                                <h2 className="text-xl font-bold">Send Batch Status Message</h2>
+                                <div className="mt-1 flex items-center space-x-4 text-base text-zinc-400">
+                                    <span className="flex items-center">
+                                        <svg className="w-4 h-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                                        </svg>
+                                        {messageBatch?.location}
+                                    </span>
+                                    <span className="flex items-center">
+                                        <svg className="w-4 h-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                        </svg>
+                                        {messageBatch?.assessmentDate && new Date(messageBatch.assessmentDate).toLocaleDateString()}
+                                    </span>
+                                    <span className="flex items-center">
+                                        <svg className="w-4 h-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                        </svg>
+                                        {messageBatch?.assessmentDate && new Date(messageBatch.assessmentDate).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                    </span>
+                                </div>
+                            </div>
+                            <button onClick={() => setIsMessageModalOpen(false)} className="text-zinc-400 hover:text-white transition-colors">
+                                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                            </button>
+                        </div>
+
+                        <div className="flex flex-1 overflow-hidden">
+                            {/* Left Panel: Employee List */}
+                            <div className="w-2/3 border-r border-zinc-100 flex flex-col bg-zinc-50/30">
+                                <div className="p-4 bg-zinc-50 border-b border-zinc-200">
+                                    <h3 className="font-semibold text-zinc-700 text-sm uppercase tracking-wide">Recipients ({messageBatch?.employees?.length || 0})</h3>
+                                </div>
+                                <div className="flex-1 overflow-y-auto p-0">
+                                    {messageLoading ? (
+                                        <div className="flex items-center justify-center h-full text-zinc-400">Loading recipients...</div>
+                                    ) : (
+                                        <table className="w-full text-left text-lg">
+                                            <thead className="bg-zinc-100 text-zinc-500 font-semibold sticky top-0">
+                                                <tr>
+                                                    <th className="px-4 py-2">Name</th>
+                                                    <th className="px-4 py-2">NIK</th>
+                                                    <th className="px-4 py-2 text-right">Phone</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody className="divide-y divide-zinc-100 bg-white">
+                                                {messageBatch?.employees?.map((emp: any) => (
+                                                    <tr key={emp.id} className="hover:bg-zinc-50 transition-colors">
+                                                        <td className="px-4 py-3 font-medium text-zinc-900">{emp.nama}</td>
+                                                        <td className="px-4 py-3 text-zinc-500 font-mono">{emp.nik}</td>
+                                                        <td className="px-4 py-3 text-zinc-500 font-mono text-right">{emp.phone || '-'}</td>
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                        </table>
+                                    )}
+                                </div>
+                            </div>
+
+                            {/* Right Panel: Message Configuration */}
+                            <div className="w-1/3 flex flex-col bg-white p-6">
+                                <div className="mb-6">
+                                    <label className="block text-sm font-bold text-zinc-900 mb-2">
+                                        Select Message Template
+                                    </label>
+                                    <select
+                                        value={selectedTemplate}
+                                        onChange={(e) => setSelectedTemplate(e.target.value)}
+                                        className="w-full bg-zinc-50 border border-zinc-200 text-zinc-900 text-base rounded-lg focus:ring-red-500 focus:border-red-500 block p-2.5 transition-all"
+                                    >
+                                        <option value="" disabled>Choose a template...</option>
+                                        <option value="invitation">Invitation to Assessment</option>
+                                        <option value="reminder">Assessment Reminder (H-1)</option>
+                                        <option value="change">Location Change Notice</option>
+                                        <option value="cancellation">Cancellation Notice</option>
+                                    </select>
+                                </div>
+
+                                {selectedTemplate && (
+                                    <div className="flex-1 flex flex-col animate-in fade-in slide-in-from-bottom-2 duration-300">
+                                        <label className="block text-sm font-bold text-zinc-900 mb-2">
+                                            Message Preview
+                                        </label>
+                                        <div className="flex-1 bg-zinc-50 border border-zinc-200 rounded-lg p-4 text-base text-black overflow-y-auto mb-4 font-mono leading-relaxed whitespace-pre-wrap shadow-inner">
+                                            {/* Template: Invitation to Assessment */}
+                                            {selectedTemplate === 'invitation' && `Dear [Name],\n\nYou are invited to the assessment process.\n\nDate: ${new Date(messageBatch?.assessmentDate || '').toLocaleDateString()}\nTime: ${new Date(messageBatch?.assessmentDate || '').toLocaleTimeString()}\nLocation: ${messageBatch?.location}\n\nPlease bring your ID card.`}
+
+                                            {/* Template: Assessment Reminder (H-1) */}
+                                            {selectedTemplate === 'reminder' && `Reminder: Your assessment is tomorrow at ${messageBatch?.location}.`}
+
+                                            {/* Template: Location Change Notice */}
+                                            {selectedTemplate === 'change' && `Important: The location for your assessment has changed to ${messageBatch?.location}.`}
+
+                                            {/* Template: Cancellation Notice */}
+                                            {selectedTemplate === 'cancellation' && `We regret to inform you that the assessment scheduled for ${new Date(messageBatch?.assessmentDate || '').toLocaleDateString()} has been cancelled.`}
+                                        </div>
+
+                                        <button
+                                            className="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-4 rounded-lg shadow-lg shadow-green-600/20 transition-all flex items-center justify-center space-x-2"
+                                        >
+                                            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                                            </svg>
+                                            <span>Send via WhatsApp</span>
+                                        </button>
+                                    </div>
+                                )}
+
+                                {!selectedTemplate && (
+                                    <div className="flex-1 flex items-center justify-center text-zinc-400 text-sm text-center italic border-2 border-dashed border-zinc-100 rounded-lg bg-zinc-50/50">
+                                        Select a template to preview message
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+
+                        <div className="p-4 border-t border-zinc-100 bg-zinc-50 flex justify-end">
+                            <button
+                                onClick={() => setIsMessageModalOpen(false)}
+                                className="px-6 py-2 bg-white border border-zinc-200 rounded-lg text-zinc-600 font-bold text-sm hover:bg-zinc-50 hover:text-zinc-900 transition-colors shadow-sm uppercase tracking-wide"
+                            >
+                                Close
                             </button>
                         </div>
                     </div>
