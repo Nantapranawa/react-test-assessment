@@ -21,19 +21,78 @@ export default function TalentManagementPage() {
     const [assessmentTimeBP2, setAssessmentTimeBP2] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
 
+    // Filter State
+    const [isFilterModalOpen, setIsFilterModalOpen] = useState(false);
+    const [selectedFilters, setSelectedFilters] = useState<Record<string, string[]>>({});
+
     // Constants
     const QUOTA_BP1 = 3;
     const QUOTA_BP2 = 6;
 
-    // Filter Data
+    const FILTER_COLUMNS = [
+        { key: 'posisi', label: 'Position' },
+        { key: 'availability_status', label: 'Status' },
+        { key: 'eligible', label: 'Eligibility' },
+        { key: 'ac_result', label: 'AC Result' },
+        { key: 'tc_result', label: 'TC Result' },
+    ];
+
+    // Filter Helpers
+    const getUniqueValues = (column: string) => {
+        if (!tableData?.data) return [];
+        const values = new Set(tableData.data.map((item: any) => {
+            if (column === 'availability_status') {
+                return item[column] || 'No Invitation';
+            }
+            return item[column] || '-';
+        }));
+        return Array.from(values).sort() as string[];
+    };
+
+    const toggleFilterValue = (column: string, value: string) => {
+        setSelectedFilters(prev => {
+            const currentValues = prev[column] || [];
+            if (currentValues.includes(value)) {
+                const nextValues = currentValues.filter(v => v !== value);
+                const nextFilters = { ...prev };
+                if (nextValues.length === 0) {
+                    delete nextFilters[column];
+                } else {
+                    nextFilters[column] = nextValues;
+                }
+                return nextFilters;
+            } else {
+                return { ...prev, [column]: [...currentValues, value] };
+            }
+        });
+    };
+
+    // Filter Data Logic
     const filteredData = useMemo(() => {
         if (!tableData?.data) return [];
+        let data = tableData.data;
+
+        // Apply Search
         const lowerSearch = searchTerm.toLowerCase();
-        return tableData.data.filter((employee: any) =>
+        data = data.filter((employee: any) =>
             employee.nama.toLowerCase().includes(lowerSearch) ||
             employee.nik.toString().includes(lowerSearch)
         );
-    }, [tableData, searchTerm]);
+
+        // Apply Filters (AND between columns, OR within column)
+        Object.entries(selectedFilters).forEach(([column, values]) => {
+            if (values.length > 0) {
+                data = data.filter((employee: any) => {
+                    const empValue = column === 'availability_status'
+                        ? (employee[column] || 'No Invitation')
+                        : (employee[column] || '-');
+                    return values.includes(empValue);
+                });
+            }
+        });
+
+        return data;
+    }, [tableData, searchTerm, selectedFilters]);
 
     const bp1Employees = useMemo(() => filteredData.filter((e: any) => e.bp === 1), [filteredData]);
     const bp2Employees = useMemo(() => filteredData.filter((e: any) => e.bp === 2), [filteredData]);
@@ -153,7 +212,7 @@ export default function TalentManagementPage() {
                                 <th className="px-6 py-5 font-bold tracking-wider">Position</th>
                                 <th className="px-6 py-5 font-bold tracking-wider">Eligible</th>
                                 <th className="px-6 py-5 font-bold tracking-wider">Expired</th>
-                                <th className="px-6 py-5 font-bold tracking-wider">Result</th>
+                                <th className="px-6 py-5 font-bold tracking-wider">AC Result</th>
                                 <th className="px-6 py-5 font-bold tracking-wider">Phone</th>
                                 <th className="px-6 py-5 font-bold tracking-wider">TC Result</th>
                                 <th className="px-6 py-5 font-bold tracking-wider">Ubis</th>
@@ -241,21 +300,162 @@ export default function TalentManagementPage() {
                 </button>
             </div>
 
-            {/* Search */}
-            <div className="mb-8 relative max-w-md">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <svg className="h-5 w-5 text-zinc-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                    </svg>
+            {/* Search and Filters */}
+            <div className="flex flex-col space-y-4 mb-8">
+                <div className="flex flex-col md:flex-row gap-4 items-start md:items-center justify-between">
+                    {/* Search Bar - Premium Style */}
+                    <div className="relative flex-1 max-w-md w-full">
+                        <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                            <svg className="h-5 w-5 text-zinc-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                            </svg>
+                        </div>
+                        <input
+                            type="text"
+                            placeholder="Search by name or NIK..."
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            className="block w-full pl-12 pr-4 py-3.5 bg-white border border-zinc-200 rounded-2xl text-zinc-900 placeholder-zinc-400 focus:outline-none focus:ring-4 focus:ring-red-500/10 focus:border-red-500 transition-all shadow-sm text-sm"
+                        />
+                    </div>
+
+                    {/* Filter Trigger Button */}
+                    <button
+                        onClick={() => setIsFilterModalOpen(true)}
+                        className={`px-5 py-3.5 rounded-2xl border font-bold flex items-center space-x-3 transition-all transform hover:scale-[1.02] active:scale-[0.98] ${Object.keys(selectedFilters).length > 0
+                            ? 'bg-zinc-900 text-white border-zinc-900 shadow-xl shadow-zinc-900/20'
+                            : 'bg-white text-zinc-700 border-zinc-200 hover:border-zinc-300 shadow-sm'
+                            }`}
+                    >
+                        <div className="relative">
+                            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
+                            </svg>
+                            {Object.keys(selectedFilters).length > 0 && (
+                                <span className="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full border-2 border-white"></span>
+                            )}
+                        </div>
+                        <span className="text-sm">Filter Options</span>
+                        {Object.keys(selectedFilters).length > 0 && (
+                            <div className="flex items-center justify-center bg-red-600 text-white text-[10px] font-black w-5 h-5 rounded-full ring-2 ring-white">
+                                {Object.values(selectedFilters).flat().length}
+                            </div>
+                        )}
+                    </button>
                 </div>
-                <input
-                    type="text"
-                    placeholder="Search candidates..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="block w-full pl-10 pr-4 py-3 bg-white border border-zinc-200 rounded-xl text-zinc-900 placeholder-zinc-400 focus:outline-none focus:ring-4 focus:ring-red-500/5 focus:border-red-500 sm:text-sm transition-all shadow-sm"
-                />
+
+                {/* Active Filter Chips - Red Colored */}
+                {Object.keys(selectedFilters).length > 0 && (
+                    <div className="flex flex-wrap gap-2 items-center animate-in fade-in slide-in-from-top-2 duration-300">
+                        {Object.entries(selectedFilters).map(([column, values]) =>
+                            values.map((val) => (
+                                <button
+                                    key={`${column}-${val}`}
+                                    onClick={() => toggleFilterValue(column, val)}
+                                    className="group inline-flex items-center px-4 py-1.5 rounded-full text-xs font-bold bg-red-50 text-red-700 border border-red-100 hover:bg-red-100 hover:border-red-200 transition-all shadow-sm"
+                                >
+                                    <span className="opacity-50 mr-1.5 text-[10px] uppercase tracking-wider">{FILTER_COLUMNS.find(c => c.key === column)?.label}</span>
+                                    {val}
+                                    <svg className="w-3.5 h-3.5 ml-2 opacity-40 group-hover:opacity-100 transition-opacity" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
+                                    </svg>
+                                </button>
+                            ))
+                        )}
+                        <button
+                            onClick={() => setSelectedFilters({})}
+                            className="text-xs font-bold text-zinc-400 hover:text-red-600 ml-2 transition-colors flex items-center"
+                        >
+                            <svg className="w-3 h-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            </svg>
+                            Reset All
+                        </button>
+                    </div>
+                )}
             </div>
+
+            {/* Filter Modal - Simple & Clean Design */}
+            {isFilterModalOpen && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-zinc-950/40 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+                    <div
+                        className="bg-white rounded-3xl shadow-2xl w-full max-w-xl overflow-hidden flex flex-col max-h-[85vh] animate-in zoom-in-95 duration-200 border border-zinc-200"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        {/* Header */}
+                        <div className="px-8 py-6 border-b border-zinc-100 flex justify-between items-center">
+                            <div>
+                                <h2 className="text-xl font-bold text-zinc-900">Filters</h2>
+                                <p className="text-xs text-zinc-500">Refine the candidate list</p>
+                            </div>
+                            <button
+                                onClick={() => setIsFilterModalOpen(false)}
+                                className="p-2 text-zinc-400 hover:text-zinc-900 rounded-full hover:bg-zinc-100 transition-all"
+                            >
+                                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                            </button>
+                        </div>
+
+                        {/* Content - Single Column List */}
+                        <div className="flex-1 overflow-y-auto p-8 space-y-8 custom-scrollbar">
+                            {FILTER_COLUMNS.map((col) => (
+                                <div key={col.key} className="space-y-3">
+                                    <div className="flex justify-between items-center">
+                                        <h3 className="text-sm font-bold text-zinc-900 uppercase tracking-tight">{col.label}</h3>
+                                        {selectedFilters[col.key]?.length > 0 && (
+                                            <button
+                                                onClick={() => {
+                                                    const nextFilters = { ...selectedFilters };
+                                                    delete nextFilters[col.key];
+                                                    setSelectedFilters(nextFilters);
+                                                }}
+                                                className="text-[10px] font-bold text-red-600 hover:underline"
+                                            >
+                                                Clear
+                                            </button>
+                                        )}
+                                    </div>
+                                    <div className="flex flex-wrap gap-2">
+                                        {getUniqueValues(col.key).map((value) => {
+                                            const isSelected = selectedFilters[col.key]?.includes(value);
+                                            return (
+                                                <button
+                                                    key={value}
+                                                    onClick={() => toggleFilterValue(col.key, value)}
+                                                    className={`px-4 py-2 rounded-xl text-xs font-semibold border-2 transition-all ${isSelected
+                                                        ? 'bg-red-600 border-red-600 text-white'
+                                                        : 'bg-white border-zinc-100 text-zinc-600 hover:border-zinc-300'
+                                                        }`}
+                                                >
+                                                    {value}
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+
+                        {/* Footer */}
+                        <div className="p-6 border-t border-zinc-100 bg-zinc-50/50 flex items-center justify-between">
+                            <button
+                                onClick={() => setSelectedFilters({})}
+                                className="text-xs font-bold text-zinc-400 hover:text-zinc-900"
+                            >
+                                Reset All
+                            </button>
+                            <button
+                                onClick={() => setIsFilterModalOpen(false)}
+                                className="px-8 py-3 bg-zinc-950 text-white font-bold rounded-2xl hover:bg-zinc-800 transition-all text-sm shadow-lg shadow-zinc-950/10"
+                            >
+                                Show {filteredData.length} Candidates
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* Tables */}
             <TalentTable title="BP 1 Candidates" employees={bp1Employees} selectedSet={selectedBP1} quota={QUOTA_BP1} bp={1} />
