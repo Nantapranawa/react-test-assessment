@@ -260,3 +260,33 @@ export const replaceEmployee = async (req: Request, res: Response) => {
         res.status(500).json({ success: false, error: error.message });
     }
 };
+
+export const sendInvitations = async (req: Request, res: Response) => {
+    try {
+        const { id } = req.params;
+        const batchId = parseInt(id);
+
+        const batch = await prisma.batch.findUnique({
+            where: { id: batchId },
+            include: { employees: { select: { id: true } } }
+        });
+
+        if (!batch) {
+            return res.status(404).json({ success: false, error: "Batch not found" });
+        }
+
+        // Update all employees in this batch to "Pending"
+        await prisma.employee.updateMany({
+            where: {
+                id: { in: batch.employees.map(e => e.id) }
+            },
+            data: {
+                availability_status: "Pending"
+            }
+        });
+
+        res.json({ success: true, message: "Invitations sent and status updated to 'Pending'" });
+    } catch (error: any) {
+        res.status(500).json({ success: false, error: error.message });
+    }
+};

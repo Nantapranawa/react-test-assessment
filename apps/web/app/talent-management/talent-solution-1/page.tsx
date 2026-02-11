@@ -163,10 +163,11 @@ export default function TalentManagementPage() {
                         <tbody className="divide-y divide-zinc-100">
                             {employees.length > 0 ? employees.map((employee: any) => {
                                 const isSelected = selectedSet.has(employee.id);
-                                const isDisabled = !isSelected && isQuotaReached;
+                                const status = employee.availability_status || 'No Invitation';
+                                const isAlreadyInBatch = status !== 'No Invitation';
+                                const isDisabled = (!isSelected && isQuotaReached) || isAlreadyInBatch;
 
                                 // Status badge logic
-                                const status = employee.availability_status || 'No Invitation';
                                 const lowerStatus = status.toLowerCase();
                                 let badgeClass = "bg-zinc-100 text-zinc-600 border-zinc-200";
                                 if (lowerStatus.includes("accepted")) badgeClass = "bg-emerald-50 text-emerald-700 border-emerald-100";
