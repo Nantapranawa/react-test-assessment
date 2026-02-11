@@ -25,7 +25,7 @@ export default function Sidebar() {
       */}
       <div className="p-8 border-b border-zinc-900 flex-shrink-0">
         <h1 className="text-2xl font-bold tracking-tight">
-          <span className="text-red-600">Excel</span>Lab
+          <span className="text-red-600">Assessment</span>Planner
         </h1>
         <p className="text-zinc-500 text-xs font-medium mt-1">
           Enterprise Data Systems

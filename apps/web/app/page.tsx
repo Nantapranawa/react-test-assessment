@@ -2,7 +2,8 @@
 
 import { useData } from './lib/DataContext';
 import FileUpload from './components/FileUpload';
-import DataTable from './components/DataTable';
+import DashboardStats from './components/DashboardStats';
+import DashboardCharts from './components/DashboardCharts';
 
 export default function Home() {
   const { tableData, setTableData, loading } = useData();
@@ -14,67 +15,43 @@ export default function Home() {
   const hasData = tableData && tableData.data && tableData.data.length > 0;
 
   return (
-    <div className="p-8">
+    <div className="p-8 max-w-[1600px] mx-auto">
       {/* --- VISUAL ELEMENT: PAGE HEADER --- */}
       <div className="mb-10 flex flex-col gap-1">
         <h1 className="text-3xl font-bold text-zinc-900 tracking-tight">
-          Dashboard <span className="text-red-600">Overview</span>
+          Assessment Planning <span className="text-red-600">Platform</span>
         </h1>
         <p className="text-zinc-500 text-base font-medium">
-          Analytics and data management system
+          Analytics dashboard and talent management system
         </p>
       </div>
 
       {/* --- MAIN CONTENT CONTAINER --- */}
       <div className="grid grid-cols-1 gap-10">
 
-        {/* --- SECTION: DATA IMPORT --- */}
-        {!hasData && !loading && (
-          <div className="animate-in fade-in slide-in-from-bottom-2 duration-500">
-            <div className="flex items-center space-x-2 mb-4">
-              <span className="w-1.5 h-1.5 rounded-full bg-zinc-900"></span>
-              <h2 className="text-base font-bold text-zinc-900">Import Interface</h2>
-            </div>
-            <FileUpload onDataLoaded={handleDataLoaded} />
-          </div>
-        )}
-
-        {/* --- SECTION: MAINTENANCE VIEW --- */}
+        {/* --- SECTION: DASHBOARD VISUALIZATIONS --- */}
         {hasData && (
-          <div className="animate-in fade-in zoom-in-95 duration-500">
-            <div className="flex items-center space-x-2 mb-4">
+          <div className="animate-in fade-in slide-in-from-bottom-2 duration-700">
+            <div className="flex items-center space-x-2 mb-6">
               <span className="w-1.5 h-1.5 rounded-full bg-red-600"></span>
-              <h2 className="text-base font-bold text-zinc-900">Processing Status</h2>
+              <h2 className="text-base font-bold text-zinc-900 uppercase tracking-wider text-xs">Performance Metrics</h2>
             </div>
 
-            <div className="p-16 text-center bg-zinc-50 rounded-2xl border border-zinc-200 shadow-sm relative overflow-hidden">
-              <div className="w-16 h-16 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-6">
-                <svg
-                  className="w-8 h-8 text-red-600"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                  />
-                </svg>
-              </div>
-              <h3 className="text-2xl font-bold text-zinc-900 mb-3">Visualization Under Maintenance</h3>
-              <p className="text-zinc-500 text-base font-medium max-w-md mx-auto">
-                Detailed analytics have been routed to the <strong>Talent Management</strong> module. Please navigate there to view the processed data streams and talent metrics.
-              </p>
-              <div className="mt-8 flex justify-center space-x-2">
-                <div className="w-1.5 h-1.5 rounded-full bg-red-600/40"></div>
-                <div className="w-1.5 h-1.5 rounded-full bg-red-600"></div>
-                <div className="w-1.5 h-1.5 rounded-full bg-red-600/40"></div>
-              </div>
-            </div>
+            <DashboardStats data={tableData.data} />
+            <DashboardCharts data={tableData.data} />
           </div>
         )}
+
+        {/* --- SECTION: DATA IMPORT --- */}
+        <div className="animate-in fade-in slide-in-from-bottom-2 duration-500 delay-100">
+          <div className="flex items-center space-x-2 mb-4">
+            <span className="w-1.5 h-1.5 rounded-full bg-zinc-900"></span>
+            <h2 className="text-base font-bold text-zinc-900 uppercase tracking-wider text-xs">Data Management</h2>
+          </div>
+
+          {/* Show uploader always, but maybe collapsed or smaller if data exists? No, keep as is for now */}
+          <FileUpload onDataLoaded={handleDataLoaded} />
+        </div>
 
         {/* --- VISUAL ELEMENT: EMPTY STATE --- */}
         {!hasData && !loading && (
@@ -95,7 +72,7 @@ export default function Home() {
               </svg>
             </div>
             <p className="text-xl font-bold text-zinc-900 mb-1">Awaiting Data Feed</p>
-            <p className="text-zinc-500 text-base font-medium">Please upload an Excel file to begin processing.</p>
+            <p className="text-zinc-500 text-base font-medium">Please upload an Excel file to initialize the dashboard.</p>
           </div>
         )}
       </div>
