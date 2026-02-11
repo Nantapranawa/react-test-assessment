@@ -110,6 +110,41 @@ export const getBatch = async (req: Request, res: Response) => {
     }
 };
 
+export const updateBatch = async (req: Request, res: Response) => {
+    try {
+        const { id } = req.params;
+        const { location, assessmentDate } = req.body;
+        const batchId = parseInt(id);
+
+        const batch = await prisma.batch.findUnique({
+            where: { id: batchId },
+            include: { employees: true }
+        });
+
+        if (!batch) {
+            return res.status(404).json({ success: false, error: "Batch not found" });
+        }
+
+        // Validate that all employees are "Batch Draft"
+        const allDraft = batch.employees.every(emp => emp.availability_status === "Batch Draft");
+        if (!allDraft) {
+            return res.status(400).json({ success: false, error: "Cannot update batch. Not all employees are 'Batch Draft'." });
+        }
+
+        const updatedBatch = await prisma.batch.update({
+            where: { id: batchId },
+            data: {
+                location,
+                assessmentDate: assessmentDate ? new Date(assessmentDate) : undefined
+            }
+        });
+
+        res.json({ success: true, data: updatedBatch });
+    } catch (error: any) {
+        res.status(500).json({ success: false, error: error.message });
+    }
+};
+
 export const deleteBatch = async (req: Request, res: Response) => {
     try {
         const { id } = req.params;

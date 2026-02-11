@@ -40,6 +40,13 @@ export default function BatchManagementPage() {
     const [messageLoading, setMessageLoading] = useState(false);
     const [selectedTemplate, setSelectedTemplate] = useState('');
 
+    // Edit Batch State
+    const [isEditingBatch, setIsEditingBatch] = useState(false);
+    const [editLocation, setEditLocation] = useState('');
+    const [editDate, setEditDate] = useState('');
+    const [editTime, setEditTime] = useState('');
+    const [isSavingBatch, setIsSavingBatch] = useState(false);
+
     const { tableData, refreshData: refreshTalentPool } = useData();
 
     useEffect(() => {
@@ -65,12 +72,13 @@ export default function BatchManagementPage() {
     const handleViewDetails = async (id: number) => {
         setDetailsLoading(true);
         setIsDetailsOpen(true);
+        setIsEditingBatch(false); // Reset edit mode
         try {
             const res = await fetch(`http://localhost:8000/api/batches/${id}`);
             const result = await res.json();
             if (result.success) {
                 // Sort once initially to establish stable rows
-                const sortedEmployees = [...(result.data.employees || [])].sort((a, b) => {
+                const sortedEmployees = [...(result.data.employees || [])].sort((a: any, b: any) => {
                     if (a.bp !== b.bp) return a.bp - b.bp;
                     return a.id - b.id;
                 });
@@ -80,6 +88,53 @@ export default function BatchManagementPage() {
             console.error('Failed to fetch batch details', error);
         } finally {
             setDetailsLoading(false);
+        }
+    };
+
+    const handleEditBatchClick = () => {
+        if (!selectedBatch) return;
+        setEditLocation(selectedBatch.location);
+        const dateObj = new Date(selectedBatch.assessmentDate);
+        setEditDate(dateObj.toISOString().split('T')[0]);
+        setEditTime(dateObj.toTimeString().slice(0, 5));
+        setIsEditingBatch(true);
+    };
+
+    const handleCancelEdit = () => {
+        setIsEditingBatch(false);
+    };
+
+    const handleSaveBatch = async () => {
+        if (!selectedBatch) return;
+        setIsSavingBatch(true);
+        try {
+            const dateTime = `${editDate}T${editTime}:00`;
+            const res = await fetch(`http://localhost:8000/api/batches/${selectedBatch.id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    location: editLocation,
+                    assessmentDate: dateTime
+                })
+            });
+            const result = await res.json();
+            if (result.success) {
+                // Update local state without fetching
+                setSelectedBatch(prev => prev ? {
+                    ...prev,
+                    location: editLocation,
+                    assessmentDate: dateTime
+                } : null);
+                setIsEditingBatch(false);
+                fetchBatches(); // Refresh list to update main view
+            } else {
+                alert('Failed to update batch: ' + result.error);
+            }
+        } catch (error) {
+            console.error('Failed to update batch', error);
+            alert('Failed to update batch');
+        } finally {
+            setIsSavingBatch(false);
         }
     };
 
@@ -372,19 +427,100 @@ export default function BatchManagementPage() {
             {isDetailsOpen && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in duration-200">
                     <div className="bg-white rounded-xl shadow-2xl w-full max-w-6xl overflow-hidden animate-in zoom-in-95 duration-200 max-h-[90vh] flex flex-col">
-                        <div className="p-6 border-b border-zinc-100 flex justify-between items-center bg-zinc-50/50">
-                            <div>
-                                <h2 className="text-xl font-bold text-zinc-900">Batch Details #{selectedBatch?.id}</h2>
-                                <p className="text-sm text-zinc-500">
-                                    {selectedBatch?.location} - {selectedBatch?.assessmentDate && new Date(selectedBatch.assessmentDate).toLocaleDateString()}
-                                    <span className="ml-2 font-mono bg-zinc-100 px-2 py-0.5 rounded text-xs text-zinc-600">
-                                        {selectedBatch?.assessmentDate && new Date(selectedBatch.assessmentDate).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                    </span>
-                                </p>
+                        <div className="p-6 border-b border-zinc-100 flex justify-between items-start bg-zinc-50/50">
+                            <div className="flex-1">
+                                <h2 className="text-xl font-bold text-zinc-900 mb-2">Batch Details #{selectedBatch?.id}</h2>
+                                {isEditingBatch ? (
+                                    <div className="flex space-x-4 items-end animate-in fade-in duration-200">
+                                        <div className="flex-1 max-w-xs">
+                                            <label className="block text-xs font-bold text-zinc-500 mb-1 uppercase tracking-wider">Location</label>
+                                            <input
+                                                type="text"
+                                                value={editLocation}
+                                                onChange={(e) => setEditLocation(e.target.value)}
+                                                className="w-full px-3 py-2 border border-zinc-300 rounded-lg text-base text-zinc-900 bg-white focus:ring-2 focus:ring-red-500/20 focus:border-red-500"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-xs font-bold text-zinc-500 mb-1 uppercase tracking-wider">Date</label>
+                                            <input
+                                                type="date"
+                                                value={editDate}
+                                                onChange={(e) => setEditDate(e.target.value)}
+                                                className="px-3 py-2 border border-zinc-300 rounded-lg text-base text-zinc-900 bg-white accent-[#e11d48]"
+                                                style={{ colorScheme: 'light' }}
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-xs font-bold text-zinc-500 mb-1 uppercase tracking-wider">Time</label>
+                                            <input
+                                                type="time"
+                                                value={editTime}
+                                                onChange={(e) => setEditTime(e.target.value)}
+                                                className="px-3 py-2 border border-zinc-300 rounded-lg text-base text-zinc-900 bg-white accent-[#e11d48]"
+                                                style={{ colorScheme: 'light' }}
+                                            />
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <p className="text-sm text-zinc-500">
+                                        {selectedBatch?.location} - {selectedBatch?.assessmentDate && new Date(selectedBatch.assessmentDate).toLocaleDateString()}
+                                        <span className="ml-2 font-mono bg-zinc-100 px-2 py-0.5 rounded text-xs text-zinc-600">
+                                            {selectedBatch?.assessmentDate && new Date(selectedBatch.assessmentDate).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                        </span>
+                                    </p>
+                                )}
                             </div>
-                            <button onClick={() => setIsDetailsOpen(false)} className="text-zinc-400 hover:text-zinc-600 transition-colors">
-                                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
-                            </button>
+                            <div className="flex items-center space-x-2">
+                                {isEditingBatch ? (
+                                    <>
+                                        <button
+                                            onClick={handleSaveBatch}
+                                            disabled={isSavingBatch}
+                                            className="px-4 py-2 bg-red-600 text-white rounded-lg font-bold text-sm hover:bg-red-700 shadow-lg shadow-red-600/20 disabled:opacity-50 transition-all flex items-center space-x-2"
+                                        >
+                                            {isSavingBatch ? (
+                                                <span>Saving...</span>
+                                            ) : (
+                                                <>
+                                                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
+                                                    <span>Save Changes</span>
+                                                </>
+                                            )}
+                                        </button>
+                                        <button
+                                            onClick={handleCancelEdit}
+                                            disabled={isSavingBatch}
+                                            className="px-4 py-2 bg-white border border-zinc-200 text-zinc-600 rounded-lg font-bold text-sm hover:bg-zinc-50 hover:text-zinc-900 transition-colors"
+                                        >
+                                            Cancel
+                                        </button>
+                                    </>
+                                ) : (
+                                    <>
+                                        {(() => {
+                                            const isEditable = selectedBatch?.employees?.every((e: any) => e.availability_status === "Batch Draft");
+                                            return (
+                                                <button
+                                                    onClick={handleEditBatchClick}
+                                                    disabled={!isEditable}
+                                                    className={`px-4 py-2 border rounded-lg font-bold text-sm transition-colors flex items-center space-x-2 ${isEditable
+                                                        ? 'bg-white border-zinc-200 text-zinc-700 hover:bg-zinc-50 hover:text-zinc-900 hover:border-zinc-300'
+                                                        : 'bg-zinc-50 border-zinc-100 text-zinc-400 cursor-not-allowed'
+                                                        }`}
+                                                    title={isEditable ? "Edit Batch Details" : "Cannot edit: Some employees have advanced status"}
+                                                >
+                                                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
+                                                    <span>Edit Batch</span>
+                                                </button>
+                                            );
+                                        })()}
+                                        <button onClick={() => setIsDetailsOpen(false)} className="text-zinc-400 hover:text-zinc-600 transition-colors p-2">
+                                            <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                                        </button>
+                                    </>
+                                )}
+                            </div>
                         </div>
 
                         <div className="p-0 overflow-y-auto flex-1">
@@ -432,7 +568,7 @@ export default function BatchManagementPage() {
                                                         </span>
                                                     </td>
                                                     <td className="px-6 py-3 text-right">
-                                                        {lowerStatus === "batch draft" && (
+                                                        {lowerStatus === "batch draft" && isEditingBatch && (
                                                             <button
                                                                 onClick={() => {
                                                                     setReplacingEmployee(emp);
