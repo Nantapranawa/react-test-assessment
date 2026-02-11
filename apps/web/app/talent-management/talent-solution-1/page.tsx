@@ -211,7 +211,7 @@ export default function TalentManagementPage() {
                                 <th className="px-6 py-5 font-bold tracking-wider">NIK</th>
                                 <th className="px-6 py-5 font-bold tracking-wider">Position</th>
                                 <th className="px-6 py-5 font-bold tracking-wider">Eligible</th>
-                                <th className="px-6 py-5 font-bold tracking-wider">Expired</th>
+                                <th className="px-6 py-5 font-bold tracking-wider">Expire Date</th>
                                 <th className="px-6 py-5 font-bold tracking-wider">AC Result</th>
                                 <th className="px-6 py-5 font-bold tracking-wider">Phone</th>
                                 <th className="px-6 py-5 font-bold tracking-wider">TC Result</th>
@@ -253,7 +253,49 @@ export default function TalentManagementPage() {
                                         <td className="px-6 py-5 text-zinc-500 font-mono text-sm">{employee.nik}</td>
                                         <td className="px-6 py-5 text-zinc-600 font-medium whitespace-nowrap">{employee.posisi}</td>
                                         <td className="px-6 py-5 text-zinc-600">{employee.eligible}</td>
-                                        <td className="px-6 py-5 text-zinc-600 whitespace-nowrap">{employee.expired}</td>
+                                        <td className="px-6 py-5 text-zinc-600 whitespace-nowrap">
+                                            <div className="flex items-center space-x-2">
+                                                <span>{employee.expired}</span>
+                                                {(() => {
+                                                    const dateStr = employee.expired;
+                                                    if (!dateStr) return null;
+
+                                                    let expireDate: Date | null = null;
+
+                                                    // Try parsing common formats
+                                                    // 1. Try ISO/standard format first
+                                                    const d = new Date(dateStr);
+                                                    if (!isNaN(d.getTime())) {
+                                                        expireDate = d;
+                                                    } else {
+                                                        // 2. Try DD/MM/YYYY or DD-MM-YYYY (Common in ID)
+                                                        const parts = dateStr.match(/^(\d{1,2})[-\/](\d{1,2})[-\/](\d{4})$/);
+                                                        if (parts) {
+                                                            const day = parseInt(parts[1], 10);
+                                                            const month = parseInt(parts[2], 10) - 1; // Months are 0-indexed
+                                                            const year = parseInt(parts[3], 10);
+                                                            expireDate = new Date(year, month, day);
+                                                        }
+                                                    }
+
+                                                    if (expireDate && !isNaN(expireDate.getTime())) {
+                                                        const today = new Date();
+                                                        today.setHours(0, 0, 0, 0);
+                                                        expireDate.setHours(0, 0, 0, 0); // Normalize expire date just in case
+
+                                                        if (today > expireDate) {
+                                                            return (
+                                                                <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-red-100 text-red-600 border border-red-200 uppercase tracking-wide">
+                                                                    Expired
+                                                                </span>
+                                                            );
+                                                        }
+                                                    }
+
+                                                    return null;
+                                                })()}
+                                            </div>
+                                        </td>
                                         <td className="px-6 py-5 text-zinc-600">{employee.ac_result}</td>
                                         <td className="px-6 py-5 text-zinc-500">{employee.phone || '-'}</td>
                                         <td className="px-6 py-5 text-zinc-600">{employee.tc_result}</td>
