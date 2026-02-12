@@ -104,7 +104,7 @@ export default function TalentManagementPage() {
             if (newSet.has(id)) {
                 newSet.delete(id);
             } else {
-                if (newSet.size < QUOTA_BP1) newSet.add(id);
+                newSet.add(id);
             }
             setSelectedBP1(newSet);
         } else if (bp === 2) {
@@ -112,14 +112,14 @@ export default function TalentManagementPage() {
             if (newSet.has(id)) {
                 newSet.delete(id);
             } else {
-                if (newSet.size < QUOTA_BP2) newSet.add(id);
+                newSet.add(id);
             }
             setSelectedBP2(newSet);
         }
     };
 
-    const isBP1Ready = selectedBP1.size === QUOTA_BP1;
-    const isBP2Ready = selectedBP2.size === QUOTA_BP2;
+    const isBP1Ready = selectedBP1.size > 0;
+    const isBP2Ready = selectedBP2.size > 0;
     const isSelectionComplete = isBP1Ready || isBP2Ready;
     const isBothSelected = isBP1Ready && isBP2Ready;
 
@@ -185,20 +185,22 @@ export default function TalentManagementPage() {
 
     // Helper Custom Table
     const TalentTable = ({ title, employees, selectedSet, quota, bp }: { title: string, employees: any[], selectedSet: Set<number>, quota: number, bp: number }) => {
-        const isQuotaReached = selectedSet.size >= quota;
+        // const isQuotaReached = selectedSet.size >= quota; 
+        // quota is unused but kept in props to avoid changing call sites for now, or just ignore it.
+
 
         return (
             <div className="bg-white rounded-2xl shadow-sm border border-zinc-200 overflow-hidden mb-12">
                 <div className="px-8 py-5 border-b border-zinc-100 flex justify-between items-center bg-zinc-50/50">
                     <div className="flex items-center space-x-3">
-                        <div className={`w-2 h-2 rounded-full ${isQuotaReached ? 'bg-red-600' : 'bg-zinc-400'}`}></div>
+                        <div className={`w-2 h-2 rounded-full ${selectedSet.size > 0 ? 'bg-red-600' : 'bg-zinc-400'}`}></div>
                         <h3 className="text-xl font-bold text-zinc-900">{title}</h3>
                     </div>
-                    <span className={`px-4 py-1.5 rounded-full text-sm font-bold border transition-colors ${isQuotaReached
+                    <span className={`px-4 py-1.5 rounded-full text-sm font-bold border transition-colors ${selectedSet.size > 0
                         ? 'bg-red-50 text-red-700 border-red-100'
                         : 'bg-zinc-100 text-zinc-600 border-zinc-200'
                         }`}>
-                        Selected: {selectedSet.size} <span className="text-zinc-400 mx-1">/</span> {quota}
+                        Selected: {selectedSet.size}
                     </span>
                 </div>
                 <div className="overflow-x-auto">
@@ -224,7 +226,7 @@ export default function TalentManagementPage() {
                                 const isSelected = selectedSet.has(employee.id);
                                 const status = employee.availability_status || 'No Invitation';
                                 const isAlreadyInBatch = status !== 'No Invitation';
-                                const isDisabled = (!isSelected && isQuotaReached) || isAlreadyInBatch;
+                                const isDisabled = isAlreadyInBatch;
 
                                 // Status badge logic
                                 const lowerStatus = status.toLowerCase();
@@ -508,12 +510,12 @@ export default function TalentManagementPage() {
                 <div className="flex items-center space-x-8 px-4">
                     <div className="flex items-center space-x-3">
                         <span className="text-sm font-semibold text-zinc-500">BP 1 Selection</span>
-                        <span className={`text-2xl font-bold ${selectedBP1.size === QUOTA_BP1 ? 'text-green-600' : 'text-zinc-900'}`}>{selectedBP1.size}<span className="text-zinc-300 text-lg">/</span>{QUOTA_BP1}</span>
+                        <span className={`text-2xl font-bold ${selectedBP1.size > 0 ? 'text-green-600' : 'text-zinc-900'}`}>{selectedBP1.size}</span>
                     </div>
                     <div className="w-px h-10 bg-zinc-200"></div>
                     <div className="flex items-center space-x-3">
                         <span className="text-sm font-semibold text-zinc-500">BP 2 Selection</span>
-                        <span className={`text-2xl font-bold ${selectedBP2.size === QUOTA_BP2 ? 'text-green-600' : 'text-zinc-900'}`}>{selectedBP2.size}<span className="text-zinc-300 text-lg">/</span>{QUOTA_BP2}</span>
+                        <span className={`text-2xl font-bold ${selectedBP2.size > 0 ? 'text-green-600' : 'text-zinc-900'}`}>{selectedBP2.size}</span>
                     </div>
                 </div>
                 <div className="px-4">

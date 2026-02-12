@@ -59,6 +59,15 @@ export default function BatchManagementPage() {
     const [rescheduleLocation, setRescheduleLocation] = useState('');
     const [isRescheduling, setIsRescheduling] = useState(false);
 
+    // Add Employee State
+    const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+    const [addSearchTerm, setAddSearchTerm] = useState('');
+    const [isAdding, setIsAdding] = useState(false);
+
+    // Notification State
+    const [showNotification, setShowNotification] = useState(false);
+    const [notificationMessage, setNotificationMessage] = useState('');
+
     const { tableData, refreshData: refreshTalentPool } = useData();
 
     useEffect(() => {
@@ -139,6 +148,24 @@ export default function BatchManagementPage() {
                 } : null);
                 setIsEditingBatch(false);
                 fetchBatches(); // Refresh list to update main view
+
+                // Determine if anything actually changed
+                const originalDate = selectedBatch.assessmentDate ? new Date(selectedBatch.assessmentDate).toISOString().split('T')[0] : '';
+                const originalTime = selectedBatch.assessmentDate ? new Date(selectedBatch.assessmentDate).toTimeString().substring(0, 5) : '';
+
+                const hasChanged = editLocation !== selectedBatch.location ||
+                    editDate !== originalDate ||
+                    editTime !== originalTime;
+
+                if (hasChanged) {
+                    setNotificationMessage('Batch updated successfully');
+                    setShowNotification(true);
+                    setTimeout(() => setShowNotification(false), 3000);
+                }
+
+                setIsEditingBatch(false);
+                fetchBatches();
+                handleViewDetails(selectedBatch.id); // Refresh details
             } else {
                 alert('Failed to update batch: ' + result.error);
             }
@@ -327,6 +354,45 @@ export default function BatchManagementPage() {
         }
     };
 
+    const handleAddEmployee = async (employeeId: number) => {
+        if (!selectedBatch) return;
+        setIsAdding(true);
+        try {
+            const res = await fetch(`http://localhost:8000/api/batches/${selectedBatch.id}/add-employee`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ employeeId })
+            });
+            const result = await res.json();
+            if (result.success) {
+                // Fetch updated batch details to reflect new list including the added employee
+                // Or try to surgically add it if we got data back
+                if (result.data) {
+                    // result.data is the updated batch
+                    const sortedEmployees = [...(result.data.employees || [])].sort((a: any, b: any) => {
+                        if (a.bp !== b.bp) return a.bp - b.bp;
+                        return a.id - b.id;
+                    });
+                    setSelectedBatch({ ...result.data, employees: sortedEmployees });
+                } else {
+                    // fallback re-fetch
+                    handleViewDetails(selectedBatch.id);
+                }
+
+                setIsAddModalOpen(false);
+                fetchBatches(); // Refresh main list counts
+                refreshTalentPool();
+            } else {
+                alert('Failed to add employee: ' + result.error);
+            }
+        } catch (error) {
+            console.error('Failed to add employee', error);
+            alert('Failed to add employee');
+        } finally {
+            setIsAdding(false);
+        }
+    };
+
     const filteredCandidates = useMemo(() => {
         if (!tableData?.data || !replacingEmployee) return [];
         const lowerSearch = replaceSearchTerm.toLowerCase();
@@ -339,6 +405,25 @@ export default function BatchManagementPage() {
             (emp.nama.toLowerCase().includes(lowerSearch) || emp.nik.toString().includes(lowerSearch))
         );
     }, [tableData, replacingEmployee, replaceSearchTerm]);
+
+    const availableCandidates = useMemo(() => {
+        if (!tableData?.data || !selectedBatch) return [];
+        const lowerSearch = addSearchTerm.toLowerCase();
+
+        // Determine target BP from existing employees in batch or default?
+        // If batch is empty, we can't easily guess BP. But let's assume valid batches.
+        const firstEmployee = selectedBatch.employees?.[0];
+        const targetBp = firstEmployee ? firstEmployee.bp : null;
+
+        if (!targetBp) return []; // Or show all? safer to return empty if unknown
+
+        return tableData.data.filter((emp: any) =>
+            emp.bp === targetBp &&
+            emp.availability_status === "No Invitation" &&
+            (emp.nama.toLowerCase().includes(lowerSearch) || emp.nik.toString().includes(lowerSearch))
+        );
+
+    }, [tableData, selectedBatch, addSearchTerm]);
 
     if (loading) return <div className="p-10 text-center text-zinc-500">Loading batches...</div>;
 
@@ -714,388 +799,515 @@ export default function BatchManagementPage() {
                             )}
                         </div>
 
-                        <div className="p-4 border-t border-zinc-100 bg-zinc-50 flex justify-end">
-                            <button
-                                onClick={() => setIsDetailsOpen(false)}
-                                className="px-4 py-2 bg-white border border-zinc-200 rounded-lg text-zinc-600 font-medium text-sm hover:bg-zinc-50 hover:text-zinc-900 transition-colors shadow-sm"
-                            >
-                                Close
-                            </button>
+                        <div className="p-4 border-t border-zinc-100 bg-zinc-50 flex justify-end space-x-3">
+                            {/* Add Employee Button - Only show when editing batch */}
+                            {isEditingBatch && (
+                                <button
+                                    onClick={() => {
+                                        setAddSearchTerm('');
+                                        setIsAddModalOpen(true);
+                                    }}
+                                    className="px-4 py-2 bg-zinc-900 border border-zinc-900 rounded-lg text-white font-bold text-sm hover:bg-zinc-800 transition-colors shadow-sm flex items-center space-x-2"
+                                >
+                                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" /></svg>
+                                    <span>Add Employee</span>
+                                </button>
+                            )}
+                            {!isEditingBatch && (
+                                <button
+                                    onClick={() => setIsDetailsOpen(false)}
+                                    className="px-4 py-2 bg-white border border-zinc-200 rounded-lg text-zinc-600 font-medium text-sm hover:bg-zinc-50 hover:text-zinc-900 transition-colors shadow-sm"
+                                >
+                                    Close
+                                </button>
+                            )}
                         </div>
                     </div>
                 </div>
             )}
+
+            {/* Notification Toast */}
+            {
+                showNotification && (
+                    <div className="fixed bottom-8 right-8 z-[100] animate-in slide-in-from-bottom-5 duration-300">
+                        <div className="bg-emerald-50 border border-emerald-100 text-emerald-800 px-4 py-3 rounded-lg shadow-lg flex items-center space-x-3">
+                            <div className="bg-emerald-100 rounded-full p-1">
+                                <svg className="w-4 h-4 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                                </svg>
+                            </div>
+                            <div>
+                                <p className="font-bold text-sm">Success</p>
+                                <p className="text-xs text-emerald-600">{notificationMessage}</p>
+                            </div>
+                        </div>
+                    </div>
+                )
+            }
 
             {/* Replacement Modal */}
-            {isReplaceModalOpen && (
-                <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-                    <div className="bg-white rounded-xl shadow-2xl w-full max-w-4xl overflow-hidden animate-in zoom-in-95 duration-200 flex flex-col max-h-[85vh]">
-                        <div className="p-6 border-b border-zinc-100 flex justify-between items-center bg-zinc-950 text-white">
-                            <div>
-                                <h2 className="text-xl font-bold">Replace Employee</h2>
-                                <p className="text-xs text-zinc-400 mt-1 uppercase tracking-widest font-bold">
-                                    Replacing: <span className="text-red-500">{replacingEmployee?.nama}</span> (BP {replacingEmployee?.bp})
+            {
+                isReplaceModalOpen && (
+                    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+                        <div className="bg-white rounded-xl shadow-2xl w-full max-w-4xl overflow-hidden animate-in zoom-in-95 duration-200 flex flex-col max-h-[85vh]">
+                            <div className="p-6 border-b border-zinc-100 flex justify-between items-center bg-zinc-950 text-white">
+                                <div>
+                                    <h2 className="text-xl font-bold">Replace Employee</h2>
+                                    <p className="text-xs text-zinc-400 mt-1 uppercase tracking-widest font-bold">
+                                        Replacing: <span className="text-red-500">{replacingEmployee?.nama}</span> (BP {replacingEmployee?.bp})
+                                    </p>
+                                </div>
+                                <button onClick={() => setIsReplaceModalOpen(false)} className="text-zinc-400 hover:text-white transition-colors">
+                                    <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                                </button>
+                            </div>
+
+                            <div className="p-6 bg-zinc-50/50 border-b border-zinc-100">
+                                <div className="relative">
+                                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                        <svg className="h-4 w-4 text-zinc-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+                                    </div>
+                                    <input
+                                        type="text"
+                                        placeholder="Search by name or NIK..."
+                                        value={replaceSearchTerm}
+                                        onChange={(e) => setReplaceSearchTerm(e.target.value)}
+                                        className="block w-full pl-10 pr-4 py-2 bg-white border border-zinc-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 transition-all font-medium"
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="overflow-y-auto flex-1 p-0">
+                                <table className="w-full text-left table-fixed">
+                                    <thead className="bg-zinc-100 border-b border-zinc-200 text-xs uppercase text-zinc-500 font-bold sticky top-0 z-10">
+                                        <tr>
+                                            <th className="px-6 py-3 w-1/3">Candidate Name</th>
+                                            <th className="px-6 py-3 w-1/4">NIK</th>
+                                            <th className="px-6 py-3 w-1/4">Position</th>
+                                            <th className="px-6 py-3 text-right pr-10">Action</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-zinc-100">
+                                        {filteredCandidates.length > 0 ? filteredCandidates.map((candidate: any) => (
+                                            <tr key={candidate.id} className="hover:bg-red-50/30 transition-colors group">
+                                                <td className="px-6 py-4">
+                                                    <div className="font-bold text-zinc-900 truncate">{candidate.nama}</div>
+                                                </td>
+                                                <td className="px-6 py-4 text-zinc-500 font-mono text-sm">{candidate.nik}</td>
+                                                <td className="px-6 py-4 text-zinc-600 text-base truncate">{candidate.posisi}</td>
+                                                <td className="px-6 py-4 text-right pr-6">
+                                                    <button
+                                                        onClick={() => handleReplaceEmployee(candidate.id)}
+                                                        disabled={isReplacing}
+                                                        className="bg-zinc-900 text-white px-4 py-1.5 rounded-lg text-sm font-bold hover:bg-red-600 disabled:opacity-50 transition-all uppercase tracking-tight"
+                                                    >
+                                                        {isReplacing ? '...' : 'Select'}
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                        )) : (
+                                            <tr>
+                                                <td colSpan={4} className="px-6 py-10 text-center text-zinc-400 italic text-sm">
+                                                    No eligible BP {replacingEmployee?.bp} candidates found.
+                                                </td>
+                                            </tr>
+                                        )}
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <div className="p-4 border-t border-zinc-100 bg-zinc-50 flex justify-end">
+                                <button
+                                    onClick={() => setIsReplaceModalOpen(false)}
+                                    className="px-4 py-2 text-zinc-500 hover:text-zinc-900 font-bold text-xs uppercase tracking-widest transition-colors"
+                                >
+                                    Close
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )
+            }
+            {/* Delete Confirmation Modal */}
+            {
+                isDeleteModalOpen && (
+                    <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+                        <div className="bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200">
+                            <div className="p-6 border-b border-zinc-100 flex items-center space-x-4 bg-red-50/50">
+                                <div className="p-3 bg-red-100 text-red-600 rounded-full">
+                                    <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                                    </svg>
+                                </div>
+                                <div>
+                                    <h3 className="text-lg font-bold text-zinc-900">Delete Batch #{batchToDelete}</h3>
+                                    <p className="text-sm text-zinc-500">This action cannot be undone immediately.</p>
+                                </div>
+                            </div>
+
+                            <div className="p-6">
+                                <p className="text-zinc-600 text-sm leading-relaxed">
+                                    Are you sure you want to delete this batch? All employees in this batch will be reverted to <strong className="text-zinc-900">"No Invitation"</strong> status and will be available for selection again.
                                 </p>
                             </div>
-                            <button onClick={() => setIsReplaceModalOpen(false)} className="text-zinc-400 hover:text-white transition-colors">
-                                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
-                            </button>
-                        </div>
 
-                        <div className="p-6 bg-zinc-50/50 border-b border-zinc-100">
-                            <div className="relative">
-                                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                    <svg className="h-4 w-4 text-zinc-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
-                                </div>
-                                <input
-                                    type="text"
-                                    placeholder="Search by name or NIK..."
-                                    value={replaceSearchTerm}
-                                    onChange={(e) => setReplaceSearchTerm(e.target.value)}
-                                    className="block w-full pl-10 pr-4 py-2 bg-white border border-zinc-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 transition-all font-medium"
-                                />
+                            <div className="p-4 border-t border-zinc-100 bg-zinc-50 flex justify-end space-x-3">
+                                <button
+                                    onClick={() => setIsDeleteModalOpen(false)}
+                                    className="px-4 py-2 bg-white border border-zinc-200 text-zinc-700 font-medium text-sm rounded-lg hover:bg-zinc-50 hover:text-zinc-900 transition-colors shadow-sm"
+                                    disabled={isDeleting}
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    onClick={confirmDeleteBatch}
+                                    className="px-4 py-2 bg-red-600 text-white font-medium text-sm rounded-lg hover:bg-red-700 transition-colors shadow-lg shadow-red-600/20 disabled:opacity-50"
+                                    disabled={isDeleting}
+                                >
+                                    {isDeleting ? 'Deleting...' : 'Yes, Delete Batch'}
+                                </button>
                             </div>
-                        </div>
-
-                        <div className="overflow-y-auto flex-1 p-0">
-                            <table className="w-full text-left table-fixed">
-                                <thead className="bg-zinc-100 border-b border-zinc-200 text-xs uppercase text-zinc-500 font-bold sticky top-0 z-10">
-                                    <tr>
-                                        <th className="px-6 py-3 w-1/3">Candidate Name</th>
-                                        <th className="px-6 py-3 w-1/4">NIK</th>
-                                        <th className="px-6 py-3 w-1/4">Position</th>
-                                        <th className="px-6 py-3 text-right pr-10">Action</th>
-                                    </tr>
-                                </thead>
-                                <tbody className="divide-y divide-zinc-100">
-                                    {filteredCandidates.length > 0 ? filteredCandidates.map((candidate: any) => (
-                                        <tr key={candidate.id} className="hover:bg-red-50/30 transition-colors group">
-                                            <td className="px-6 py-4">
-                                                <div className="font-bold text-zinc-900 truncate">{candidate.nama}</div>
-                                            </td>
-                                            <td className="px-6 py-4 text-zinc-500 font-mono text-sm">{candidate.nik}</td>
-                                            <td className="px-6 py-4 text-zinc-600 text-base truncate">{candidate.posisi}</td>
-                                            <td className="px-6 py-4 text-right pr-6">
-                                                <button
-                                                    onClick={() => handleReplaceEmployee(candidate.id)}
-                                                    disabled={isReplacing}
-                                                    className="bg-zinc-900 text-white px-4 py-1.5 rounded-lg text-sm font-bold hover:bg-red-600 disabled:opacity-50 transition-all uppercase tracking-tight"
-                                                >
-                                                    {isReplacing ? '...' : 'Select'}
-                                                </button>
-                                            </td>
-                                        </tr>
-                                    )) : (
-                                        <tr>
-                                            <td colSpan={4} className="px-6 py-10 text-center text-zinc-400 italic text-sm">
-                                                No eligible BP {replacingEmployee?.bp} candidates found.
-                                            </td>
-                                        </tr>
-                                    )}
-                                </tbody>
-                            </table>
-                        </div>
-
-                        <div className="p-4 border-t border-zinc-100 bg-zinc-50 flex justify-end">
-                            <button
-                                onClick={() => setIsReplaceModalOpen(false)}
-                                className="px-4 py-2 text-zinc-500 hover:text-zinc-900 font-bold text-xs uppercase tracking-widest transition-colors"
-                            >
-                                Close
-                            </button>
                         </div>
                     </div>
-                </div>
-            )}
-            {/* Delete Confirmation Modal */}
-            {isDeleteModalOpen && (
-                <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-                    <div className="bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200">
-                        <div className="p-6 border-b border-zinc-100 flex items-center space-x-4 bg-red-50/50">
-                            <div className="p-3 bg-red-100 text-red-600 rounded-full">
-                                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                                </svg>
-                            </div>
-                            <div>
-                                <h3 className="text-lg font-bold text-zinc-900">Delete Batch #{batchToDelete}</h3>
-                                <p className="text-sm text-zinc-500">This action cannot be undone immediately.</p>
-                            </div>
-                        </div>
-
-                        <div className="p-6">
-                            <p className="text-zinc-600 text-sm leading-relaxed">
-                                Are you sure you want to delete this batch? All employees in this batch will be reverted to <strong className="text-zinc-900">"No Invitation"</strong> status and will be available for selection again.
-                            </p>
-                        </div>
-
-                        <div className="p-4 border-t border-zinc-100 bg-zinc-50 flex justify-end space-x-3">
-                            <button
-                                onClick={() => setIsDeleteModalOpen(false)}
-                                className="px-4 py-2 bg-white border border-zinc-200 text-zinc-700 font-medium text-sm rounded-lg hover:bg-zinc-50 hover:text-zinc-900 transition-colors shadow-sm"
-                                disabled={isDeleting}
-                            >
-                                Cancel
-                            </button>
-                            <button
-                                onClick={confirmDeleteBatch}
-                                className="px-4 py-2 bg-red-600 text-white font-medium text-sm rounded-lg hover:bg-red-700 transition-colors shadow-lg shadow-red-600/20 disabled:opacity-50"
-                                disabled={isDeleting}
-                            >
-                                {isDeleting ? 'Deleting...' : 'Yes, Delete Batch'}
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
+                )
+            }
 
             {/* Message Modal */}
-            {isMessageModalOpen && (
-                <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-                    <div className="bg-white rounded-xl shadow-2xl w-full max-w-5xl overflow-hidden animate-in zoom-in-95 duration-200 flex flex-col max-h-[90vh]">
-                        {/* Header */}
-                        <div className="p-6 border-b border-zinc-100 flex justify-between items-center bg-zinc-900 text-white">
-                            <div>
-                                <h2 className="text-xl font-bold">Send Batch Status Message</h2>
-                                <div className="mt-1 flex items-center space-x-4 text-base text-zinc-400">
-                                    <span className="flex items-center">
-                                        <svg className="w-4 h-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                                        </svg>
-                                        {messageBatch?.location}
-                                    </span>
-                                    <span className="flex items-center">
-                                        <svg className="w-4 h-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                                        </svg>
-                                        {messageBatch?.assessmentDate && new Date(messageBatch.assessmentDate).toLocaleDateString()}
-                                    </span>
-                                    <span className="flex items-center">
-                                        <svg className="w-4 h-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                        </svg>
-                                        {messageBatch?.assessmentDate && new Date(messageBatch.assessmentDate).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                    </span>
+            {
+                isMessageModalOpen && (
+                    <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+                        <div className="bg-white rounded-xl shadow-2xl w-full max-w-5xl overflow-hidden animate-in zoom-in-95 duration-200 flex flex-col max-h-[90vh]">
+                            {/* Header */}
+                            <div className="p-6 border-b border-zinc-100 flex justify-between items-center bg-zinc-900 text-white">
+                                <div>
+                                    <h2 className="text-xl font-bold">Send Batch Status Message</h2>
+                                    <div className="mt-1 flex items-center space-x-4 text-base text-zinc-400">
+                                        <span className="flex items-center">
+                                            <svg className="w-4 h-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                                            </svg>
+                                            {messageBatch?.location}
+                                        </span>
+                                        <span className="flex items-center">
+                                            <svg className="w-4 h-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                            </svg>
+                                            {messageBatch?.assessmentDate && new Date(messageBatch.assessmentDate).toLocaleDateString()}
+                                        </span>
+                                        <span className="flex items-center">
+                                            <svg className="w-4 h-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                            </svg>
+                                            {messageBatch?.assessmentDate && new Date(messageBatch.assessmentDate).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                        </span>
+                                    </div>
                                 </div>
+                                <button onClick={() => setIsMessageModalOpen(false)} className="text-zinc-400 hover:text-white transition-colors">
+                                    <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                                </button>
                             </div>
-                            <button onClick={() => setIsMessageModalOpen(false)} className="text-zinc-400 hover:text-white transition-colors">
-                                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
-                            </button>
-                        </div>
 
-                        <div className="flex flex-1 overflow-hidden">
-                            {/* Left Panel: Employee List */}
-                            <div className="w-2/3 border-r border-zinc-100 flex flex-col bg-zinc-50/30">
-                                <div className="p-4 bg-zinc-50 border-b border-zinc-200">
-                                    <h3 className="font-semibold text-zinc-700 text-sm uppercase tracking-wide">Recipients ({messageBatch?.employees?.length || 0})</h3>
-                                </div>
-                                <div className="flex-1 overflow-y-auto p-0">
-                                    {messageLoading ? (
-                                        <div className="flex items-center justify-center h-full text-zinc-400">Loading recipients...</div>
-                                    ) : (
-                                        <table className="w-full text-left text-lg">
-                                            <thead className="bg-zinc-100 text-zinc-500 font-semibold sticky top-0">
-                                                <tr>
-                                                    <th className="px-4 py-2">Name</th>
-                                                    <th className="px-4 py-2">NIK</th>
-                                                    <th className="px-4 py-2 text-right">Phone</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody className="divide-y divide-zinc-100 bg-white">
-                                                {messageBatch?.employees?.map((emp: any) => (
-                                                    <tr key={emp.id} className="hover:bg-zinc-50 transition-colors">
-                                                        <td className="px-4 py-3 font-medium text-zinc-900">{emp.nama}</td>
-                                                        <td className="px-4 py-3 text-zinc-500 font-mono">{emp.nik}</td>
-                                                        <td className="px-4 py-3 text-zinc-500 font-mono text-right">{emp.phone || '-'}</td>
+                            <div className="flex flex-1 overflow-hidden">
+                                {/* Left Panel: Employee List */}
+                                <div className="w-2/3 border-r border-zinc-100 flex flex-col bg-zinc-50/30">
+                                    <div className="p-4 bg-zinc-50 border-b border-zinc-200">
+                                        <h3 className="font-semibold text-zinc-700 text-sm uppercase tracking-wide">Recipients ({messageBatch?.employees?.length || 0})</h3>
+                                    </div>
+                                    <div className="flex-1 overflow-y-auto p-0">
+                                        {messageLoading ? (
+                                            <div className="flex items-center justify-center h-full text-zinc-400">Loading recipients...</div>
+                                        ) : (
+                                            <table className="w-full text-left text-lg">
+                                                <thead className="bg-zinc-100 text-zinc-500 font-semibold sticky top-0">
+                                                    <tr>
+                                                        <th className="px-4 py-2">Name</th>
+                                                        <th className="px-4 py-2">NIK</th>
+                                                        <th className="px-4 py-2 text-right">Phone</th>
                                                     </tr>
-                                                ))}
-                                            </tbody>
-                                        </table>
+                                                </thead>
+                                                <tbody className="divide-y divide-zinc-100 bg-white">
+                                                    {messageBatch?.employees?.map((emp: any) => (
+                                                        <tr key={emp.id} className="hover:bg-zinc-50 transition-colors">
+                                                            <td className="px-4 py-3 font-medium text-zinc-900">{emp.nama}</td>
+                                                            <td className="px-4 py-3 text-zinc-500 font-mono">{emp.nik}</td>
+                                                            <td className="px-4 py-3 text-zinc-500 font-mono text-right">{emp.phone || '-'}</td>
+                                                        </tr>
+                                                    ))}
+                                                </tbody>
+                                            </table>
+                                        )}
+                                    </div>
+                                </div>
+
+                                {/* Right Panel: Message Configuration */}
+                                <div className="w-1/3 flex flex-col bg-white p-6">
+                                    <div className="mb-6">
+                                        <label className="block text-sm font-bold text-zinc-900 mb-2">
+                                            Select Message Template
+                                        </label>
+                                        <select
+                                            value={selectedTemplate}
+                                            onChange={(e) => setSelectedTemplate(e.target.value)}
+                                            className="w-full bg-zinc-50 border border-zinc-200 text-zinc-900 text-base rounded-lg focus:ring-red-500 focus:border-red-500 block p-2.5 transition-all"
+                                        >
+                                            <option value="" disabled>Choose a template...</option>
+                                            <option value="invitation">Invitation to Assessment</option>
+                                            <option value="reminder">Assessment Reminder (H-1)</option>
+                                            <option value="change">Location Change Notice</option>
+                                            <option value="cancellation">Cancellation Notice</option>
+                                        </select>
+                                    </div>
+
+                                    {selectedTemplate && (
+                                        <div className="flex-1 flex flex-col animate-in fade-in slide-in-from-bottom-2 duration-300">
+                                            <label className="block text-sm font-bold text-zinc-900 mb-2">
+                                                Message Preview
+                                            </label>
+                                            <div className="flex-1 bg-zinc-50 border border-zinc-200 rounded-lg p-4 text-base text-black overflow-y-auto mb-4 font-mono leading-relaxed whitespace-pre-wrap shadow-inner">
+                                                {/* Template: Invitation to Assessment */}
+                                                {selectedTemplate === 'invitation' && `Dear [Name],\n\nYou are invited to the assessment process.\n\nDate: ${new Date(messageBatch?.assessmentDate || '').toLocaleDateString()}\nTime: ${new Date(messageBatch?.assessmentDate || '').toLocaleTimeString()}\nLocation: ${messageBatch?.location}\n\nPlease bring your ID card.`}
+
+                                                {/* Template: Assessment Reminder (H-1) */}
+                                                {selectedTemplate === 'reminder' && `Reminder: Your assessment is tomorrow at ${messageBatch?.location}.`}
+
+                                                {/* Template: Location Change Notice */}
+                                                {selectedTemplate === 'change' && `Important: The location for your assessment has changed to ${messageBatch?.location}.`}
+
+                                                {/* Template: Cancellation Notice */}
+                                                {selectedTemplate === 'cancellation' && `We regret to inform you that the assessment scheduled for ${new Date(messageBatch?.assessmentDate || '').toLocaleDateString()} has been cancelled.`}
+                                            </div>
+
+                                            <button
+                                                onClick={handleSendMessageClick}
+                                                className="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-4 rounded-lg shadow-lg shadow-green-600/20 transition-all flex items-center justify-center space-x-2"
+                                            >
+                                                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                                                </svg>
+                                                <span>Send via WhatsApp</span>
+                                            </button>
+                                        </div>
+                                    )}
+
+                                    {!selectedTemplate && (
+                                        <div className="flex-1 flex items-center justify-center text-zinc-400 text-sm text-center italic border-2 border-dashed border-zinc-100 rounded-lg bg-zinc-50/50">
+                                            Select a template to preview message
+                                        </div>
                                     )}
                                 </div>
                             </div>
 
-                            {/* Right Panel: Message Configuration */}
-                            <div className="w-1/3 flex flex-col bg-white p-6">
-                                <div className="mb-6">
-                                    <label className="block text-sm font-bold text-zinc-900 mb-2">
-                                        Select Message Template
-                                    </label>
-                                    <select
-                                        value={selectedTemplate}
-                                        onChange={(e) => setSelectedTemplate(e.target.value)}
-                                        className="w-full bg-zinc-50 border border-zinc-200 text-zinc-900 text-base rounded-lg focus:ring-red-500 focus:border-red-500 block p-2.5 transition-all"
-                                    >
-                                        <option value="" disabled>Choose a template...</option>
-                                        <option value="invitation">Invitation to Assessment</option>
-                                        <option value="reminder">Assessment Reminder (H-1)</option>
-                                        <option value="change">Location Change Notice</option>
-                                        <option value="cancellation">Cancellation Notice</option>
-                                    </select>
-                                </div>
-
-                                {selectedTemplate && (
-                                    <div className="flex-1 flex flex-col animate-in fade-in slide-in-from-bottom-2 duration-300">
-                                        <label className="block text-sm font-bold text-zinc-900 mb-2">
-                                            Message Preview
-                                        </label>
-                                        <div className="flex-1 bg-zinc-50 border border-zinc-200 rounded-lg p-4 text-base text-black overflow-y-auto mb-4 font-mono leading-relaxed whitespace-pre-wrap shadow-inner">
-                                            {/* Template: Invitation to Assessment */}
-                                            {selectedTemplate === 'invitation' && `Dear [Name],\n\nYou are invited to the assessment process.\n\nDate: ${new Date(messageBatch?.assessmentDate || '').toLocaleDateString()}\nTime: ${new Date(messageBatch?.assessmentDate || '').toLocaleTimeString()}\nLocation: ${messageBatch?.location}\n\nPlease bring your ID card.`}
-
-                                            {/* Template: Assessment Reminder (H-1) */}
-                                            {selectedTemplate === 'reminder' && `Reminder: Your assessment is tomorrow at ${messageBatch?.location}.`}
-
-                                            {/* Template: Location Change Notice */}
-                                            {selectedTemplate === 'change' && `Important: The location for your assessment has changed to ${messageBatch?.location}.`}
-
-                                            {/* Template: Cancellation Notice */}
-                                            {selectedTemplate === 'cancellation' && `We regret to inform you that the assessment scheduled for ${new Date(messageBatch?.assessmentDate || '').toLocaleDateString()} has been cancelled.`}
-                                        </div>
-
-                                        <button
-                                            onClick={handleSendMessageClick}
-                                            className="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-4 rounded-lg shadow-lg shadow-green-600/20 transition-all flex items-center justify-center space-x-2"
-                                        >
-                                            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
-                                            </svg>
-                                            <span>Send via WhatsApp</span>
-                                        </button>
-                                    </div>
-                                )}
-
-                                {!selectedTemplate && (
-                                    <div className="flex-1 flex items-center justify-center text-zinc-400 text-sm text-center italic border-2 border-dashed border-zinc-100 rounded-lg bg-zinc-50/50">
-                                        Select a template to preview message
-                                    </div>
-                                )}
+                            <div className="p-4 border-t border-zinc-100 bg-zinc-50 flex justify-end">
+                                <button
+                                    onClick={() => setIsMessageModalOpen(false)}
+                                    className="px-6 py-2 bg-white border border-zinc-200 rounded-lg text-zinc-600 font-bold text-sm hover:bg-zinc-50 hover:text-zinc-900 transition-colors shadow-sm uppercase tracking-wide"
+                                >
+                                    Close
+                                </button>
                             </div>
                         </div>
-
-                        <div className="p-4 border-t border-zinc-100 bg-zinc-50 flex justify-end">
-                            <button
-                                onClick={() => setIsMessageModalOpen(false)}
-                                className="px-6 py-2 bg-white border border-zinc-200 rounded-lg text-zinc-600 font-bold text-sm hover:bg-zinc-50 hover:text-zinc-900 transition-colors shadow-sm uppercase tracking-wide"
-                            >
-                                Close
-                            </button>
-                        </div>
                     </div>
-                </div>
-            )}
+                )
+            }
 
             {/* Send Confirmation Modal */}
-            {isSendConfirmOpen && (
-                <div className="fixed inset-0 z-[90] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-                    <div className="bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200">
-                        <div className="p-6 border-b border-zinc-100 flex items-center space-x-4 bg-green-50/50">
-                            <div className="p-3 bg-green-100 text-green-600 rounded-full">
-                                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
-                                </svg>
+            {
+                isSendConfirmOpen && (
+                    <div className="fixed inset-0 z-[90] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+                        <div className="bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200">
+                            <div className="p-6 border-b border-zinc-100 flex items-center space-x-4 bg-green-50/50">
+                                <div className="p-3 bg-green-100 text-green-600 rounded-full">
+                                    <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                                    </svg>
+                                </div>
+                                <div>
+                                    <h3 className="text-xl font-bold text-zinc-900">Send Invitations?</h3>
+                                    <p className="text-base text-zinc-500">Confirm WhatsApp Broadcast</p>
+                                </div>
                             </div>
-                            <div>
-                                <h3 className="text-xl font-bold text-zinc-900">Send Invitations?</h3>
-                                <p className="text-base text-zinc-500">Confirm WhatsApp Broadcast</p>
-                            </div>
-                        </div>
 
-                        <div className="p-6">
-                            <p className="text-zinc-600 text-base leading-relaxed">
-                                Are you sure you want to send invitations to <strong className="text-zinc-900">{messageBatch?.employees?.length} employees</strong> in this batch? This will update their status to <strong className="text-zinc-900">"Pending"</strong>.
-                            </p>
-                        </div>
-
-                        <div className="p-4 border-t border-zinc-100 bg-zinc-50 flex justify-end space-x-3">
-                            <button
-                                onClick={() => setIsSendConfirmOpen(false)}
-                                className="px-4 py-2 bg-white border border-zinc-200 text-zinc-700 font-medium text-base rounded-lg hover:bg-zinc-50 hover:text-zinc-900 transition-colors shadow-sm"
-                                disabled={isSendingInvitations}
-                            >
-                                Cancel
-                            </button>
-                            <button
-                                onClick={confirmSendMessage}
-                                className="px-4 py-2 bg-green-600 text-white font-bold text-base rounded-lg hover:bg-green-700 transition-colors shadow-lg shadow-green-600/20 disabled:opacity-50"
-                                disabled={isSendingInvitations}
-                            >
-                                {isSendingInvitations ? 'Sending...' : 'Yes, Send Now'}
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
-
-            {/* Reschedule Modal */}
-            {isRescheduleModalOpen && (
-                <div className="fixed inset-0 z-[90] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-                    <div className="bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200">
-                        <div className="p-6 border-b border-zinc-100 flex justify-between items-center bg-zinc-900 text-white">
-                            <div>
-                                <h3 className="text-lg font-bold">Reschedule Assessment</h3>
-                                <p className="text-xs text-zinc-400 mt-1 uppercase tracking-widest font-bold">
-                                    For: <span className="text-white">{reschedulingEmployee?.nama}</span>
+                            <div className="p-6">
+                                <p className="text-zinc-600 text-base leading-relaxed">
+                                    Are you sure you want to send invitations to <strong className="text-zinc-900">{messageBatch?.employees?.length} employees</strong> in this batch? This will update their status to <strong className="text-zinc-900">"Pending"</strong>.
                                 </p>
                             </div>
-                            <button onClick={() => setIsRescheduleModalOpen(false)} className="text-zinc-400 hover:text-white transition-colors">
-                                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
-                            </button>
-                        </div>
 
-                        <div className="p-6 space-y-4">
-                            <div>
-                                <label className="block text-xs font-bold text-zinc-500 mb-1 uppercase tracking-wider">New Location</label>
-                                <input
-                                    type="text"
-                                    value={rescheduleLocation}
-                                    onChange={(e) => setRescheduleLocation(e.target.value)}
-                                    className="w-full px-3 py-2 border border-zinc-300 rounded-lg text-sm focus:ring-2 focus:ring-red-500/20 focus:border-red-500 transition-all outline-none"
-                                    placeholder="Enter location..."
-                                />
+                            <div className="p-4 border-t border-zinc-100 bg-zinc-50 flex justify-end space-x-3">
+                                <button
+                                    onClick={() => setIsSendConfirmOpen(false)}
+                                    className="px-4 py-2 bg-white border border-zinc-200 text-zinc-700 font-medium text-base rounded-lg hover:bg-zinc-50 hover:text-zinc-900 transition-colors shadow-sm"
+                                    disabled={isSendingInvitations}
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    onClick={confirmSendMessage}
+                                    className="px-4 py-2 bg-green-600 text-white font-bold text-base rounded-lg hover:bg-green-700 transition-colors shadow-lg shadow-green-600/20 disabled:opacity-50"
+                                    disabled={isSendingInvitations}
+                                >
+                                    {isSendingInvitations ? 'Sending...' : 'Yes, Send Now'}
+                                </button>
                             </div>
-                            <div className="grid grid-cols-2 gap-4">
-                                <div>
-                                    <label className="block text-xs font-bold text-zinc-500 mb-1 uppercase tracking-wider">New Date</label>
-                                    <input
-                                        type="date"
-                                        value={rescheduleDate}
-                                        onChange={(e) => setRescheduleDate(e.target.value)}
-                                        className="w-full px-3 py-2 border border-zinc-300 rounded-lg text-sm focus:ring-2 focus:ring-red-500/20 focus:border-red-500 transition-all outline-none"
-                                    />
-                                </div>
-                                <div>
-                                    <label className="block text-xs font-bold text-zinc-500 mb-1 uppercase tracking-wider">New Time</label>
-                                    <input
-                                        type="time"
-                                        value={rescheduleTime}
-                                        onChange={(e) => setRescheduleTime(e.target.value)}
-                                        className="w-full px-3 py-2 border border-zinc-300 rounded-lg text-sm focus:ring-2 focus:ring-red-500/20 focus:border-red-500 transition-all outline-none"
-                                    />
-                                </div>
-                            </div>
-                        </div>
-
-                        <div className="p-4 border-t border-zinc-100 bg-zinc-50 flex justify-end space-x-3">
-                            <button
-                                onClick={() => setIsRescheduleModalOpen(false)}
-                                className="px-4 py-2 bg-white border border-zinc-200 text-zinc-700 font-medium text-sm rounded-lg hover:bg-zinc-50 hover:text-zinc-900 transition-colors shadow-sm"
-                                disabled={isRescheduling}
-                            >
-                                Cancel
-                            </button>
-                            <button
-                                onClick={confirmReschedule}
-                                disabled={isRescheduling}
-                                className="px-4 py-2 bg-red-600 text-white font-bold text-sm rounded-lg hover:bg-red-700 shadow-lg shadow-red-600/20 disabled:opacity-50 transition-all"
-                            >
-                                {isRescheduling ? 'Rescheduling...' : 'Confirm Reschedule'}
-                            </button>
                         </div>
                     </div>
-                </div>
-            )}
-        </div>
+                )
+            }
+
+            {/* Reschedule Modal */}
+            {
+                isRescheduleModalOpen && (
+                    <div className="fixed inset-0 z-[90] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+                        <div className="bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200">
+                            <div className="p-6 border-b border-zinc-100 flex justify-between items-center bg-zinc-900 text-white">
+                                <div>
+                                    <h3 className="text-lg font-bold">Reschedule Assessment</h3>
+                                    <p className="text-xs text-zinc-400 mt-1 uppercase tracking-widest font-bold">
+                                        For: <span className="text-white">{reschedulingEmployee?.nama}</span>
+                                    </p>
+                                </div>
+                                <button onClick={() => setIsRescheduleModalOpen(false)} className="text-zinc-400 hover:text-white transition-colors">
+                                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                                </button>
+                            </div>
+
+                            <div className="p-6 space-y-4">
+                                <div>
+                                    <label className="block text-xs font-bold text-zinc-500 mb-1 uppercase tracking-wider">New Location</label>
+                                    <input
+                                        type="text"
+                                        value={rescheduleLocation}
+                                        onChange={(e) => setRescheduleLocation(e.target.value)}
+                                        className="w-full px-3 py-2 border border-zinc-300 rounded-lg text-sm focus:ring-2 focus:ring-red-500/20 focus:border-red-500 transition-all outline-none"
+                                        placeholder="Enter location..."
+                                    />
+                                </div>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="block text-xs font-bold text-zinc-500 mb-1 uppercase tracking-wider">New Date</label>
+                                        <input
+                                            type="date"
+                                            value={rescheduleDate}
+                                            onChange={(e) => setRescheduleDate(e.target.value)}
+                                            className="w-full px-3 py-2 border border-zinc-300 rounded-lg text-sm focus:ring-2 focus:ring-red-500/20 focus:border-red-500 transition-all outline-none"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-bold text-zinc-500 mb-1 uppercase tracking-wider">New Time</label>
+                                        <input
+                                            type="time"
+                                            value={rescheduleTime}
+                                            onChange={(e) => setRescheduleTime(e.target.value)}
+                                            className="w-full px-3 py-2 border border-zinc-300 rounded-lg text-sm focus:ring-2 focus:ring-red-500/20 focus:border-red-500 transition-all outline-none"
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="p-4 border-t border-zinc-100 bg-zinc-50 flex justify-end space-x-3">
+                                <button
+                                    onClick={() => setIsRescheduleModalOpen(false)}
+                                    className="px-4 py-2 bg-white border border-zinc-200 text-zinc-700 font-medium text-sm rounded-lg hover:bg-zinc-50 hover:text-zinc-900 transition-colors shadow-sm"
+                                    disabled={isRescheduling}
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    onClick={confirmReschedule}
+                                    disabled={isRescheduling}
+                                    className="px-4 py-2 bg-red-600 text-white font-bold text-sm rounded-lg hover:bg-red-700 shadow-lg shadow-red-600/20 disabled:opacity-50 transition-all"
+                                >
+                                    {isRescheduling ? 'Rescheduling...' : 'Confirm Reschedule'}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )
+            }
+            {/* Add Employee Modal */}
+            {
+                isAddModalOpen && (
+                    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+                        <div className="bg-white rounded-xl shadow-2xl w-full max-w-4xl overflow-hidden animate-in zoom-in-95 duration-200 flex flex-col max-h-[85vh]">
+                            <div className="p-6 border-b border-zinc-100 flex justify-between items-center bg-zinc-900 text-white">
+                                <div>
+                                    <h2 className="text-xl font-bold">Add Employee to Batch</h2>
+                                    <p className="text-xs text-zinc-400 mt-1 uppercase tracking-widest font-bold">
+                                        Target BP: <span className="text-red-500">BP {selectedBatch?.employees?.[0]?.bp || '?'}</span>
+                                    </p>
+                                </div>
+                                <button onClick={() => setIsAddModalOpen(false)} className="text-zinc-400 hover:text-white transition-colors">
+                                    <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                                </button>
+                            </div>
+
+                            <div className="p-6 bg-zinc-50/50 border-b border-zinc-100">
+                                <div className="relative">
+                                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                        <svg className="h-4 w-4 text-zinc-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+                                    </div>
+                                    <input
+                                        type="text"
+                                        placeholder="Search by name or NIK..."
+                                        value={addSearchTerm}
+                                        onChange={(e) => setAddSearchTerm(e.target.value)}
+                                        className="block w-full pl-10 pr-4 py-2 bg-white border border-zinc-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 transition-all font-medium"
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="overflow-y-auto flex-1 p-0">
+                                <table className="w-full text-left table-fixed">
+                                    <thead className="bg-zinc-100 border-b border-zinc-200 text-xs uppercase text-zinc-500 font-bold sticky top-0 z-10">
+                                        <tr>
+                                            <th className="px-6 py-3 w-1/3">Candidate Name</th>
+                                            <th className="px-6 py-3 w-1/4">NIK</th>
+                                            <th className="px-6 py-3 w-1/4">Position</th>
+                                            <th className="px-6 py-3 text-right pr-6">Action</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-zinc-100">
+                                        {availableCandidates.length > 0 ? availableCandidates.map((candidate: any) => (
+                                            <tr key={candidate.id} className="hover:bg-red-50/30 transition-colors group">
+                                                <td className="px-6 py-4">
+                                                    <div className="font-bold text-zinc-900 truncate">{candidate.nama}</div>
+                                                </td>
+                                                <td className="px-6 py-4 text-zinc-500 font-mono text-sm">{candidate.nik}</td>
+                                                <td className="px-6 py-4 text-zinc-600 text-base truncate">{candidate.posisi}</td>
+                                                <td className="px-6 py-4 text-right pr-6">
+                                                    <button
+                                                        onClick={() => handleAddEmployee(candidate.id)}
+                                                        disabled={isAdding}
+                                                        className="bg-zinc-900 text-white px-4 py-1.5 rounded-lg text-sm font-bold hover:bg-green-600 disabled:opacity-50 transition-all uppercase tracking-tight"
+                                                    >
+                                                        {isAdding ? '...' : 'Add'}
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                        )) : (
+                                            <tr>
+                                                <td colSpan={4} className="px-6 py-10 text-center text-zinc-400 italic text-sm">
+                                                    No eligible candidates found.
+                                                </td>
+                                            </tr>
+                                        )}
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <div className="p-4 border-t border-zinc-100 bg-zinc-50 flex justify-end">
+                                <button
+                                    onClick={() => setIsAddModalOpen(false)}
+                                    className="px-4 py-2 text-zinc-500 hover:text-zinc-900 font-bold text-xs uppercase tracking-widest transition-colors"
+                                >
+                                    Close
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )
+            }
+        </div >
     );
 }
