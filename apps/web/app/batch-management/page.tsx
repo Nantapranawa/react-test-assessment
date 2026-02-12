@@ -13,7 +13,7 @@ interface Batch {
     _count: {
         employees: number;
     };
-    employees?: { id: number; bp: number; availability_status: string }[];
+    employees?: { id: number; nik: string; bp: number; availability_status: string }[];
 }
 
 export default function BatchManagementPage() {
@@ -148,9 +148,9 @@ export default function BatchManagementPage() {
             const originalTime = new Date(selectedBatch.assessmentDate).toTimeString().slice(0, 5);
 
             // Compare employees
-            const originalEmployeeIds = selectedBatch.employees?.map((e: any) => e.id) || [];
-            const currentEmployeeIds = stagedEmployees.map((e: any) => e.id);
-            const hasEmployeeChanges = JSON.stringify(originalEmployeeIds) !== JSON.stringify(currentEmployeeIds);
+            const originalEmployeeNiks = selectedBatch.employees?.map((e: any) => e.nik) || [];
+            const currentEmployeeNiks = stagedEmployees.map((e: any) => e.nik);
+            const hasEmployeeChanges = JSON.stringify(originalEmployeeNiks) !== JSON.stringify(currentEmployeeNiks);
 
             const hasChanged = editLocation !== selectedBatch.location ||
                 editDate !== originalDate ||
@@ -163,7 +163,7 @@ export default function BatchManagementPage() {
                 body: JSON.stringify({
                     location: editLocation,
                     assessmentDate: dateTime,
-                    employeeIds: currentEmployeeIds
+                    employeeNiks: currentEmployeeNiks
                 })
             });
             const result = await res.json();
@@ -218,7 +218,7 @@ export default function BatchManagementPage() {
         }
     };
 
-    const handleReplaceEmployee = async (newEmployeeId: number) => {
+    const handleReplaceEmployee = async (newEmployeeNik: string) => {
         if (!selectedBatch || !replacingEmployee) return;
 
         // If in edit mode, just stage the change locally
@@ -226,7 +226,7 @@ export default function BatchManagementPage() {
             try {
                 // Use existing tableData instead of fetching
                 if (tableData?.data) {
-                    const newEmp = tableData.data.find((e: any) => e.id === newEmployeeId);
+                    const newEmp = tableData.data.find((e: any) => e.nik === newEmployeeNik);
                     if (newEmp) {
                         // Check BP
                         if (newEmp.bp !== replacingEmployee.bp) {
@@ -235,7 +235,7 @@ export default function BatchManagementPage() {
                         }
 
                         const updatedStaged = stagedEmployees.map(emp =>
-                            emp.id === replacingEmployee.id ? { ...newEmp, availability_status: "Batch Draft" } : emp
+                            emp.nik === replacingEmployee.nik ? { ...newEmp, availability_status: "Batch Draft" } : emp
                         );
                         setStagedEmployees(updatedStaged);
                         setIsReplaceModalOpen(false);
@@ -255,15 +255,15 @@ export default function BatchManagementPage() {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    oldEmployeeId: replacingEmployee.id,
-                    newEmployeeId
+                    oldEmployeeNik: replacingEmployee.nik,
+                    newEmployeeNik
                 })
             });
             const result = await res.json();
             if (result.success) {
                 if (selectedBatch && replacingEmployee) {
                     const updatedEmployees = selectedBatch.employees?.map(emp =>
-                        emp.id === replacingEmployee.id ? result.data : emp
+                        emp.nik === replacingEmployee.nik ? result.data : emp
                     );
                     setSelectedBatch({ ...selectedBatch, employees: updatedEmployees });
                 }
@@ -366,7 +366,7 @@ export default function BatchManagementPage() {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    employeeId: reschedulingEmployee.id,
+                    employeeNik: reschedulingEmployee.nik,
                     location: rescheduleLocation,
                     assessmentDate: dateTime
                 })
@@ -376,7 +376,7 @@ export default function BatchManagementPage() {
             if (result.success) {
                 // Update local state: remove the employee from the current batch view
                 if (selectedBatch) {
-                    const updatedEmployees = selectedBatch.employees?.filter(e => e.id !== reschedulingEmployee.id);
+                    const updatedEmployees = selectedBatch.employees?.filter(e => e.nik !== reschedulingEmployee.nik);
                     setSelectedBatch({ ...selectedBatch, employees: updatedEmployees, _count: { employees: (selectedBatch._count?.employees || 1) - 1 } });
                 }
 
@@ -399,7 +399,7 @@ export default function BatchManagementPage() {
         }
     };
 
-    const handleAddEmployee = async (employeeId: number) => {
+    const handleAddEmployee = async (employeeNik: string) => {
         if (!selectedBatch) return;
 
         // If in edit mode, stage locally
@@ -407,7 +407,7 @@ export default function BatchManagementPage() {
             try {
                 // Use existing tableData instead of fetching
                 if (tableData?.data) {
-                    const newEmp = tableData.data.find((e: any) => e.id === employeeId);
+                    const newEmp = tableData.data.find((e: any) => e.nik === employeeNik);
                     if (newEmp) {
                         // Check BP
                         const batchBp = stagedEmployees.length > 0 ? stagedEmployees[0].bp : null;
@@ -432,7 +432,7 @@ export default function BatchManagementPage() {
             const res = await fetch(`http://localhost:8000/api/batches/${selectedBatch.id}/add-employee`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ employeeId })
+                body: JSON.stringify({ employeeNik })
             });
             const result = await res.json();
             if (result.success) {
@@ -464,9 +464,9 @@ export default function BatchManagementPage() {
         }
     };
 
-    const handleRemoveEmployee = async (employeeId: number) => {
+    const handleRemoveEmployee = async (employeeNik: string) => {
         if (!isEditingBatch) return;
-        setStagedEmployees(stagedEmployees.filter(e => e.id !== employeeId));
+        setStagedEmployees(stagedEmployees.filter(e => e.nik !== employeeNik));
     };
 
     const filteredCandidates = useMemo(() => {
@@ -477,7 +477,7 @@ export default function BatchManagementPage() {
         return tableData.data.filter((emp: any) =>
             emp.bp === replacingEmployee.bp &&
             emp.availability_status === "No Invitation" &&
-            !currentEmployees.some((e: any) => e.id === emp.id) &&
+            !currentEmployees.some((e: any) => e.nik === emp.nik) &&
             (emp.nama.toLowerCase().includes(lowerSearch) || emp.nik.toString().includes(lowerSearch))
         );
     }, [tableData, replacingEmployee, replaceSearchTerm, isEditingBatch, stagedEmployees, selectedBatch]);
@@ -494,7 +494,7 @@ export default function BatchManagementPage() {
         return tableData.data.filter((emp: any) =>
             emp.bp === targetBp &&
             emp.availability_status === "No Invitation" &&
-            !currentEmployees.some((e: any) => e.id === emp.id) &&
+            !currentEmployees.some((e: any) => e.nik === emp.nik) &&
             (emp.nama.toLowerCase().includes(lowerSearch) || emp.nik.toString().includes(lowerSearch))
         );
     }, [tableData, selectedBatch, addSearchTerm, isEditingBatch, stagedEmployees]);
@@ -853,7 +853,7 @@ export default function BatchManagementPage() {
                                                                     Replace
                                                                 </button>
                                                                 <button
-                                                                    onClick={() => handleRemoveEmployee(emp.id)}
+                                                                    onClick={() => handleRemoveEmployee(emp.nik)}
                                                                     className="text-sm font-bold text-red-500 hover:text-red-700 transition-colors uppercase tracking-tight underline underline-offset-4"
                                                                 >
                                                                     Remove
@@ -979,7 +979,7 @@ export default function BatchManagementPage() {
                                                 <td className="px-6 py-4 text-zinc-600 text-base truncate">{candidate.posisi}</td>
                                                 <td className="px-6 py-4 text-right pr-6">
                                                     <button
-                                                        onClick={() => handleReplaceEmployee(candidate.id)}
+                                                        onClick={() => handleReplaceEmployee(candidate.nik)}
                                                         disabled={isReplacing}
                                                         className="bg-zinc-900 text-white px-4 py-1.5 rounded-lg text-sm font-bold hover:bg-red-600 disabled:opacity-50 transition-all uppercase tracking-tight"
                                                     >
@@ -1359,7 +1359,7 @@ export default function BatchManagementPage() {
                                                 <td className="px-6 py-4 text-zinc-600 text-base truncate">{candidate.posisi}</td>
                                                 <td className="px-6 py-4 text-right pr-6">
                                                     <button
-                                                        onClick={() => handleAddEmployee(candidate.id)}
+                                                        onClick={() => handleAddEmployee(candidate.nik)}
                                                         disabled={isAdding}
                                                         className="bg-zinc-900 text-white px-4 py-1.5 rounded-lg text-sm font-bold hover:bg-green-600 disabled:opacity-50 transition-all uppercase tracking-tight"
                                                     >

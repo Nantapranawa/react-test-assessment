@@ -31,10 +31,10 @@ export const aiController = {
             // 'response' = original message
             // 'aiStatus' = status determined by Python AI Service (REQUIRED)
             // 'reason' / 'proposedDate' = additional details provided by Python AI
-            const { employeeId, response, aiStatus, reason, proposedDate } = req.body;
+            const { employeeNik, response, aiStatus, reason, proposedDate } = req.body;
 
-            if (!employeeId || !response) {
-                return res.status(400).json({ success: false, error: "Missing employeeId or response" });
+            if (!employeeNik || !response) {
+                return res.status(400).json({ success: false, error: "Missing employeeNik or response" });
             }
 
             if (!aiStatus) {
@@ -42,7 +42,7 @@ export const aiController = {
             }
 
             const employee = await prisma.employee.findUnique({
-                where: { id: parseInt(employeeId) }
+                where: { nik: employeeNik }
             });
 
             if (!employee) {

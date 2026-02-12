@@ -4,9 +4,9 @@ import { Batch, Employee } from '../../generated/prisma/client';
 
 export const createBatch = async (req: Request, res: Response) => {
     try {
-        const { location, assessmentDate, employeeIds, batchName } = req.body;
+        const { location, assessmentDate, employeeNiks, batchName } = req.body;
 
-        if (!location || !assessmentDate || !employeeIds || !Array.isArray(employeeIds)) {
+        if (!location || !assessmentDate || !employeeNiks || !Array.isArray(employeeNiks)) {
             return res.status(400).json({ success: false, error: "Missing required fields" });
         }
 
@@ -14,7 +14,7 @@ export const createBatch = async (req: Request, res: Response) => {
         // The user requirement says "Submission: On 'Save', create the Batch record... and link the 9 selected employees"
         // I will trust the frontend for strict 9, or add check here?
         // Let's add a check for safety.
-        if (employeeIds.length !== 9) {
+        if (employeeNiks.length !== 9) {
             // stricter validation based on instructions
             // "Strict Selection Logic... exact 3 (BP1) and 6 (BP2)"
             // Validating BP breakdown might be expensive here without fetching them first.
@@ -27,7 +27,7 @@ export const createBatch = async (req: Request, res: Response) => {
                 assessmentDate: new Date(assessmentDate),
                 batchName: batchName || null,
                 employees: {
-                    connect: employeeIds.map((id: number) => ({ id }))
+                    connect: employeeNiks.map((nik: string) => ({ nik }))
                 }
             },
             include: {
@@ -38,7 +38,7 @@ export const createBatch = async (req: Request, res: Response) => {
         // Update employees status to "Batch Draft"
         await prisma.employee.updateMany({
             where: {
-                id: { in: employeeIds }
+                nik: { in: employeeNiks }
             },
             data: {
                 availability_status: "Batch Draft"
@@ -65,7 +65,8 @@ export const listBatches = async (req: Request, res: Response) => {
                 employees: {
                     select: {
                         bp: true,
-                        availability_status: true
+                        availability_status: true,
+                        nik: true
                     }
                 }
             },
@@ -113,7 +114,7 @@ export const getBatch = async (req: Request, res: Response) => {
 export const updateBatch = async (req: Request, res: Response) => {
     try {
         const { id } = req.params;
-        const { location, assessmentDate, employeeIds } = req.body; // Added employeeIds
+        const { location, assessmentDate, employeeNiks } = req.body; // Added employeeNiks
         const batchId = parseInt(id);
 
         const batch = await prisma.batch.findUnique({
@@ -131,21 +132,21 @@ export const updateBatch = async (req: Request, res: Response) => {
             return res.status(400).json({ success: false, error: "Cannot update batch. some employees have advanced status." });
         }
 
-        if (employeeIds && Array.isArray(employeeIds)) {
-            const currentEmployeeIds = batch.employees.map(e => e.id);
-            const addedIds = employeeIds.filter(id => !currentEmployeeIds.includes(id));
-            const removedIds = currentEmployeeIds.filter(id => !employeeIds.includes(id));
+        if (employeeNiks && Array.isArray(employeeNiks)) {
+            const currentEmployeeNiks = batch.employees.map(e => e.nik);
+            const addedNiks = employeeNiks.filter(nik => !currentEmployeeNiks.includes(nik));
+            const removedNiks = currentEmployeeNiks.filter(nik => !employeeNiks.includes(nik));
 
             // Validate new employees are available and match BP if batch not empty after removals
-            const remainingEmployees = batch.employees.filter(e => !removedIds.includes(e.id));
+            const remainingEmployees = batch.employees.filter(e => !removedNiks.includes(e.nik));
             let targetBp: number | null = null;
             if (remainingEmployees.length > 0) {
                 targetBp = remainingEmployees[0].bp;
             }
 
-            if (addedIds.length > 0) {
+            if (addedNiks.length > 0) {
                 const newEmployees = await prisma.employee.findMany({
-                    where: { id: { in: addedIds } }
+                    where: { nik: { in: addedNiks } }
                 });
 
                 for (const emp of newEmployees) {
@@ -166,19 +167,19 @@ export const updateBatch = async (req: Request, res: Response) => {
                         location,
                         assessmentDate: assessmentDate ? new Date(assessmentDate) : undefined,
                         employees: {
-                            disconnect: removedIds.map(id => ({ id })),
-                            connect: addedIds.map(id => ({ id }))
+                            disconnect: removedNiks.map(nik => ({ nik })),
+                            connect: addedNiks.map(nik => ({ nik }))
                         }
                     }
                 }),
                 // Revert removed employees status
                 prisma.employee.updateMany({
-                    where: { id: { in: removedIds } },
+                    where: { nik: { in: removedNiks } },
                     data: { availability_status: "No Invitation" }
                 }),
                 // Update added employees status
                 prisma.employee.updateMany({
-                    where: { id: { in: addedIds } },
+                    where: { nik: { in: addedNiks } },
                     data: { availability_status: "Batch Draft" }
                 })
             ]);
@@ -208,23 +209,23 @@ export const updateBatch = async (req: Request, res: Response) => {
 export const removeEmployee = async (req: Request, res: Response) => {
     try {
         const { id: batchIdStr } = req.params;
-        const { employeeId } = req.body;
+        const { employeeNik } = req.body;
         const batchId = parseInt(batchIdStr);
 
-        if (!employeeId) {
-            return res.status(400).json({ success: false, error: "Missing employee ID" });
+        if (!employeeNik) {
+            return res.status(400).json({ success: false, error: "Missing employee NIK" });
         }
 
         const batch = await prisma.batch.findUnique({
             where: { id: batchId },
-            include: { employees: { select: { id: true, availability_status: true } } }
+            include: { employees: { select: { id: true, nik: true, availability_status: true } } }
         });
 
         if (!batch) {
             return res.status(404).json({ success: false, error: "Batch not found" });
         }
 
-        const employee = batch.employees.find(e => e.id === employeeId);
+        const employee = batch.employees.find(e => e.nik === employeeNik);
         if (!employee) {
             return res.status(404).json({ success: false, error: "Employee not in batch" });
         }
@@ -238,12 +239,12 @@ export const removeEmployee = async (req: Request, res: Response) => {
                 where: { id: batchId },
                 data: {
                     employees: {
-                        disconnect: { id: employeeId }
+                        disconnect: { nik: employeeNik }
                     }
                 }
             }),
             prisma.employee.update({
-                where: { id: employeeId },
+                where: { nik: employeeNik },
                 data: { availability_status: "No Invitation" }
             })
         ]);
@@ -314,23 +315,23 @@ export const deleteBatch = async (req: Request, res: Response) => {
 export const replaceEmployee = async (req: Request, res: Response) => {
     try {
         const { id: batchIdStr } = req.params;
-        const { oldEmployeeId, newEmployeeId } = req.body;
+        const { oldEmployeeNik, newEmployeeNik } = req.body;
         const batchId = parseInt(batchIdStr);
 
-        if (!oldEmployeeId || !newEmployeeId) {
-            return res.status(400).json({ success: false, error: "Missing old or new employee ID" });
+        if (!oldEmployeeNik || !newEmployeeNik) {
+            return res.status(400).json({ success: false, error: "Missing old or new employee NIK" });
         }
 
         const batch = await prisma.batch.findUnique({
             where: { id: batchId },
-            include: { employees: { select: { id: true } } }
+            include: { employees: { select: { id: true, nik: true } } }
         });
 
         if (!batch) {
             return res.status(404).json({ success: false, error: "Batch not found" });
         }
 
-        const isOldEmployeeInBatch = batch.employees.some(e => e.id === oldEmployeeId);
+        const isOldEmployeeInBatch = batch.employees.some(e => e.nik === oldEmployeeNik);
         if (!isOldEmployeeInBatch) {
             return res.status(400).json({ success: false, error: "Old employee not found in this batch" });
         }
@@ -342,25 +343,25 @@ export const replaceEmployee = async (req: Request, res: Response) => {
                 where: { id: batchId },
                 data: {
                     employees: {
-                        disconnect: { id: oldEmployeeId },
-                        connect: { id: newEmployeeId }
+                        disconnect: { nik: oldEmployeeNik },
+                        connect: { nik: newEmployeeNik }
                     }
                 }
             }),
             // 2. Revert old employee status
             prisma.employee.update({
-                where: { id: oldEmployeeId },
+                where: { nik: oldEmployeeNik },
                 data: { availability_status: "No Invitation" }
             }),
             // 3. Set new employee status
             prisma.employee.update({
-                where: { id: newEmployeeId },
+                where: { nik: newEmployeeNik },
                 data: { availability_status: "Batch Draft" }
             })
         ]);
 
         const newEmployee = await prisma.employee.findUnique({
-            where: { id: newEmployeeId }
+            where: { nik: newEmployeeNik }
         });
 
         res.json({
@@ -407,17 +408,15 @@ export const sendInvitations = async (req: Request, res: Response) => {
 
 export const rescheduleEmployee = async (req: Request, res: Response) => {
     try {
-        const { employeeId, location, assessmentDate } = req.body;
+        const { employeeNik, location, assessmentDate } = req.body;
 
-        if (!employeeId || !location || !assessmentDate) {
+        if (!employeeNik || !location || !assessmentDate) {
             return res.status(400).json({ success: false, error: "Missing required fields" });
         }
 
-        const numericId = parseInt(employeeId);
-
         // 1. Find the employee and their current batch
         const employee = await prisma.employee.findUnique({
-            where: { id: numericId },
+            where: { nik: employeeNik },
             include: { batches: true }
         });
 
@@ -434,7 +433,7 @@ export const rescheduleEmployee = async (req: Request, res: Response) => {
                 assessmentDate: new Date(assessmentDate),
                 batchName: `Reschedule - ${employee.nama}`,
                 employees: {
-                    connect: { id: employee.id }
+                    connect: { nik: employee.nik }
                 }
             }
         });
@@ -442,7 +441,7 @@ export const rescheduleEmployee = async (req: Request, res: Response) => {
         // 3. Disconnect from old batches and update status
         if (oldBatchIds.length > 0) {
             await prisma.employee.update({
-                where: { id: employee.id },
+                where: { nik: employee.nik },
                 data: {
                     batches: {
                         disconnect: oldBatchIds
@@ -452,7 +451,7 @@ export const rescheduleEmployee = async (req: Request, res: Response) => {
             });
         } else {
             await prisma.employee.update({
-                where: { id: employee.id },
+                where: { nik: employee.nik },
                 data: {
                     availability_status: "Batch Draft"
                 }
@@ -470,11 +469,11 @@ export const rescheduleEmployee = async (req: Request, res: Response) => {
 export const addEmployee = async (req: Request, res: Response) => {
     try {
         const { id: batchIdStr } = req.params;
-        const { employeeId } = req.body;
+        const { employeeNik } = req.body;
         const batchId = parseInt(batchIdStr);
 
-        if (!employeeId) {
-            return res.status(400).json({ success: false, error: "Missing employee ID" });
+        if (!employeeNik) {
+            return res.status(400).json({ success: false, error: "Missing employee NIK" });
         }
 
         const batch = await prisma.batch.findUnique({
@@ -493,7 +492,7 @@ export const addEmployee = async (req: Request, res: Response) => {
         }
 
         const employee = await prisma.employee.findUnique({
-            where: { id: employeeId }
+            where: { nik: employeeNik }
         });
 
         if (!employee) {
@@ -514,12 +513,12 @@ export const addEmployee = async (req: Request, res: Response) => {
                 where: { id: batchId },
                 data: {
                     employees: {
-                        connect: { id: employeeId }
+                        connect: { nik: employeeNik }
                     }
                 }
             }),
             prisma.employee.update({
-                where: { id: employeeId },
+                where: { nik: employeeNik },
                 data: { availability_status: "Batch Draft" }
             })
         ]);

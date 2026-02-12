@@ -1,9 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
   provider = "prisma-client"
   output   = "../generated/prisma"
@@ -28,15 +22,15 @@ model Employee {
   nik                 String         @unique
   bp                  Int
   posisi              String
+  ac_result           String
   eligible            String
   expired             String
-  ac_result           String
   phone               String?        @unique
-  tc_result           String
   availability_status String         @default("No Invitation")
   usulan_ubis         String         @default("Unknown")
-  batches             Batch[]
+  tc_result           String
   notifications       Notification[]
+  batches             Batch[]        @relation("BatchToEmployee")
 }
 
 model Batch {
@@ -45,13 +39,13 @@ model Batch {
   location       String
   assessmentDate DateTime
   createdAt      DateTime   @default(now())
-  employees      Employee[]
+  employees      Employee[] @relation("BatchToEmployee")
 }
 
 model Notification {
   id         Int       @id @default(autoincrement())
   message    String
-  type       String // "info", "success", "warning"
+  type       String
   isRead     Boolean   @default(false)
   createdAt  DateTime  @default(now())
   employeeId Int?

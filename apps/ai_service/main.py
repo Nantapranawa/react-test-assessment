@@ -12,7 +12,7 @@ class ProcessData(BaseModel):
     data: dict
 
 class SimulationRequest(BaseModel):
-    employeeId: int
+    employeeNik: str
     response: str
 
 @app.get("/")
@@ -32,7 +32,7 @@ async def process_data(payload: ProcessData):
 # This endpoint simulates the AI Service "thinking" and then telling the Backend what to do.
 @app.post("/simulate/respond")
 async def simulate_response(payload: SimulationRequest):
-    print(f"Received simulation request for Employee {payload.employeeId}: {payload.response}")
+    print(f"Received simulation request for Employee {payload.employeeNik}: {payload.response}")
     
     # 1. AI Logic happens HERE in Python
     # We analyze the text to determine the intent/status
@@ -53,7 +53,7 @@ async def simulate_response(payload: SimulationRequest):
     # 2. Prepare payload for the Backend
     # Now we send the *result* of our analysis, not just the raw text
     backend_payload = {
-        "employeeId": payload.employeeId,
+        "employeeNik": payload.employeeNik,
         "response": payload.response,   # Original message
         "aiStatus": status,             # AI Determined Status
         "reason": reason,

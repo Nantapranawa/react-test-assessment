@@ -26,8 +26,8 @@ export default function TalentManagementPage() {
 
     // State
     const [searchTerm, setSearchTerm] = useState('');
-    const [selectedBP1, setSelectedBP1] = useState<Set<number>>(new Set());
-    const [selectedBP2, setSelectedBP2] = useState<Set<number>>(new Set());
+    const [selectedBP1, setSelectedBP1] = useState<Set<string>>(new Set());
+    const [selectedBP2, setSelectedBP2] = useState<Set<string>>(new Set());
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [locationBP1, setLocationBP1] = useState('');
     const [assessmentDateBP1, setAssessmentDateBP1] = useState('');
@@ -114,21 +114,21 @@ export default function TalentManagementPage() {
     const bp2Employees = useMemo(() => filteredData.filter((e: any) => e.bp === 2), [filteredData]);
 
     // Handlers
-    const toggleSelection = (e: any, id: number, bp: number) => {
+    const toggleSelection = (e: any, nik: string, bp: number) => {
         if (bp === 1) {
             const newSet = new Set(selectedBP1);
-            if (newSet.has(id)) {
-                newSet.delete(id);
+            if (newSet.has(nik)) {
+                newSet.delete(nik);
             } else {
-                newSet.add(id);
+                newSet.add(nik);
             }
             setSelectedBP1(newSet);
         } else if (bp === 2) {
             const newSet = new Set(selectedBP2);
-            if (newSet.has(id)) {
-                newSet.delete(id);
+            if (newSet.has(nik)) {
+                newSet.delete(nik);
             } else {
-                newSet.add(id);
+                newSet.add(nik);
             }
             setSelectedBP2(newSet);
         }
@@ -156,7 +156,7 @@ export default function TalentManagementPage() {
                     body: JSON.stringify({
                         location: locationBP1,
                         assessmentDate: dateTime,
-                        employeeIds: Array.from(selectedBP1),
+                        employeeNiks: Array.from(selectedBP1),
                         batchName: "BP 1 Batch"
                     })
                 }));
@@ -174,7 +174,7 @@ export default function TalentManagementPage() {
                     body: JSON.stringify({
                         location: locationBP2,
                         assessmentDate: dateTime,
-                        employeeIds: Array.from(selectedBP2),
+                        employeeNiks: Array.from(selectedBP2),
                         batchName: "BP 2 Batch"
                     })
                 }));
@@ -200,7 +200,7 @@ export default function TalentManagementPage() {
     };
 
     // Helper Custom Table
-    const TalentTable = ({ title, employees, selectedSet, quota, bp }: { title: string, employees: any[], selectedSet: Set<number>, quota: number, bp: number }) => {
+    const TalentTable = ({ title, employees, selectedSet, quota, bp }: { title: string, employees: any[], selectedSet: Set<string>, quota: number, bp: number }) => {
         // const isQuotaReached = selectedSet.size >= quota; 
         // quota is unused but kept in props to avoid changing call sites for now, or just ignore it.
 
@@ -238,8 +238,8 @@ export default function TalentManagementPage() {
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-zinc-100">
-                            {employees.length > 0 ? employees.map((employee: any) => {
-                                const isSelected = selectedSet.has(employee.id);
+                            {employees.length > 0 ? employees.map((employee: any, index: number) => {
+                                const isSelected = selectedSet.has(employee.nik);
                                 const status = employee.availability_status || 'No Invitation';
                                 const isAlreadyInBatch = status !== 'No Invitation';
                                 const isDisabled = isAlreadyInBatch;
@@ -261,12 +261,12 @@ export default function TalentManagementPage() {
                                                     type="checkbox"
                                                     checked={isSelected}
                                                     disabled={isDisabled}
-                                                    onChange={(e) => toggleSelection(e, employee.id, bp)}
+                                                    onChange={(e) => toggleSelection(e, employee.nik, bp)}
                                                     className="w-5 h-5 text-red-600 bg-white border-zinc-300 rounded-lg focus:ring-red-500 focus:ring-offset-0 cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed transition-all"
                                                 />
                                             </div>
                                         </td>
-                                        <td className="px-6 py-5 text-zinc-500 font-medium">{employee.no}</td>
+                                        <td className="px-6 py-5 text-zinc-500 font-medium">{index + 1}</td>
                                         <td className="px-6 py-5 font-bold text-zinc-900 whitespace-nowrap">{employee.nama}</td>
                                         <td className="px-6 py-5 text-zinc-500 font-mono text-sm">{employee.nik}</td>
                                         <td className="px-6 py-5 text-zinc-600 font-medium whitespace-nowrap">{employee.posisi}</td>
@@ -604,9 +604,9 @@ export default function TalentManagementPage() {
                                     <div className="bg-zinc-50 rounded-lg p-3 border border-zinc-100">
                                         <p className="text-xs font-semibold text-zinc-500 mb-2">Selected Candidates ({selectedBP1.size})</p>
                                         <ul className="text-sm text-zinc-700 space-y-1 max-h-[100px] overflow-y-auto custom-scrollbar">
-                                            {Array.from(selectedBP1).map(id => {
-                                                const emp = tableData?.data.find((e: any) => e.id === id);
-                                                return <li key={id} className="truncate text-xs">• {emp?.nama}</li>
+                                            {Array.from(selectedBP1).map(nik => {
+                                                const emp = tableData?.data.find((e: any) => e.nik === nik);
+                                                return <li key={nik} className="truncate text-xs">• {emp?.nama}</li>
                                             })}
                                         </ul>
                                     </div>
@@ -654,9 +654,9 @@ export default function TalentManagementPage() {
                                     <div className="bg-zinc-50 rounded-lg p-3 border border-zinc-100">
                                         <p className="text-xs font-semibold text-zinc-500 mb-2">Selected Candidates ({selectedBP2.size})</p>
                                         <ul className="text-sm text-zinc-700 space-y-1 max-h-[100px] overflow-y-auto custom-scrollbar">
-                                            {Array.from(selectedBP2).map(id => {
-                                                const emp = tableData?.data.find((e: any) => e.id === id);
-                                                return <li key={id} className="truncate text-xs">• {emp?.nama}</li>
+                                            {Array.from(selectedBP2).map(nik => {
+                                                const emp = tableData?.data.find((e: any) => e.nik === nik);
+                                                return <li key={nik} className="truncate text-xs">• {emp?.nama}</li>
                                             })}
                                         </ul>
                                     </div>
