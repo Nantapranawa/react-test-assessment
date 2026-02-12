@@ -16,13 +16,10 @@ export default function Home() {
 
   return (
     <div className="p-8 max-w-[1600px] mx-auto">
-      {/* --- VISUAL ELEMENT: PAGE HEADER --- */}
-      <div className="mb-10 flex flex-col gap-1">
-        <h1 className="text-3xl font-bold text-zinc-900 tracking-tight">
-          Assessment Planning <span className="text-red-600">Platform</span>
-        </h1>
-        <p className="text-zinc-500 text-base font-medium">
-          Analytics dashboard and talent management system
+      {/* SECTION: PERFORMANCE OVERVIEW */}
+      <div className="mb-6">
+        <p className="text-zinc-500 text-sm font-medium">
+          Welcome back. Here is the latest assessment overview.
         </p>
       </div>
 

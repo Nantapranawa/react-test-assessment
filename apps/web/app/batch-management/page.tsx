@@ -503,11 +503,11 @@ export default function BatchManagementPage() {
 
     return (
         <div className="p-8">
-            <div className="mb-10 flex flex-col gap-1">
-                <h1 className="text-3xl font-bold text-zinc-900 tracking-tight">
+            <div className="mb-10 flex flex-col gap-0.5">
+                <h1 className="text-2xl font-bold text-zinc-900 tracking-tight">
                     Batch <span className="text-red-600">Management</span>
                 </h1>
-                <p className="text-zinc-500 text-base font-medium">
+                <p className="text-zinc-500 text-sm font-medium">
                     Overview and details of all assessment batches.
                 </p>
             </div>

@@ -22,20 +22,21 @@ model User {
 }
 
 model Employee {
-  id                  Int     @id @default(autoincrement())
+  id                  Int            @id @default(autoincrement())
   no                  Int
   nama                String
-  nik                 String  @unique
+  nik                 String         @unique
   bp                  Int
   posisi              String
   eligible            String
   expired             String
   ac_result           String
-  phone               String? @unique
+  phone               String?        @unique
   tc_result           String
-  availability_status String  @default("No Invitation")
-  usulan_ubis         String  @default("Unknown")
+  availability_status String         @default("No Invitation")
+  usulan_ubis         String         @default("Unknown")
   batches             Batch[]
+  notifications       Notification[]
 }
 
 model Batch {
@@ -45,4 +46,14 @@ model Batch {
   assessmentDate DateTime
   createdAt      DateTime   @default(now())
   employees      Employee[]
+}
+
+model Notification {
+  id         Int       @id @default(autoincrement())
+  message    String
+  type       String // "info", "success", "warning"
+  isRead     Boolean   @default(false)
+  createdAt  DateTime  @default(now())
+  employeeId Int?
+  employee   Employee? @relation(fields: [employeeId], references: [id])
 }

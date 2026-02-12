@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import Sidebar from "./components/Sidebar";
+import Navbar from "./components/Navbar";
 import { DataProvider } from "./lib/DataContext";
 
 export const metadata: Metadata = {
@@ -31,9 +32,12 @@ export default function RootLayout({
                 This is where individual pages (like page.tsx) are rendered.
                 The 'flex-1' makes it take up all remaining space.
             */}
-            <main className="flex-1 overflow-auto bg-[radial-gradient(#e5e7eb_1px,transparent_1px)] [background-size:16px_16px]">
-              {children}
-            </main>
+            <div className="flex-1 flex flex-col min-w-0 h-screen overflow-hidden">
+              <Navbar />
+              <main className="flex-1 overflow-auto bg-[radial-gradient(#e5e7eb_1px,transparent_1px)] [background-size:16px_16px]">
+                {children}
+              </main>
+            </div>
           </div>
         </DataProvider>
       </body>

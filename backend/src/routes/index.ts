@@ -2,6 +2,7 @@ import { Router } from 'express';
 import aiRoutes from './aiRoutes';
 import dataRoutes from './dataRoutes';
 import batchRoutes from './batchRoutes';
+import notificationRoutes from './notificationRoutes';
 import { aiController } from '../controllers/aiController';
 
 import { uploadExcel } from '../controllers/dataController';
@@ -13,6 +14,7 @@ const router = Router();
 router.use('/ai', aiRoutes);      // Endpoints: /api/ai/process, /api/ai/status
 router.use('/data', dataRoutes);  // Endpoints: /api/data/, /api/data/list, etc.
 router.use('/batches', batchRoutes);
+router.use('/notifications', notificationRoutes);
 
 
 // Legacy/Frontend compatibility routes (mapped to /api/...)

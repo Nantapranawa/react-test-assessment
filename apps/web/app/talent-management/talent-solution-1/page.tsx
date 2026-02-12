@@ -345,19 +345,21 @@ export default function TalentManagementPage() {
             {/* Header */}
             <div className="flex justify-between items-start mb-10">
                 <div>
-                    <h1 className="text-3xl font-bold text-zinc-900 tracking-tight">Talent <span className="text-red-600">Solution I</span></h1>
-                    <p className="text-zinc-500 mt-1">Select candidates for the new batch.</p>
+                    <h1 className="text-2xl font-bold text-zinc-900 tracking-tight">Talent Solution <span className="text-red-600">I</span></h1>
+                    <p className="text-zinc-500 text-sm">Select candidates for the new batch.</p>
                 </div>
-                <button
-                    onClick={() => setIsModalOpen(true)}
-                    disabled={!isSelectionComplete}
-                    className={`px-6 py-2.5 rounded-lg font-semibold shadow-sm transition-all ${isSelectionComplete
-                        ? 'bg-zinc-900 text-white hover:bg-zinc-800 hover:shadow-md'
-                        : 'bg-zinc-100 text-zinc-400 cursor-not-allowed'
-                        }`}
-                >
-                    Create Batch
-                </button>
+                <div className="flex items-center gap-4">
+                    <button
+                        onClick={() => setIsModalOpen(true)}
+                        disabled={!isSelectionComplete}
+                        className={`px-6 py-2.5 rounded-lg font-semibold shadow-sm transition-all ${isSelectionComplete
+                            ? 'bg-zinc-900 text-white hover:bg-zinc-800 hover:shadow-md'
+                            : 'bg-zinc-100 text-zinc-400 cursor-not-allowed'
+                            }`}
+                    >
+                        Create Batch
+                    </button>
+                </div>
             </div>
 
             {/* Search and Filters */}
