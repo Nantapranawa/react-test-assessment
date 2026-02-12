@@ -1,6 +1,6 @@
-
 import { Request, Response } from 'express';
 import { prisma } from '../lib/prisma';
+import { Batch, Employee } from '../../generated/prisma/client';
 
 export const createBatch = async (req: Request, res: Response) => {
     try {
@@ -287,6 +287,68 @@ export const sendInvitations = async (req: Request, res: Response) => {
 
         res.json({ success: true, message: "Invitations sent and status updated to 'Sent'" });
     } catch (error: any) {
+        res.status(500).json({ success: false, error: error.message });
+    }
+};
+
+export const rescheduleEmployee = async (req: Request, res: Response) => {
+    try {
+        const { employeeId, location, assessmentDate } = req.body;
+
+        if (!employeeId || !location || !assessmentDate) {
+            return res.status(400).json({ success: false, error: "Missing required fields" });
+        }
+
+        const numericId = parseInt(employeeId);
+
+        // 1. Find the employee and their current batch
+        const employee = await prisma.employee.findUnique({
+            where: { id: numericId },
+            include: { batches: true }
+        });
+
+        if (!employee) {
+            return res.status(404).json({ success: false, error: "Employee not found" });
+        }
+
+        const oldBatchIds = employee.batches.map((b: any) => ({ id: b.id }));
+
+        // 2. Create the new Batch
+        const newBatch = await prisma.batch.create({
+            data: {
+                location,
+                assessmentDate: new Date(assessmentDate),
+                batchName: `Reschedule - ${employee.nama}`,
+                employees: {
+                    connect: { id: employee.id }
+                }
+            }
+        });
+
+        // 3. Disconnect from old batches and update status
+        if (oldBatchIds.length > 0) {
+            await prisma.employee.update({
+                where: { id: employee.id },
+                data: {
+                    batches: {
+                        disconnect: oldBatchIds
+                    },
+                    availability_status: "Batch Draft"
+                }
+            });
+        } else {
+            await prisma.employee.update({
+                where: { id: employee.id },
+                data: {
+                    availability_status: "Batch Draft"
+                }
+            });
+        }
+
+        res.json({ success: true, data: newBatch });
+
+    } catch (error: any) {
+        console.error("Reschedule error:", error);
         res.status(500).json({ success: false, error: error.message });
     }
 };

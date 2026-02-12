@@ -51,6 +51,14 @@ export default function BatchManagementPage() {
     const [isSendConfirmOpen, setIsSendConfirmOpen] = useState(false);
     const [isSendingInvitations, setIsSendingInvitations] = useState(false);
 
+    // Reschedule State
+    const [isRescheduleModalOpen, setIsRescheduleModalOpen] = useState(false);
+    const [reschedulingEmployee, setReschedulingEmployee] = useState<any>(null);
+    const [rescheduleDate, setRescheduleDate] = useState('');
+    const [rescheduleTime, setRescheduleTime] = useState('');
+    const [rescheduleLocation, setRescheduleLocation] = useState('');
+    const [isRescheduling, setIsRescheduling] = useState(false);
+
     const { tableData, refreshData: refreshTalentPool } = useData();
 
     useEffect(() => {
@@ -261,6 +269,61 @@ export default function BatchManagementPage() {
             alert('Failed to send message');
         } finally {
             setIsSendingInvitations(false);
+        }
+    };
+
+    const handleRescheduleClick = (employee: any) => {
+        setReschedulingEmployee(employee);
+        // Pre-fill with current batch details or empty?
+        // Let's pre-fill for convenience
+        if (selectedBatch) {
+            setRescheduleLocation(selectedBatch.location);
+            const dateObj = new Date(selectedBatch.assessmentDate);
+            setRescheduleDate(dateObj.toISOString().split('T')[0]);
+            setRescheduleTime(dateObj.toTimeString().slice(0, 5));
+        }
+        setIsRescheduleModalOpen(true);
+    };
+
+    const confirmReschedule = async () => {
+        if (!reschedulingEmployee || !rescheduleDate || !rescheduleTime || !rescheduleLocation) {
+            alert("Please fill in all fields.");
+            return;
+        }
+
+        setIsRescheduling(true);
+        try {
+            const dateTime = `${rescheduleDate}T${rescheduleTime}:00`;
+            const res = await fetch('http://localhost:8000/api/batches/reschedule-employee', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    employeeId: reschedulingEmployee.id,
+                    location: rescheduleLocation,
+                    assessmentDate: dateTime
+                })
+            });
+            const result = await res.json();
+
+            if (result.success) {
+                // Update local state: remove the employee from the current batch view
+                if (selectedBatch) {
+                    const updatedEmployees = selectedBatch.employees?.filter(e => e.id !== reschedulingEmployee.id);
+                    setSelectedBatch({ ...selectedBatch, employees: updatedEmployees, _count: { employees: (selectedBatch._count?.employees || 1) - 1 } });
+                }
+
+                setIsRescheduleModalOpen(false);
+                setReschedulingEmployee(null);
+                fetchBatches(); // Refresh main list
+                refreshTalentPool();
+            } else {
+                alert('Failed to reschedule: ' + result.error);
+            }
+        } catch (error) {
+            console.error('Failed to reschedule', error);
+            alert('Failed to reschedule');
+        } finally {
+            setIsRescheduling(false);
         }
     };
 
@@ -630,6 +693,16 @@ export default function BatchManagementPage() {
                                                                 Replace
                                                             </button>
                                                         )}
+                                                        {lowerStatus.includes("reschedule") && (
+                                                            <button
+                                                                onClick={() => handleRescheduleClick(emp)}
+                                                                className="px-3 py-1.5 bg-red-600 text-white text-xs font-bold rounded shadow-sm hover:bg-red-700 transition-colors uppercase tracking-wide flex items-center space-x-1"
+                                                            >
+                                                                <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                                                                <span>Reschedule</span>
+                                                            </button>
+                                                        )}
+
                                                     </td>
                                                 </tr>
                                             );
@@ -949,6 +1022,75 @@ export default function BatchManagementPage() {
                                 disabled={isSendingInvitations}
                             >
                                 {isSendingInvitations ? 'Sending...' : 'Yes, Send Now'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Reschedule Modal */}
+            {isRescheduleModalOpen && (
+                <div className="fixed inset-0 z-[90] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+                    <div className="bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200">
+                        <div className="p-6 border-b border-zinc-100 flex justify-between items-center bg-zinc-900 text-white">
+                            <div>
+                                <h3 className="text-lg font-bold">Reschedule Assessment</h3>
+                                <p className="text-xs text-zinc-400 mt-1 uppercase tracking-widest font-bold">
+                                    For: <span className="text-white">{reschedulingEmployee?.nama}</span>
+                                </p>
+                            </div>
+                            <button onClick={() => setIsRescheduleModalOpen(false)} className="text-zinc-400 hover:text-white transition-colors">
+                                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                            </button>
+                        </div>
+
+                        <div className="p-6 space-y-4">
+                            <div>
+                                <label className="block text-xs font-bold text-zinc-500 mb-1 uppercase tracking-wider">New Location</label>
+                                <input
+                                    type="text"
+                                    value={rescheduleLocation}
+                                    onChange={(e) => setRescheduleLocation(e.target.value)}
+                                    className="w-full px-3 py-2 border border-zinc-300 rounded-lg text-sm focus:ring-2 focus:ring-red-500/20 focus:border-red-500 transition-all outline-none"
+                                    placeholder="Enter location..."
+                                />
+                            </div>
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-xs font-bold text-zinc-500 mb-1 uppercase tracking-wider">New Date</label>
+                                    <input
+                                        type="date"
+                                        value={rescheduleDate}
+                                        onChange={(e) => setRescheduleDate(e.target.value)}
+                                        className="w-full px-3 py-2 border border-zinc-300 rounded-lg text-sm focus:ring-2 focus:ring-red-500/20 focus:border-red-500 transition-all outline-none"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-bold text-zinc-500 mb-1 uppercase tracking-wider">New Time</label>
+                                    <input
+                                        type="time"
+                                        value={rescheduleTime}
+                                        onChange={(e) => setRescheduleTime(e.target.value)}
+                                        className="w-full px-3 py-2 border border-zinc-300 rounded-lg text-sm focus:ring-2 focus:ring-red-500/20 focus:border-red-500 transition-all outline-none"
+                                    />
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="p-4 border-t border-zinc-100 bg-zinc-50 flex justify-end space-x-3">
+                            <button
+                                onClick={() => setIsRescheduleModalOpen(false)}
+                                className="px-4 py-2 bg-white border border-zinc-200 text-zinc-700 font-medium text-sm rounded-lg hover:bg-zinc-50 hover:text-zinc-900 transition-colors shadow-sm"
+                                disabled={isRescheduling}
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={confirmReschedule}
+                                disabled={isRescheduling}
+                                className="px-4 py-2 bg-red-600 text-white font-bold text-sm rounded-lg hover:bg-red-700 shadow-lg shadow-red-600/20 disabled:opacity-50 transition-all"
+                            >
+                                {isRescheduling ? 'Rescheduling...' : 'Confirm Reschedule'}
                             </button>
                         </div>
                     </div>
