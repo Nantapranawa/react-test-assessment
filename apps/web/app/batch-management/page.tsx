@@ -1261,7 +1261,7 @@ export default function BatchManagementPage() {
                                         type="text"
                                         value={rescheduleLocation}
                                         onChange={(e) => setRescheduleLocation(e.target.value)}
-                                        className="w-full px-3 py-2 border border-zinc-300 rounded-lg text-sm focus:ring-2 focus:ring-red-500/20 focus:border-red-500 transition-all outline-none"
+                                        className="w-full px-3 py-2 border border-zinc-300 rounded-lg text-sm focus:ring-2 focus:ring-red-500/20 focus:border-red-500 transition-all outline-none text-zinc-900 placeholder:text-zinc-500"
                                         placeholder="Enter location..."
                                     />
                                 </div>
@@ -1272,7 +1272,7 @@ export default function BatchManagementPage() {
                                             type="date"
                                             value={rescheduleDate}
                                             onChange={(e) => setRescheduleDate(e.target.value)}
-                                            className="w-full px-3 py-2 border border-zinc-300 rounded-lg text-sm focus:ring-2 focus:ring-red-500/20 focus:border-red-500 transition-all outline-none"
+                                            className="w-full px-3 py-2 border border-zinc-300 rounded-lg text-sm focus:ring-2 focus:ring-red-500/20 focus:border-red-500 transition-all outline-none text-zinc-900 placeholder:text-zinc-500"
                                         />
                                     </div>
                                     <div>
@@ -1281,7 +1281,7 @@ export default function BatchManagementPage() {
                                             type="time"
                                             value={rescheduleTime}
                                             onChange={(e) => setRescheduleTime(e.target.value)}
-                                            className="w-full px-3 py-2 border border-zinc-300 rounded-lg text-sm focus:ring-2 focus:ring-red-500/20 focus:border-red-500 transition-all outline-none"
+                                            className="w-full px-3 py-2 border border-zinc-300 rounded-lg text-sm focus:ring-2 focus:ring-red-500/20 focus:border-red-500 transition-all outline-none text-zinc-900 placeholder:text-zinc-500"
                                         />
                                     </div>
                                 </div>

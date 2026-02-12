@@ -41,6 +41,21 @@ export default function TalentManagementPage() {
     const [isFilterModalOpen, setIsFilterModalOpen] = useState(false);
     const [selectedFilters, setSelectedFilters] = useState<Record<string, string[]>>({});
 
+    // Employee Detail & Reschedule State
+    const [selectedEmployee, setSelectedEmployee] = useState<any>(null);
+    const [isEmployeeDetailModalOpen, setIsEmployeeDetailModalOpen] = useState(false);
+
+    // Reschedule State
+    const [isRescheduleModalOpen, setIsRescheduleModalOpen] = useState(false);
+    const [rescheduleDate, setRescheduleDate] = useState('');
+    const [rescheduleTime, setRescheduleTime] = useState('');
+    const [rescheduleLocation, setRescheduleLocation] = useState('');
+    const [isRescheduling, setIsRescheduling] = useState(false);
+
+    // Notification State
+    const [showNotification, setShowNotification] = useState(false);
+    const [notificationMessage, setNotificationMessage] = useState('');
+
     // Constants
     const QUOTA_BP1 = 3;
     const QUOTA_BP2 = 6;
@@ -199,6 +214,58 @@ export default function TalentManagementPage() {
         }
     };
 
+    const handleEmployeeClick = (employee: any) => {
+        setSelectedEmployee(employee);
+        setIsEmployeeDetailModalOpen(true);
+    };
+
+    const handleRescheduleClick = () => {
+        if (!selectedEmployee) return;
+        setRescheduleLocation('');
+        setRescheduleDate('');
+        setRescheduleTime('');
+        setIsRescheduleModalOpen(true);
+    };
+
+    const confirmReschedule = async () => {
+        if (!selectedEmployee || !rescheduleDate || !rescheduleTime || !rescheduleLocation) {
+            alert("Please fill in all fields.");
+            return;
+        }
+
+        setIsRescheduling(true);
+        try {
+            const dateTime = `${rescheduleDate}T${rescheduleTime}:00`;
+            const res = await fetch('http://localhost:8000/api/batches/reschedule-employee', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    employeeNik: selectedEmployee.nik,
+                    location: rescheduleLocation,
+                    assessmentDate: dateTime
+                })
+            });
+            const result = await res.json();
+
+            if (result.success) {
+                setIsRescheduleModalOpen(false);
+                setIsEmployeeDetailModalOpen(false);
+                setSelectedEmployee(null);
+                await refreshData();
+                setNotificationMessage('Employee rescheduled successfully');
+                setShowNotification(true);
+                setTimeout(() => setShowNotification(false), 3000);
+            } else {
+                alert('Failed to reschedule: ' + result.error);
+            }
+        } catch (error) {
+            console.error('Failed to reschedule', error);
+            alert('Failed to reschedule');
+        } finally {
+            setIsRescheduling(false);
+        }
+    };
+
     // Helper Custom Table
     const TalentTable = ({ title, employees, selectedSet, quota, bp }: { title: string, employees: any[], selectedSet: Set<string>, quota: number, bp: number }) => {
         // const isQuotaReached = selectedSet.size >= quota; 
@@ -254,13 +321,16 @@ export default function TalentManagementPage() {
                                 else if (lowerStatus.includes("draft")) badgeClass = "bg-orange-50 text-orange-700 border-orange-100";
 
                                 return (
-                                    <tr key={employee.id} className={`hover:bg-zinc-50/80 transition-all duration-200 group ${isSelected ? 'bg-red-50/40' : ''}`}>
+                                    <tr key={employee.id}
+                                        onClick={() => handleEmployeeClick(employee)}
+                                        className={`hover:bg-zinc-50/80 transition-all duration-200 group cursor-pointer ${isSelected ? 'bg-red-50/40' : ''}`}>
                                         <td className="px-6 py-5">
                                             <div className="relative flex items-center">
                                                 <input
                                                     type="checkbox"
                                                     checked={isSelected}
                                                     disabled={isDisabled}
+                                                    onClick={(e) => e.stopPropagation()}
                                                     onChange={(e) => toggleSelection(e, employee.nik, bp)}
                                                     className="w-5 h-5 text-red-600 bg-white border-zinc-300 rounded-lg focus:ring-red-500 focus:ring-offset-0 cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed transition-all"
                                                 />
@@ -679,6 +749,253 @@ export default function TalentManagementPage() {
                                 {isSubmitting ? 'Saving...' : 'Save & Create Batch'}
                             </button>
                         </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Employee Detail Modal */}
+            {isEmployeeDetailModalOpen && selectedEmployee && (
+                <div className="fixed inset-0 z-[60] flex items-center justify-center bg-zinc-950/20 backdrop-blur-[2px] p-4 animate-in fade-in duration-200" onClick={() => setIsEmployeeDetailModalOpen(false)}>
+                    <div
+                        className="bg-white rounded-xl shadow-xl w-full max-w-2xl overflow-hidden animate-in zoom-in-95 duration-200 border border-zinc-200"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        {/* Header */}
+                        <div className="px-8 py-6 border-b border-zinc-100 flex justify-between items-center bg-zinc-50/50">
+                            <div className="flex items-center space-x-4">
+                                <div className="w-12 h-12 rounded-lg bg-zinc-900 flex items-center justify-center text-white font-bold text-xl">
+                                    {selectedEmployee.nama.charAt(0)}
+                                </div>
+                                <div>
+                                    <h2 className="text-xl font-bold text-zinc-900 leading-tight">{selectedEmployee.nama}</h2>
+                                    <p className="text-xs text-zinc-500 font-mono mt-0.5">{selectedEmployee.nik}</p>
+                                </div>
+                            </div>
+                            <button
+                                onClick={() => setIsEmployeeDetailModalOpen(false)}
+                                className="p-2 text-zinc-400 hover:text-zinc-900 transition-colors"
+                            >
+                                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+                            </button>
+                        </div>
+
+                        {/* Content */}
+                        <div className="p-8">
+                            <div className="grid grid-cols-2 gap-x-12 gap-y-8">
+                                {/* Left Column: Basic Info */}
+                                <div className="space-y-6">
+                                    <h3 className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest border-b border-zinc-100 pb-2">Employment Information</h3>
+                                    <div className="space-y-4">
+                                        <div>
+                                            <span className="block text-s text-zinc-500 mb-1">Position</span>
+                                            <span className="text-sm font-semibold text-zinc-900">{selectedEmployee.posisi}</span>
+                                        </div>
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <div>
+                                                <span className="block text-s text-zinc-500 mb-1">Band Position</span>
+                                                <span className="text-sm font-semibold text-zinc-900">BP {selectedEmployee.bp}</span>
+                                            </div>
+                                            <div>
+                                                <span className="block text-s text-zinc-500 mb-1">Eligibility</span>
+                                                <span className="text-sm font-semibold text-zinc-900">
+                                                    {selectedEmployee.eligible}
+                                                </span>
+                                            </div>
+                                        </div>
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <div>
+                                                <span className="block text-s text-zinc-500 mb-1">Phone Number</span>
+                                                <span className="text-sm font-semibold text-zinc-900">{selectedEmployee.phone || '-'}</span>
+                                            </div>
+                                            <div>
+                                                <span className="block text-s text-zinc-500 mb-1">Expiry Date</span>
+                                                <div className="flex items-center space-x-2">
+                                                    <span className="text-sm font-semibold text-zinc-900">{formatDate(selectedEmployee.expired)}</span>
+                                                    {(() => {
+                                                        const dateStr = selectedEmployee.expired;
+                                                        if (!dateStr) return null;
+                                                        let expireDate: Date | null = null;
+                                                        const d = new Date(dateStr);
+                                                        if (!isNaN(d.getTime())) {
+                                                            expireDate = d;
+                                                        } else {
+                                                            const parts = dateStr.match(/^(\d{1,2})[-\/](\d{1,2})[-\/](\d{4})$/);
+                                                            if (parts) {
+                                                                const day = parseInt(parts[1], 10);
+                                                                const month = parseInt(parts[2], 10) - 1;
+                                                                const year = parseInt(parts[3], 10);
+                                                                expireDate = new Date(year, month, day);
+                                                            }
+                                                        }
+                                                        if (expireDate && !isNaN(expireDate.getTime())) {
+                                                            const today = new Date();
+                                                            today.setHours(0, 0, 0, 0);
+                                                            expireDate.setHours(0, 0, 0, 0);
+                                                            if (today > expireDate) {
+                                                                return (
+                                                                    <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-red-100 text-red-600 border border-red-200 uppercase tracking-wide">
+                                                                        Expired
+                                                                    </span>
+                                                                );
+                                                            }
+                                                        }
+                                                        return null;
+                                                    })()}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Right Column: Results & Status */}
+                                <div className="space-y-6">
+                                    <h3 className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest border-b border-zinc-100 pb-2">Results & Status</h3>
+                                    <div className="space-y-4">
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <div className="bg-zinc-50 p-3 rounded-lg border border-zinc-100">
+                                                <span className="block text-[11px] text-zinc-500 mb-1 uppercase font-bold">AC Result</span>
+                                                <span className="text-base font-semibold text-zinc-900">{selectedEmployee.ac_result}</span>
+                                            </div>
+                                            <div className="bg-zinc-50 p-3 rounded-lg border border-zinc-100">
+                                                <span className="block text-[11px] text-zinc-500 mb-1 uppercase font-bold">TC Result</span>
+                                                <span className="text-base font-semibold text-zinc-900">{selectedEmployee.tc_result}</span>
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <span className="block text-s text-zinc-500 mb-1">Availability Status</span>
+                                            <span className={`inline-flex px-3 py-1 rounded-full text-xs font-bold border ${(() => {
+                                                const s = (selectedEmployee.availability_status || 'No Invitation').toLowerCase();
+                                                if (s.includes('accepted')) return 'bg-emerald-50 text-emerald-700 border-emerald-100';
+                                                if (s.includes('rejected')) return 'bg-red-50 text-red-700 border-red-100';
+                                                if (s.includes('sent')) return 'bg-amber-50 text-amber-700 border-amber-100';
+                                                if (s.includes('reschedule')) return 'bg-blue-50 text-blue-700 border-blue-100';
+                                                if (s.includes('draft')) return 'bg-orange-50 text-orange-700 border-orange-100';
+                                                return 'bg-zinc-100 text-zinc-600 border-zinc-200';
+                                            })()}`}>
+                                                {selectedEmployee.availability_status || 'No Invitation'}
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Footer */}
+                        <div className="px-8 py-5 border-t border-zinc-100 bg-zinc-50/50 flex justify-end space-x-3">
+                            {(selectedEmployee.availability_status || '').toLowerCase().includes('reschedule') && (
+                                <button
+                                    onClick={handleRescheduleClick}
+                                    className="px-4 py-2 bg-red-600 text-white rounded-lg font-bold text-sm hover:bg-red-700 transition-all shadow-sm flex items-center space-x-2"
+                                >
+                                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                                    <span>Reschedule Assessment</span>
+                                </button>
+                            )}
+                            <button
+                                onClick={() => setIsEmployeeDetailModalOpen(false)}
+                                className="px-4 py-2 border border-zinc-200 text-zinc-600 rounded-lg font-bold text-sm hover:bg-zinc-50 transition-all"
+                            >
+                                Close
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Reschedule Modal */}
+            {isRescheduleModalOpen && (
+                <div className="fixed inset-0 z-[70] flex items-center justify-center bg-zinc-950/20 backdrop-blur-[2px] p-4 animate-in fade-in duration-200">
+                    <div className="bg-white rounded-xl shadow-xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200 border border-zinc-200">
+                        <div className="px-8 py-6 border-b border-zinc-100 bg-zinc-50/50">
+                            <h3 className="text-lg font-bold text-zinc-900 leading-tight">Reschedule Assessment</h3>
+                            <p className="text-xs text-zinc-500 mt-1">Updating session for <span className="font-bold text-zinc-900">{selectedEmployee?.nama}</span></p>
+                        </div>
+
+                        <div className="p-8 space-y-6">
+                            <div className="space-y-1.5">
+                                <label className="block text-[10px] font-bold text-zinc-400 uppercase tracking-widest ml-1">Proposed Location</label>
+                                <div className="relative">
+                                    <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
+                                        <svg className="w-4 h-4 text-zinc-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.243-4.243a8 8 0 1111.314 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+                                    </div>
+                                    <input
+                                        type="text"
+                                        value={rescheduleLocation}
+                                        onChange={(e) => setRescheduleLocation(e.target.value)}
+                                        className="w-full pl-10 pr-4 py-2.5 bg-white border border-zinc-200 rounded-lg text-sm font-medium text-zinc-900 focus:ring-2 focus:ring-zinc-900/5 focus:border-zinc-900 transition-all outline-none placeholder-zinc-400"
+                                        placeholder="e.g. Office Hall A"
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="space-y-1.5">
+                                    <label className="block text-[10px] font-bold text-zinc-400 uppercase tracking-widest ml-1">New Date</label>
+                                    <input
+                                        type="date"
+                                        value={rescheduleDate}
+                                        onChange={(e) => setRescheduleDate(e.target.value)}
+                                        className="w-full px-4 py-2.5 bg-white border border-zinc-200 rounded-lg text-sm font-medium text-zinc-900 focus:ring-2 focus:ring-zinc-900/5 focus:border-zinc-900 transition-all outline-none"
+                                    />
+                                </div>
+                                <div className="space-y-1.5">
+                                    <label className="block text-[10px] font-bold text-zinc-400 uppercase tracking-widest ml-1">New Time</label>
+                                    <input
+                                        type="time"
+                                        value={rescheduleTime}
+                                        onChange={(e) => setRescheduleTime(e.target.value)}
+                                        className="w-full px-4 py-2.5 bg-white border border-zinc-200 rounded-lg text-sm font-medium text-zinc-900 focus:ring-2 focus:ring-zinc-900/5 focus:border-zinc-900 transition-all outline-none"
+                                    />
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="px-8 py-5 border-t border-zinc-100 bg-zinc-50/50 flex justify-end space-x-3">
+                            <button
+                                onClick={() => setIsRescheduleModalOpen(false)}
+                                className="px-4 py-2 text-zinc-600 font-bold text-sm hover:text-zinc-900 transition-all"
+                                disabled={isRescheduling}
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={confirmReschedule}
+                                disabled={isRescheduling}
+                                className="px-5 py-2 bg-zinc-900 text-white font-bold text-sm rounded-lg hover:bg-zinc-800 shadow-sm transition-all disabled:opacity-50 flex items-center space-x-2"
+                            >
+                                {isRescheduling ? (
+                                    <>
+                                        <svg className="animate-spin h-3.5 w-3.5 text-white" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                                        <span>Saving...</span>
+                                    </>
+                                ) : 'Update Schedule'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Success Notification */}
+            {showNotification && (
+                <div className="fixed top-6 left-1/2 transform -translate-x-1/2 z-[100] animate-in slide-in-from-top-2 fade-in duration-300">
+                    <div className="bg-emerald-50 border border-emerald-200 shadow-lg px-6 py-4 rounded-xl flex items-center space-x-3">
+                        <div className="p-2 bg-emerald-100 rounded-full">
+                            <svg className="w-5 h-5 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                            </svg>
+                        </div>
+                        <div>
+                            <h4 className="text-sm font-bold text-emerald-900">Success</h4>
+                            <p className="text-xs text-emerald-700 font-medium">{notificationMessage}</p>
+                        </div>
+                        <button
+                            onClick={() => setShowNotification(false)}
+                            className="ml-4 text-emerald-500 hover:text-emerald-700"
+                        >
+                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                        </button>
                     </div>
                 </div>
             )}

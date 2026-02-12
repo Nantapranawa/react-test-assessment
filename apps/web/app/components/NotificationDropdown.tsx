@@ -37,8 +37,8 @@ export default function NotificationDropdown() {
 
     useEffect(() => {
         fetchNotifications();
-        // Poll every 30 seconds
-        const interval = setInterval(fetchNotifications, 30000);
+        // Poll every 3 seconds for real-time updates
+        const interval = setInterval(fetchNotifications, 3000);
         return () => clearInterval(interval);
     }, []);
 
