@@ -64,9 +64,22 @@ export default function BatchManagementPage() {
     const [addSearchTerm, setAddSearchTerm] = useState('');
     const [isAdding, setIsAdding] = useState(false);
 
+    // Staged Changes State
+    const [stagedEmployees, setStagedEmployees] = useState<any[]>([]);
+
     // Notification State
     const [showNotification, setShowNotification] = useState(false);
     const [notificationMessage, setNotificationMessage] = useState('');
+
+    const formatDate = (dateInput: string | Date | null | undefined) => {
+        if (!dateInput) return '-';
+        const date = new Date(dateInput);
+        if (isNaN(date.getTime())) return String(dateInput);
+        const day = String(date.getDate()).padStart(2, '0');
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const year = date.getFullYear();
+        return `${day}/${month}/${year}`;
+    };
 
     const { tableData, refreshData: refreshTalentPool } = useData();
 
@@ -118,6 +131,7 @@ export default function BatchManagementPage() {
         const dateObj = new Date(selectedBatch.assessmentDate);
         setEditDate(dateObj.toISOString().split('T')[0]);
         setEditTime(dateObj.toTimeString().slice(0, 5));
+        setStagedEmployees([...(selectedBatch.employees || [])]);
         setIsEditingBatch(true);
     };
 
@@ -130,48 +144,45 @@ export default function BatchManagementPage() {
         setIsSavingBatch(true);
         try {
             const dateTime = `${editDate}T${editTime}:00`;
+            const originalDate = new Date(selectedBatch.assessmentDate).toISOString().split('T')[0];
+            const originalTime = new Date(selectedBatch.assessmentDate).toTimeString().slice(0, 5);
+
+            // Compare employees
+            const originalEmployeeIds = selectedBatch.employees?.map((e: any) => e.id) || [];
+            const currentEmployeeIds = stagedEmployees.map((e: any) => e.id);
+            const hasEmployeeChanges = JSON.stringify(originalEmployeeIds) !== JSON.stringify(currentEmployeeIds);
+
+            const hasChanged = editLocation !== selectedBatch.location ||
+                editDate !== originalDate ||
+                editTime !== originalTime ||
+                hasEmployeeChanges;
+
             const res = await fetch(`http://localhost:8000/api/batches/${selectedBatch.id}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     location: editLocation,
-                    assessmentDate: dateTime
+                    assessmentDate: dateTime,
+                    employeeIds: currentEmployeeIds
                 })
             });
             const result = await res.json();
             if (result.success) {
-                // Update local state without fetching
-                setSelectedBatch(prev => prev ? {
-                    ...prev,
-                    location: editLocation,
-                    assessmentDate: dateTime
-                } : null);
-                setIsEditingBatch(false);
-                fetchBatches(); // Refresh list to update main view
-
-                // Determine if anything actually changed
-                const originalDate = selectedBatch.assessmentDate ? new Date(selectedBatch.assessmentDate).toISOString().split('T')[0] : '';
-                const originalTime = selectedBatch.assessmentDate ? new Date(selectedBatch.assessmentDate).toTimeString().substring(0, 5) : '';
-
-                const hasChanged = editLocation !== selectedBatch.location ||
-                    editDate !== originalDate ||
-                    editTime !== originalTime;
-
                 if (hasChanged) {
                     setNotificationMessage('Batch updated successfully');
                     setShowNotification(true);
                     setTimeout(() => setShowNotification(false), 3000);
                 }
-
                 setIsEditingBatch(false);
                 fetchBatches();
-                handleViewDetails(selectedBatch.id); // Refresh details
+                handleViewDetails(selectedBatch.id);
+                refreshTalentPool();
             } else {
-                alert('Failed to update batch: ' + result.error);
+                alert(result.error);
             }
         } catch (error) {
-            console.error('Failed to update batch', error);
-            alert('Failed to update batch');
+            console.error('Failed to save batch', error);
+            alert('Failed to save batch');
         } finally {
             setIsSavingBatch(false);
         }
@@ -210,6 +221,34 @@ export default function BatchManagementPage() {
     const handleReplaceEmployee = async (newEmployeeId: number) => {
         if (!selectedBatch || !replacingEmployee) return;
 
+        // If in edit mode, just stage the change locally
+        if (isEditingBatch) {
+            try {
+                // Use existing tableData instead of fetching
+                if (tableData?.data) {
+                    const newEmp = tableData.data.find((e: any) => e.id === newEmployeeId);
+                    if (newEmp) {
+                        // Check BP
+                        if (newEmp.bp !== replacingEmployee.bp) {
+                            alert(`New employee BP (${newEmp.bp}) must match replaced employee BP (${replacingEmployee.bp})`);
+                            return;
+                        }
+
+                        const updatedStaged = stagedEmployees.map(emp =>
+                            emp.id === replacingEmployee.id ? { ...newEmp, availability_status: "Batch Draft" } : emp
+                        );
+                        setStagedEmployees(updatedStaged);
+                        setIsReplaceModalOpen(false);
+                        setReplacingEmployee(null);
+                        setReplaceSearchTerm('');
+                    }
+                }
+            } catch (error) {
+                console.error("Failed to stage replacement", error);
+            }
+            return;
+        }
+
         setIsReplacing(true);
         try {
             const res = await fetch(`http://localhost:8000/api/batches/${selectedBatch.id}/replace-employee`, {
@@ -222,7 +261,6 @@ export default function BatchManagementPage() {
             });
             const result = await res.json();
             if (result.success) {
-                // Surgically update the local state to maintain row position
                 if (selectedBatch && replacingEmployee) {
                     const updatedEmployees = selectedBatch.employees?.map(emp =>
                         emp.id === replacingEmployee.id ? result.data : emp
@@ -230,13 +268,16 @@ export default function BatchManagementPage() {
                     setSelectedBatch({ ...selectedBatch, employees: updatedEmployees });
                 }
 
-                // Refresh background lists but DONT re-fetch modal details 
-                // because we want to preserve the current "slot" order
                 fetchBatches();
                 refreshTalentPool();
 
                 setIsReplaceModalOpen(false);
                 setReplacingEmployee(null);
+                setReplaceSearchTerm('');
+
+                setNotificationMessage('Employee replaced successfully');
+                setShowNotification(true);
+                setTimeout(() => setShowNotification(false), 3000);
             } else {
                 alert(result.error);
             }
@@ -343,6 +384,10 @@ export default function BatchManagementPage() {
                 setReschedulingEmployee(null);
                 fetchBatches(); // Refresh main list
                 refreshTalentPool();
+
+                setNotificationMessage('Employee rescheduled successfully');
+                setShowNotification(true);
+                setTimeout(() => setShowNotification(false), 3000);
             } else {
                 alert('Failed to reschedule: ' + result.error);
             }
@@ -356,6 +401,32 @@ export default function BatchManagementPage() {
 
     const handleAddEmployee = async (employeeId: number) => {
         if (!selectedBatch) return;
+
+        // If in edit mode, stage locally
+        if (isEditingBatch) {
+            try {
+                // Use existing tableData instead of fetching
+                if (tableData?.data) {
+                    const newEmp = tableData.data.find((e: any) => e.id === employeeId);
+                    if (newEmp) {
+                        // Check BP
+                        const batchBp = stagedEmployees.length > 0 ? stagedEmployees[0].bp : null;
+                        if (batchBp !== null && newEmp.bp !== batchBp) {
+                            alert(`Employee BP (${newEmp.bp}) does not match Batch BP (${batchBp})`);
+                            return;
+                        }
+
+                        setStagedEmployees([...stagedEmployees, { ...newEmp, availability_status: "Batch Draft" }]);
+                        setIsAddModalOpen(false);
+                        setAddSearchTerm('');
+                    }
+                }
+            } catch (error) {
+                console.error("Failed to stage addition", error);
+            }
+            return;
+        }
+
         setIsAdding(true);
         try {
             const res = await fetch(`http://localhost:8000/api/batches/${selectedBatch.id}/add-employee`, {
@@ -365,25 +436,25 @@ export default function BatchManagementPage() {
             });
             const result = await res.json();
             if (result.success) {
-                // Fetch updated batch details to reflect new list including the added employee
-                // Or try to surgically add it if we got data back
                 if (result.data) {
-                    // result.data is the updated batch
                     const sortedEmployees = [...(result.data.employees || [])].sort((a: any, b: any) => {
                         if (a.bp !== b.bp) return a.bp - b.bp;
                         return a.id - b.id;
                     });
                     setSelectedBatch({ ...result.data, employees: sortedEmployees });
                 } else {
-                    // fallback re-fetch
                     handleViewDetails(selectedBatch.id);
                 }
 
                 setIsAddModalOpen(false);
-                fetchBatches(); // Refresh main list counts
+                fetchBatches();
                 refreshTalentPool();
+
+                setNotificationMessage('Employee added successfully');
+                setShowNotification(true);
+                setTimeout(() => setShowNotification(false), 3000);
             } else {
-                alert('Failed to add employee: ' + result.error);
+                alert(result.error);
             }
         } catch (error) {
             console.error('Failed to add employee', error);
@@ -393,37 +464,40 @@ export default function BatchManagementPage() {
         }
     };
 
+    const handleRemoveEmployee = async (employeeId: number) => {
+        if (!isEditingBatch) return;
+        setStagedEmployees(stagedEmployees.filter(e => e.id !== employeeId));
+    };
+
     const filteredCandidates = useMemo(() => {
         if (!tableData?.data || !replacingEmployee) return [];
         const lowerSearch = replaceSearchTerm.toLowerCase();
+        const currentEmployees = isEditingBatch ? stagedEmployees : (selectedBatch?.employees || []);
 
-        // Show only employees with same BP AND status is "No Invitation"
-        // OR any status that isn't "Batch Draft" (though "Batch Draft" means they are in a batch)
         return tableData.data.filter((emp: any) =>
             emp.bp === replacingEmployee.bp &&
             emp.availability_status === "No Invitation" &&
+            !currentEmployees.some((e: any) => e.id === emp.id) &&
             (emp.nama.toLowerCase().includes(lowerSearch) || emp.nik.toString().includes(lowerSearch))
         );
-    }, [tableData, replacingEmployee, replaceSearchTerm]);
+    }, [tableData, replacingEmployee, replaceSearchTerm, isEditingBatch, stagedEmployees, selectedBatch]);
 
     const availableCandidates = useMemo(() => {
         if (!tableData?.data || !selectedBatch) return [];
         const lowerSearch = addSearchTerm.toLowerCase();
 
-        // Determine target BP from existing employees in batch or default?
-        // If batch is empty, we can't easily guess BP. But let's assume valid batches.
-        const firstEmployee = selectedBatch.employees?.[0];
-        const targetBp = firstEmployee ? firstEmployee.bp : null;
+        const currentEmployees = isEditingBatch ? stagedEmployees : (selectedBatch.employees || []);
+        const targetBp = currentEmployees?.[0]?.bp;
 
-        if (!targetBp) return []; // Or show all? safer to return empty if unknown
+        if (!targetBp) return [];
 
         return tableData.data.filter((emp: any) =>
             emp.bp === targetBp &&
             emp.availability_status === "No Invitation" &&
+            !currentEmployees.some((e: any) => e.id === emp.id) &&
             (emp.nama.toLowerCase().includes(lowerSearch) || emp.nik.toString().includes(lowerSearch))
         );
-
-    }, [tableData, selectedBatch, addSearchTerm]);
+    }, [tableData, selectedBatch, addSearchTerm, isEditingBatch, stagedEmployees]);
 
     if (loading) return <div className="p-10 text-center text-zinc-500">Loading batches...</div>;
 
@@ -464,7 +538,7 @@ export default function BatchManagementPage() {
                                         <td className="px-6 py-4 text-zinc-600">{batch.location}</td>
                                         <td className="px-6 py-4 text-zinc-600">
                                             <div className="flex flex-col">
-                                                <span className="font-medium">{new Date(batch.assessmentDate).toLocaleDateString()}</span>
+                                                <span className="font-medium">{formatDate(batch.assessmentDate)}</span>
                                                 <span className="text-xs text-zinc-500">{new Date(batch.assessmentDate).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                                             </div>
                                         </td>
@@ -473,7 +547,7 @@ export default function BatchManagementPage() {
                                                 {batch._count?.employees || 0} Employees
                                             </span>
                                         </td>
-                                        <td className="px-6 py-4 text-zinc-500 text-base">{new Date(batch.createdAt).toLocaleDateString()}</td>
+                                        <td className="px-6 py-4 text-zinc-500 text-base">{formatDate(batch.createdAt)}</td>
                                         <td className="px-6 py-4">
                                             <div className="flex items-center justify-between w-full">
                                                 <button
@@ -556,7 +630,7 @@ export default function BatchManagementPage() {
                                         <td className="px-6 py-4 text-zinc-600">{batch.location}</td>
                                         <td className="px-6 py-4 text-zinc-600">
                                             <div className="flex flex-col">
-                                                <span className="font-medium">{new Date(batch.assessmentDate).toLocaleDateString()}</span>
+                                                <span className="font-medium">{formatDate(batch.assessmentDate)}</span>
                                                 <span className="text-xs text-zinc-500">{new Date(batch.assessmentDate).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                                             </div>
                                         </td>
@@ -565,7 +639,7 @@ export default function BatchManagementPage() {
                                                 {batch._count?.employees || 0} Employees
                                             </span>
                                         </td>
-                                        <td className="px-6 py-4 text-zinc-500 text-base">{new Date(batch.createdAt).toLocaleDateString()}</td>
+                                        <td className="px-6 py-4 text-zinc-500 text-base">{formatDate(batch.createdAt)}</td>
                                         <td className="px-6 py-4">
                                             <div className="flex items-center justify-between w-full">
                                                 <button
@@ -663,7 +737,7 @@ export default function BatchManagementPage() {
                                     </div>
                                 ) : (
                                     <p className="text-sm text-zinc-500">
-                                        {selectedBatch?.location} - {selectedBatch?.assessmentDate && new Date(selectedBatch.assessmentDate).toLocaleDateString()}
+                                        {selectedBatch?.location} - {selectedBatch?.assessmentDate && formatDate(selectedBatch.assessmentDate)}
                                         <span className="ml-2 font-mono bg-zinc-100 px-2 py-0.5 rounded text-xs text-zinc-600">
                                             {selectedBatch?.assessmentDate && new Date(selectedBatch.assessmentDate).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                         </span>
@@ -739,7 +813,7 @@ export default function BatchManagementPage() {
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-zinc-100">
-                                        {selectedBatch.employees?.map((emp: any) => {
+                                        {(isEditingBatch ? stagedEmployees : selectedBatch.employees)?.map((emp: any) => {
                                             const status = emp.availability_status || 'No Invitation';
                                             const lowerStatus = status.toLowerCase();
                                             let badgeClass = "bg-zinc-100 text-zinc-600 border-zinc-200";
@@ -756,7 +830,7 @@ export default function BatchManagementPage() {
                                                     <td className="px-6 py-3 text-zinc-500 font-mono text-sm">{emp.nik}</td>
                                                     <td className="px-6 py-3 text-zinc-600 text-base">
                                                         <div className="flex flex-col">
-                                                            <span>{selectedBatch.assessmentDate && new Date(selectedBatch.assessmentDate).toLocaleDateString()}</span>
+                                                            <span>{selectedBatch.assessmentDate && formatDate(selectedBatch.assessmentDate)}</span>
                                                             <span className="text-xs text-zinc-400">{selectedBatch.assessmentDate && new Date(selectedBatch.assessmentDate).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                                                         </div>
                                                     </td>
@@ -768,15 +842,23 @@ export default function BatchManagementPage() {
                                                     </td>
                                                     <td className="px-6 py-3 text-right">
                                                         {lowerStatus === "batch draft" && isEditingBatch && (
-                                                            <button
-                                                                onClick={() => {
-                                                                    setReplacingEmployee(emp);
-                                                                    setIsReplaceModalOpen(true);
-                                                                }}
-                                                                className="text-sm font-bold text-zinc-900 hover:text-red-600 transition-colors uppercase tracking-tight underline underline-offset-4"
-                                                            >
-                                                                Replace
-                                                            </button>
+                                                            <div className="flex items-center justify-end space-x-4">
+                                                                <button
+                                                                    onClick={() => {
+                                                                        setReplacingEmployee(emp);
+                                                                        setIsReplaceModalOpen(true);
+                                                                    }}
+                                                                    className="text-sm font-bold text-zinc-900 hover:text-red-600 transition-colors uppercase tracking-tight underline underline-offset-4"
+                                                                >
+                                                                    Replace
+                                                                </button>
+                                                                <button
+                                                                    onClick={() => handleRemoveEmployee(emp.id)}
+                                                                    className="text-sm font-bold text-red-500 hover:text-red-700 transition-colors uppercase tracking-tight underline underline-offset-4"
+                                                                >
+                                                                    Remove
+                                                                </button>
+                                                            </div>
                                                         )}
                                                         {lowerStatus.includes("reschedule") && (
                                                             <button

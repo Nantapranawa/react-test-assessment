@@ -8,6 +8,22 @@ export default function TalentManagementPage() {
     const { tableData, loading, refreshData } = useData();
     const router = useRouter();
 
+    const formatDate = (dateInput: string | Date | null | undefined) => {
+        if (!dateInput) return '-';
+
+        // If it's already in DD/MM/YYYY or DD-MM-YYYY, return as is or normalize
+        if (typeof dateInput === 'string' && /^\d{1,2}[-\/]\d{1,2}[-\/]\d{4}$/.test(dateInput)) {
+            return dateInput.replace(/-/g, '/');
+        }
+
+        const date = new Date(dateInput);
+        if (isNaN(date.getTime())) return String(dateInput);
+        const day = String(date.getDate()).padStart(2, '0');
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const year = date.getFullYear();
+        return `${day}/${month}/${year}`;
+    };
+
     // State
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedBP1, setSelectedBP1] = useState<Set<number>>(new Set());
@@ -218,7 +234,7 @@ export default function TalentManagementPage() {
                                 <th className="px-6 py-5 font-bold tracking-wider">Phone</th>
                                 <th className="px-6 py-5 font-bold tracking-wider">TC Result</th>
                                 <th className="px-6 py-5 font-bold tracking-wider">Ubis</th>
-                                <th className="px-6 py-5 font-bold tracking-wider">Status</th>
+                                <th className="px-6 py-5 font-bold tracking-wider">Availability</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-zinc-100">
@@ -257,7 +273,7 @@ export default function TalentManagementPage() {
                                         <td className="px-6 py-5 text-zinc-600">{employee.eligible}</td>
                                         <td className="px-6 py-5 text-zinc-600 whitespace-nowrap">
                                             <div className="flex items-center space-x-2">
-                                                <span>{employee.expired}</span>
+                                                <span>{formatDate(employee.expired)}</span>
                                                 {(() => {
                                                     const dateStr = employee.expired;
                                                     if (!dateStr) return null;
