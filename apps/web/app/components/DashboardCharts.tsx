@@ -41,7 +41,7 @@ export default function DashboardCharts({ data }: { data: any[] }) {
         // 2. TC Result Distribution (Replacing BP)
         const resultCounts: Record<string, number> = {};
         data.forEach((item: any) => {
-            const result = item.tc_result || 'Pending';
+            const result = item.tc_result || 'Sent';
             resultCounts[result] = (resultCounts[result] || 0) + 1;
         });
 
@@ -103,8 +103,8 @@ export default function DashboardCharts({ data }: { data: any[] }) {
                                 key={range}
                                 onClick={() => setTimeRange(range)}
                                 className={`px-4 py-1.5 text-xs font-semibold rounded-lg transition-all ${timeRange === range
-                                        ? 'bg-white text-zinc-900 shadow-sm border border-zinc-100'
-                                        : 'text-zinc-500 hover:text-zinc-700'
+                                    ? 'bg-white text-zinc-900 shadow-sm border border-zinc-100'
+                                    : 'text-zinc-500 hover:text-zinc-700'
                                     }`}
                             >
                                 {range}

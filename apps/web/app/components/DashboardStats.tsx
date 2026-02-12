@@ -98,7 +98,7 @@ export default function DashboardStats({ data }: { data: any[] }) {
         // Normalize pending checks
         const pending = data.filter((item: any) =>
             !item.availability_status ||
-            ['Pending', 'No Invitation'].includes(item.availability_status)
+            ['Sent', 'No Invitation'].includes(item.availability_status)
         ).length;
 
         // Normalize completed checks

@@ -275,17 +275,17 @@ export const sendInvitations = async (req: Request, res: Response) => {
             return res.status(404).json({ success: false, error: "Batch not found" });
         }
 
-        // Update all employees in this batch to "Pending"
+        // Update all employees in this batch to "Sent"
         await prisma.employee.updateMany({
             where: {
                 id: { in: batch.employees.map(e => e.id) }
             },
             data: {
-                availability_status: "Pending"
+                availability_status: "Sent"
             }
         });
 
-        res.json({ success: true, message: "Invitations sent and status updated to 'Pending'" });
+        res.json({ success: true, message: "Invitations sent and status updated to 'Sent'" });
     } catch (error: any) {
         res.status(500).json({ success: false, error: error.message });
     }
