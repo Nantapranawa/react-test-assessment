@@ -81,6 +81,70 @@ export default function BatchManagementPage() {
         return `${day}/${month}/${year}`;
     };
 
+    // ── Priority Sorting Helpers ──
+    const isExpired = (dateInput: string | Date | null | undefined): boolean => {
+        if (!dateInput) return false;
+        let expireDate: Date | null = null;
+        if (typeof dateInput === 'string' && /^\d{1,2}[-\/]\d{1,2}[-\/]\d{4}$/.test(dateInput)) {
+            const parts = dateInput.match(/^(\d{1,2})[-\/](\d{1,2})[-\/](\d{4})$/);
+            if (parts) {
+                expireDate = new Date(parseInt(parts[3], 10), parseInt(parts[2], 10) - 1, parseInt(parts[1], 10));
+            }
+        } else {
+            const d = new Date(dateInput);
+            if (!isNaN(d.getTime())) expireDate = d;
+        }
+        if (expireDate && !isNaN(expireDate.getTime())) {
+            const today = new Date(); today.setHours(0, 0, 0, 0); expireDate.setHours(0, 0, 0, 0);
+            return today > expireDate;
+        }
+        return false;
+    };
+
+    const getPriorityTier = (employee: any): number => {
+        const expired = isExpired(employee.expired);
+        const tcResult = (employee.tc_result || '').toLowerCase().trim();
+        const isHP = tcResult.includes('high potential');
+        const isProm = tcResult.includes('promotable');
+        if (expired && isHP) return 1;
+        if (expired && isProm) return 2;
+        if (!expired && isHP) return 3;
+        if (!expired && isProm) return 4;
+        if (expired) return 5;
+        return 6;
+    };
+
+    const getSecondarySortKeys = (employee: any): [number, number, number] => {
+        const ubis = (employee.usulan_ubis || '').toUpperCase().trim();
+        let ubisRank = 2;
+        if (ubis === 'OK') ubisRank = 0;
+        else if (ubis === 'NOK') ubisRank = 1;
+
+        const elig = (employee.eligible || '').toLowerCase().trim();
+        let eligRank = 2;
+        if (elig === 'eligible') eligRank = 0;
+        else if (elig === 'not eligible') eligRank = 1;
+
+        const readiness = (employee.ac_result || '').toLowerCase().trim();
+        let readinessRank = 3;
+        if (readiness === 'ready') readinessRank = 0;
+        else if (readiness === 'ready with development') readinessRank = 1;
+        else if (readiness === 'not ready') readinessRank = 2;
+
+        return [ubisRank, eligRank, readinessRank];
+    };
+
+    const priorityComparator = (a: any, b: any): number => {
+        const tierA = getPriorityTier(a);
+        const tierB = getPriorityTier(b);
+        if (tierA !== tierB) return tierA - tierB;
+        const [ubisA, eligA, readA] = getSecondarySortKeys(a);
+        const [ubisB, eligB, readB] = getSecondarySortKeys(b);
+        if (ubisA !== ubisB) return ubisA - ubisB;
+        if (eligA !== eligB) return eligA - eligB;
+        return readA - readB;
+    };
+
     const { tableData, refreshData: refreshTalentPool } = useData();
 
     useEffect(() => {
@@ -474,12 +538,13 @@ export default function BatchManagementPage() {
         const lowerSearch = replaceSearchTerm.toLowerCase();
         const currentEmployees = isEditingBatch ? stagedEmployees : (selectedBatch?.employees || []);
 
-        return tableData.data.filter((emp: any) =>
+        const filtered = tableData.data.filter((emp: any) =>
             emp.bp === replacingEmployee.bp &&
             emp.availability_status === "No Invitation" &&
             !currentEmployees.some((e: any) => e.nik === emp.nik) &&
             (emp.nama.toLowerCase().includes(lowerSearch) || emp.nik.toString().includes(lowerSearch))
         );
+        return [...filtered].sort(priorityComparator);
     }, [tableData, replacingEmployee, replaceSearchTerm, isEditingBatch, stagedEmployees, selectedBatch]);
 
     const availableCandidates = useMemo(() => {
@@ -491,12 +556,13 @@ export default function BatchManagementPage() {
 
         if (!targetBp) return [];
 
-        return tableData.data.filter((emp: any) =>
+        const filtered = tableData.data.filter((emp: any) =>
             emp.bp === targetBp &&
             emp.availability_status === "No Invitation" &&
             !currentEmployees.some((e: any) => e.nik === emp.nik) &&
             (emp.nama.toLowerCase().includes(lowerSearch) || emp.nik.toString().includes(lowerSearch))
         );
+        return [...filtered].sort(priorityComparator);
     }, [tableData, selectedBatch, addSearchTerm, isEditingBatch, stagedEmployees]);
 
     if (loading) return <div className="p-10 text-center text-zinc-500">Loading batches...</div>;
@@ -963,9 +1029,10 @@ export default function BatchManagementPage() {
                                 <table className="w-full text-left table-fixed">
                                     <thead className="bg-zinc-100 border-b border-zinc-200 text-xs uppercase text-zinc-500 font-bold sticky top-0 z-10">
                                         <tr>
-                                            <th className="px-6 py-3 w-1/3">Candidate Name</th>
-                                            <th className="px-6 py-3 w-1/4">NIK</th>
-                                            <th className="px-6 py-3 w-1/4">Position</th>
+                                            <th className="px-6 py-3">Candidate Name</th>
+                                            <th className="px-6 py-3">NIK</th>
+                                            <th className="px-6 py-3">Position</th>
+                                            <th className="px-6 py-3">TC Result</th>
                                             <th className="px-6 py-3 text-right pr-10">Action</th>
                                         </tr>
                                     </thead>
@@ -977,6 +1044,7 @@ export default function BatchManagementPage() {
                                                 </td>
                                                 <td className="px-6 py-4 text-zinc-500 font-mono text-sm">{candidate.nik}</td>
                                                 <td className="px-6 py-4 text-zinc-600 text-base truncate">{candidate.posisi}</td>
+                                                <td className="px-6 py-4 text-zinc-600 text-sm">{candidate.tc_result || '-'}</td>
                                                 <td className="px-6 py-4 text-right pr-6">
                                                     <button
                                                         onClick={() => handleReplaceEmployee(candidate.nik)}
@@ -989,7 +1057,7 @@ export default function BatchManagementPage() {
                                             </tr>
                                         )) : (
                                             <tr>
-                                                <td colSpan={4} className="px-6 py-10 text-center text-zinc-400 italic text-sm">
+                                                <td colSpan={5} className="px-6 py-10 text-center text-zinc-400 italic text-sm">
                                                     No eligible BP {replacingEmployee?.bp} candidates found.
                                                 </td>
                                             </tr>
@@ -1343,9 +1411,10 @@ export default function BatchManagementPage() {
                                 <table className="w-full text-left table-fixed">
                                     <thead className="bg-zinc-100 border-b border-zinc-200 text-xs uppercase text-zinc-500 font-bold sticky top-0 z-10">
                                         <tr>
-                                            <th className="px-6 py-3 w-1/3">Candidate Name</th>
-                                            <th className="px-6 py-3 w-1/4">NIK</th>
-                                            <th className="px-6 py-3 w-1/4">Position</th>
+                                            <th className="px-6 py-3">Candidate Name</th>
+                                            <th className="px-6 py-3">NIK</th>
+                                            <th className="px-6 py-3">Position</th>
+                                            <th className="px-6 py-3">TC Result</th>
                                             <th className="px-6 py-3 text-right pr-6">Action</th>
                                         </tr>
                                     </thead>
@@ -1357,6 +1426,7 @@ export default function BatchManagementPage() {
                                                 </td>
                                                 <td className="px-6 py-4 text-zinc-500 font-mono text-sm">{candidate.nik}</td>
                                                 <td className="px-6 py-4 text-zinc-600 text-base truncate">{candidate.posisi}</td>
+                                                <td className="px-6 py-4 text-zinc-600 text-sm">{candidate.tc_result || '-'}</td>
                                                 <td className="px-6 py-4 text-right pr-6">
                                                     <button
                                                         onClick={() => handleAddEmployee(candidate.nik)}
@@ -1369,7 +1439,7 @@ export default function BatchManagementPage() {
                                             </tr>
                                         )) : (
                                             <tr>
-                                                <td colSpan={4} className="px-6 py-10 text-center text-zinc-400 italic text-sm">
+                                                <td colSpan={5} className="px-6 py-10 text-center text-zinc-400 italic text-sm">
                                                     No eligible candidates found.
                                                 </td>
                                             </tr>
