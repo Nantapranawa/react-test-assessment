@@ -4,59 +4,170 @@ import { useState, useMemo } from 'react';
 import { useData } from '../../lib/DataContext';
 import { useRouter } from 'next/navigation';
 
+const formatDate = (dateInput: string | Date | null | undefined) => {
+    if (!dateInput) return '-';
+
+    // If it's already in DD/MM/YYYY or DD-MM-YYYY, return as is or normalize
+    if (typeof dateInput === 'string' && /^\d{1,2}[-\/]\d{1,2}[-\/]\d{4}$/.test(dateInput)) {
+        return dateInput.replace(/-/g, '/');
+    }
+
+    const date = new Date(dateInput);
+    if (isNaN(date.getTime())) return String(dateInput);
+    const day = String(date.getDate()).padStart(2, '0');
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const year = date.getFullYear();
+    return `${day}/${month}/${year}`;
+};
+
+const isExpired = (dateInput: string | Date | null | undefined): boolean => {
+    if (!dateInput) return false;
+
+    let expireDate: Date | null = null;
+
+    if (typeof dateInput === 'string' && /^\d{1,2}[-\/]\d{1,2}[-\/]\d{4}$/.test(dateInput)) {
+        const parts = dateInput.match(/^(\d{1,2})[-\/](\d{1,2})[-\/](\d{4})$/);
+        if (parts) {
+            const day = parseInt(parts[1], 10);
+            const month = parseInt(parts[2], 10) - 1;
+            const year = parseInt(parts[3], 10);
+            expireDate = new Date(year, month, day);
+        }
+    } else {
+        const d = new Date(dateInput);
+        if (!isNaN(d.getTime())) {
+            expireDate = d;
+        }
+    }
+
+    if (expireDate && !isNaN(expireDate.getTime())) {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        expireDate.setHours(0, 0, 0, 0);
+        return today > expireDate;
+    }
+
+    return false;
+};
+
+interface TalentTableProps {
+    title: string;
+    employees: any[];
+    selectedSet: Set<string>;
+    quota: number;
+    bp: number;
+    onToggleSelection: (e: any, nik: string, bp: number) => void;
+    onRowClick: (employee: any) => void;
+}
+
+const TalentTable = ({ title, employees, selectedSet, quota, bp, onToggleSelection, onRowClick }: TalentTableProps) => {
+    return (
+        <div className="bg-white rounded-2xl shadow-sm border border-zinc-200 overflow-hidden mb-12">
+            <div className="px-8 py-5 border-b border-zinc-100 flex justify-between items-center bg-zinc-50/50">
+                <div className="flex items-center space-x-3">
+                    <div className={`w-2 h-2 rounded-full ${selectedSet.size > 0 ? 'bg-red-600' : 'bg-zinc-400'}`}></div>
+                    <h3 className="text-xl font-bold text-zinc-900">{title}</h3>
+                </div>
+                <span className={`px-4 py-1.5 rounded-full text-sm font-bold border transition-colors ${selectedSet.size > 0
+                    ? 'bg-red-50 text-red-700 border-red-100'
+                    : 'bg-zinc-100 text-zinc-600 border-zinc-200'
+                    }`}>
+                    Selected: {selectedSet.size}
+                </span>
+            </div>
+            <div className="overflow-x-auto">
+                <table className="w-full text-base text-left">
+                    <thead className="text-xs text-white uppercase bg-zinc-950 border-b border-zinc-800">
+                        <tr>
+                            <th className="px-6 py-5 font-bold tracking-wider">Select</th>
+                            <th className="px-6 py-5 font-bold tracking-wider">No</th>
+                            <th className="px-6 py-5 font-bold tracking-wider">Name</th>
+                            <th className="px-6 py-5 font-bold tracking-wider">NIK</th>
+                            <th className="px-6 py-5 font-bold tracking-wider">Position</th>
+                            <th className="px-6 py-5 font-bold tracking-wider">Eligible</th>
+                            <th className="px-6 py-5 font-bold tracking-wider">Expire Date</th>
+                            <th className="px-6 py-5 font-bold tracking-wider">AC Result</th>
+                            <th className="px-6 py-5 font-bold tracking-wider">Phone</th>
+                            <th className="px-6 py-5 font-bold tracking-wider">TC Result</th>
+                            <th className="px-6 py-5 font-bold tracking-wider">Ubis</th>
+                            <th className="px-6 py-5 font-bold tracking-wider">Availability</th>
+                        </tr>
+                    </thead>
+                    <tbody className="divide-y divide-zinc-100">
+                        {employees.length > 0 ? employees.map((employee: any, index: number) => {
+                            const isSelected = selectedSet.has(employee.nik);
+                            const status = employee.availability_status || 'No Invitation';
+                            const isAlreadyInBatch = status !== 'No Invitation';
+                            const isDisabled = isAlreadyInBatch;
+
+                            // Status badge logic
+                            const lowerStatus = status.toLowerCase();
+                            let badgeClass = "bg-zinc-100 text-zinc-600 border-zinc-200";
+                            if (lowerStatus.includes("accepted")) badgeClass = "bg-emerald-50 text-emerald-700 border-emerald-100";
+                            else if (lowerStatus.includes("rejected")) badgeClass = "bg-red-50 text-red-700 border-red-100";
+                            else if (lowerStatus.includes("sent")) badgeClass = "bg-amber-50 text-amber-700 border-amber-100";
+                            else if (lowerStatus.includes("reschedule")) badgeClass = "bg-blue-50 text-blue-700 border-blue-100";
+                            else if (lowerStatus.includes("draft")) badgeClass = "bg-orange-50 text-orange-700 border-orange-100";
+
+                            return (
+                                <tr key={employee.id}
+                                    onClick={() => onRowClick(employee)}
+                                    className={`hover:bg-zinc-50/80 transition-all duration-200 group cursor-pointer ${isSelected ? 'bg-red-50/40' : ''}`}>
+                                    <td className="px-6 py-5">
+                                        <div className="relative flex items-center">
+                                            <input
+                                                type="checkbox"
+                                                checked={isSelected}
+                                                disabled={isDisabled}
+                                                onClick={(e) => e.stopPropagation()}
+                                                onChange={(e) => onToggleSelection(e, employee.nik, bp)}
+                                                className="w-5 h-5 text-red-600 bg-white border-zinc-300 rounded-lg focus:ring-red-500 focus:ring-offset-0 cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+                                            />
+                                        </div>
+                                    </td>
+                                    <td className="px-6 py-5 text-zinc-500 font-medium">{index + 1}</td>
+                                    <td className="px-6 py-5 font-bold text-zinc-900 whitespace-nowrap">{employee.nama}</td>
+                                    <td className="px-6 py-5 text-zinc-500 font-mono text-sm">{employee.nik}</td>
+                                    <td className="px-6 py-5 text-zinc-600 font-medium whitespace-nowrap">{employee.posisi}</td>
+                                    <td className="px-6 py-5 text-zinc-600">{employee.eligible}</td>
+                                    <td className="px-6 py-5 text-zinc-600 whitespace-nowrap">
+                                        <div className="flex items-center space-x-2">
+                                            <span>{formatDate(employee.expired)}</span>
+                                            {isExpired(employee.expired) && (
+                                                <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-red-100 text-red-600 border border-red-200 uppercase tracking-wide">
+                                                    Expired
+                                                </span>
+                                            )}
+                                        </div>
+                                    </td>
+                                    <td className="px-6 py-5 text-zinc-600">{employee.ac_result}</td>
+                                    <td className="px-6 py-5 text-zinc-500">{employee.phone || '-'}</td>
+                                    <td className="px-6 py-5 text-zinc-600">{employee.tc_result}</td>
+                                    <td className="px-6 py-5 text-zinc-600">{employee.usulan_ubis}</td>
+                                    <td className="px-6 py-5">
+                                        <span className={`px-3 py-1 rounded-full text-xs font-bold border uppercase tracking-wider inline-flex items-center transform transition-transform group-hover:scale-105 whitespace-nowrap ${badgeClass}`}>
+                                            {status}
+                                        </span>
+                                    </td>
+                                </tr>
+                            );
+                        }) : (
+                            <tr>
+                                <td colSpan={12} className="px-6 py-12 text-center text-zinc-400 italic">No employees found matching your criteria.</td>
+                            </tr>
+                        )}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    );
+};
+
 export default function TalentManagementPage() {
     const { tableData, loading, refreshData } = useData();
     const router = useRouter();
 
-    const formatDate = (dateInput: string | Date | null | undefined) => {
-        if (!dateInput) return '-';
 
-        // If it's already in DD/MM/YYYY or DD-MM-YYYY, return as is or normalize
-        if (typeof dateInput === 'string' && /^\d{1,2}[-\/]\d{1,2}[-\/]\d{4}$/.test(dateInput)) {
-            return dateInput.replace(/-/g, '/');
-        }
-
-        const date = new Date(dateInput);
-        if (isNaN(date.getTime())) return String(dateInput);
-        const day = String(date.getDate()).padStart(2, '0');
-        const month = String(date.getMonth() + 1).padStart(2, '0');
-        const year = date.getFullYear();
-        return `${day}/${month}/${year}`;
-    };
-
-    /**
-     * Checks if an employee's expiration date has passed.
-     * Returns true if expired, false otherwise.
-     */
-    const isExpired = (dateInput: string | Date | null | undefined): boolean => {
-        if (!dateInput) return false;
-
-        let expireDate: Date | null = null;
-
-        if (typeof dateInput === 'string' && /^\d{1,2}[-\/]\d{1,2}[-\/]\d{4}$/.test(dateInput)) {
-            const parts = dateInput.match(/^(\d{1,2})[-\/](\d{1,2})[-\/](\d{4})$/);
-            if (parts) {
-                const day = parseInt(parts[1], 10);
-                const month = parseInt(parts[2], 10) - 1;
-                const year = parseInt(parts[3], 10);
-                expireDate = new Date(year, month, day);
-            }
-        } else {
-            const d = new Date(dateInput);
-            if (!isNaN(d.getTime())) {
-                expireDate = d;
-            }
-        }
-
-        if (expireDate && !isNaN(expireDate.getTime())) {
-            const today = new Date();
-            today.setHours(0, 0, 0, 0);
-            expireDate.setHours(0, 0, 0, 0);
-            return today > expireDate;
-        }
-
-        return false;
-    };
 
     /**
      * Determines the primary priority tier (1-6) based on:
@@ -379,146 +490,7 @@ export default function TalentManagementPage() {
         }
     };
 
-    // Helper Custom Table
-    const TalentTable = ({ title, employees, selectedSet, quota, bp }: { title: string, employees: any[], selectedSet: Set<string>, quota: number, bp: number }) => {
-        // const isQuotaReached = selectedSet.size >= quota; 
-        // quota is unused but kept in props to avoid changing call sites for now, or just ignore it.
 
-
-        return (
-            <div className="bg-white rounded-2xl shadow-sm border border-zinc-200 overflow-hidden mb-12">
-                <div className="px-8 py-5 border-b border-zinc-100 flex justify-between items-center bg-zinc-50/50">
-                    <div className="flex items-center space-x-3">
-                        <div className={`w-2 h-2 rounded-full ${selectedSet.size > 0 ? 'bg-red-600' : 'bg-zinc-400'}`}></div>
-                        <h3 className="text-xl font-bold text-zinc-900">{title}</h3>
-                    </div>
-                    <span className={`px-4 py-1.5 rounded-full text-sm font-bold border transition-colors ${selectedSet.size > 0
-                        ? 'bg-red-50 text-red-700 border-red-100'
-                        : 'bg-zinc-100 text-zinc-600 border-zinc-200'
-                        }`}>
-                        Selected: {selectedSet.size}
-                    </span>
-                </div>
-                <div className="overflow-x-auto">
-                    <table className="w-full text-base text-left">
-                        <thead className="text-xs text-white uppercase bg-zinc-950 border-b border-zinc-800">
-                            <tr>
-                                <th className="px-6 py-5 font-bold tracking-wider">Select</th>
-                                <th className="px-6 py-5 font-bold tracking-wider">No</th>
-                                <th className="px-6 py-5 font-bold tracking-wider">Name</th>
-                                <th className="px-6 py-5 font-bold tracking-wider">NIK</th>
-                                <th className="px-6 py-5 font-bold tracking-wider">Position</th>
-                                <th className="px-6 py-5 font-bold tracking-wider">Eligible</th>
-                                <th className="px-6 py-5 font-bold tracking-wider">Expire Date</th>
-                                <th className="px-6 py-5 font-bold tracking-wider">AC Result</th>
-                                <th className="px-6 py-5 font-bold tracking-wider">Phone</th>
-                                <th className="px-6 py-5 font-bold tracking-wider">TC Result</th>
-                                <th className="px-6 py-5 font-bold tracking-wider">Ubis</th>
-                                <th className="px-6 py-5 font-bold tracking-wider">Availability</th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-zinc-100">
-                            {employees.length > 0 ? employees.map((employee: any, index: number) => {
-                                const isSelected = selectedSet.has(employee.nik);
-                                const status = employee.availability_status || 'No Invitation';
-                                const isAlreadyInBatch = status !== 'No Invitation';
-                                const isDisabled = isAlreadyInBatch;
-
-                                // Status badge logic
-                                const lowerStatus = status.toLowerCase();
-                                let badgeClass = "bg-zinc-100 text-zinc-600 border-zinc-200";
-                                if (lowerStatus.includes("accepted")) badgeClass = "bg-emerald-50 text-emerald-700 border-emerald-100";
-                                else if (lowerStatus.includes("rejected")) badgeClass = "bg-red-50 text-red-700 border-red-100";
-                                else if (lowerStatus.includes("sent")) badgeClass = "bg-amber-50 text-amber-700 border-amber-100";
-                                else if (lowerStatus.includes("reschedule")) badgeClass = "bg-blue-50 text-blue-700 border-blue-100";
-                                else if (lowerStatus.includes("draft")) badgeClass = "bg-orange-50 text-orange-700 border-orange-100";
-
-                                return (
-                                    <tr key={employee.id}
-                                        onClick={() => handleEmployeeClick(employee)}
-                                        className={`hover:bg-zinc-50/80 transition-all duration-200 group cursor-pointer ${isSelected ? 'bg-red-50/40' : ''}`}>
-                                        <td className="px-6 py-5">
-                                            <div className="relative flex items-center">
-                                                <input
-                                                    type="checkbox"
-                                                    checked={isSelected}
-                                                    disabled={isDisabled}
-                                                    onClick={(e) => e.stopPropagation()}
-                                                    onChange={(e) => toggleSelection(e, employee.nik, bp)}
-                                                    className="w-5 h-5 text-red-600 bg-white border-zinc-300 rounded-lg focus:ring-red-500 focus:ring-offset-0 cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed transition-all"
-                                                />
-                                            </div>
-                                        </td>
-                                        <td className="px-6 py-5 text-zinc-500 font-medium">{index + 1}</td>
-                                        <td className="px-6 py-5 font-bold text-zinc-900 whitespace-nowrap">{employee.nama}</td>
-                                        <td className="px-6 py-5 text-zinc-500 font-mono text-sm">{employee.nik}</td>
-                                        <td className="px-6 py-5 text-zinc-600 font-medium whitespace-nowrap">{employee.posisi}</td>
-                                        <td className="px-6 py-5 text-zinc-600">{employee.eligible}</td>
-                                        <td className="px-6 py-5 text-zinc-600 whitespace-nowrap">
-                                            <div className="flex items-center space-x-2">
-                                                <span>{formatDate(employee.expired)}</span>
-                                                {(() => {
-                                                    const dateStr = employee.expired;
-                                                    if (!dateStr) return null;
-
-                                                    let expireDate: Date | null = null;
-
-                                                    // Try parsing common formats
-                                                    // 1. Try ISO/standard format first
-                                                    const d = new Date(dateStr);
-                                                    if (!isNaN(d.getTime())) {
-                                                        expireDate = d;
-                                                    } else {
-                                                        // 2. Try DD/MM/YYYY or DD-MM-YYYY (Common in ID)
-                                                        const parts = dateStr.match(/^(\d{1,2})[-\/](\d{1,2})[-\/](\d{4})$/);
-                                                        if (parts) {
-                                                            const day = parseInt(parts[1], 10);
-                                                            const month = parseInt(parts[2], 10) - 1; // Months are 0-indexed
-                                                            const year = parseInt(parts[3], 10);
-                                                            expireDate = new Date(year, month, day);
-                                                        }
-                                                    }
-
-                                                    if (expireDate && !isNaN(expireDate.getTime())) {
-                                                        const today = new Date();
-                                                        today.setHours(0, 0, 0, 0);
-                                                        expireDate.setHours(0, 0, 0, 0); // Normalize expire date just in case
-
-                                                        if (today > expireDate) {
-                                                            return (
-                                                                <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-red-100 text-red-600 border border-red-200 uppercase tracking-wide">
-                                                                    Expired
-                                                                </span>
-                                                            );
-                                                        }
-                                                    }
-
-                                                    return null;
-                                                })()}
-                                            </div>
-                                        </td>
-                                        <td className="px-6 py-5 text-zinc-600">{employee.ac_result}</td>
-                                        <td className="px-6 py-5 text-zinc-500">{employee.phone || '-'}</td>
-                                        <td className="px-6 py-5 text-zinc-600">{employee.tc_result}</td>
-                                        <td className="px-6 py-5 text-zinc-600">{employee.usulan_ubis}</td>
-                                        <td className="px-6 py-5">
-                                            <span className={`px-3 py-1 rounded-full text-xs font-bold border uppercase tracking-wider inline-flex items-center transform transition-transform group-hover:scale-105 whitespace-nowrap ${badgeClass}`}>
-                                                {status}
-                                            </span>
-                                        </td>
-                                    </tr>
-                                );
-                            }) : (
-                                <tr>
-                                    <td colSpan={12} className="px-6 py-12 text-center text-zinc-400 italic">No employees found matching your criteria.</td>
-                                </tr>
-                            )}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        );
-    };
 
     if (loading) return <div className="p-10 text-center text-zinc-500">Loading data...</div>;
 
@@ -703,8 +675,8 @@ export default function TalentManagementPage() {
             )}
 
             {/* Tables */}
-            <TalentTable title="BP 1 Candidates" employees={bp1Employees} selectedSet={selectedBP1} quota={QUOTA_BP1} bp={1} />
-            <TalentTable title="BP 2 Candidates" employees={bp2Employees} selectedSet={selectedBP2} quota={QUOTA_BP2} bp={2} />
+            <TalentTable title="BP 1 Candidates" employees={bp1Employees} selectedSet={selectedBP1} quota={QUOTA_BP1} bp={1} onToggleSelection={toggleSelection} onRowClick={handleEmployeeClick} />
+            <TalentTable title="BP 2 Candidates" employees={bp2Employees} selectedSet={selectedBP2} quota={QUOTA_BP2} bp={2} onToggleSelection={toggleSelection} onRowClick={handleEmployeeClick} />
 
             {/* Sticky Bar */}
             <div className="fixed bottom-0 left-64 right-0 bg-white border-t border-zinc-200 p-4 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] z-20 flex justify-between items-center">

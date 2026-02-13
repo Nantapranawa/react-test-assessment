@@ -27,8 +27,8 @@ export default function Sidebar() {
         <h1 className="text-2xl font-bold tracking-tight">
           <span className="text-red-600">Assessment</span>Planner
         </h1>
-        <p className="text-zinc-500 text-xs font-medium mt-1">
-          Enterprise Data Systems
+        <p className="text-zinc-500 text-s font-medium mt-1">
+          Telkom HCSP Division
         </p>
       </div>
 
