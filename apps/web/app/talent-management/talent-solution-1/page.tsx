@@ -24,6 +24,111 @@ export default function TalentManagementPage() {
         return `${day}/${month}/${year}`;
     };
 
+    /**
+     * Checks if an employee's expiration date has passed.
+     * Returns true if expired, false otherwise.
+     */
+    const isExpired = (dateInput: string | Date | null | undefined): boolean => {
+        if (!dateInput) return false;
+
+        let expireDate: Date | null = null;
+
+        if (typeof dateInput === 'string' && /^\d{1,2}[-\/]\d{1,2}[-\/]\d{4}$/.test(dateInput)) {
+            const parts = dateInput.match(/^(\d{1,2})[-\/](\d{1,2})[-\/](\d{4})$/);
+            if (parts) {
+                const day = parseInt(parts[1], 10);
+                const month = parseInt(parts[2], 10) - 1;
+                const year = parseInt(parts[3], 10);
+                expireDate = new Date(year, month, day);
+            }
+        } else {
+            const d = new Date(dateInput);
+            if (!isNaN(d.getTime())) {
+                expireDate = d;
+            }
+        }
+
+        if (expireDate && !isNaN(expireDate.getTime())) {
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            expireDate.setHours(0, 0, 0, 0);
+            return today > expireDate;
+        }
+
+        return false;
+    };
+
+    /**
+     * Determines the primary priority tier (1-6) based on:
+     *   1. Expired + High Potential
+     *   2. Expired + Promotable
+     *   3. Not Expired + High Potential
+     *   4. Not Expired + Promotable
+     *   5. Expired + (neither High Potential nor Promotable)
+     *   6. Not Expired + (neither High Potential nor Promotable)
+     */
+    const getPriorityTier = (employee: any): number => {
+        const expired = isExpired(employee.expired);
+        const tcResult = (employee.tc_result || '').toLowerCase().trim();
+        const isHighPotential = tcResult.includes('high potential');
+        const isPromotable = tcResult.includes('promotable');
+
+        if (expired && isHighPotential) return 1;
+        if (expired && isPromotable) return 2;
+        if (!expired && isHighPotential) return 3;
+        if (!expired && isPromotable) return 4;
+        if (expired) return 5;   // Expired but neither HP nor Promotable
+        return 6;                // Not expired, neither HP nor Promotable
+    };
+
+    /**
+     * Returns secondary sort keys as an array of numeric ranks:
+     *   [ubisRank, eligibilityRank, readinessRank]
+     *
+     * UBIS: OK=0, NOK=1, other=2
+     * Eligibility: Eligible=0, Not Eligible=1, other=2
+     * Readiness (ac_result): Ready=0, Ready with Development=1, Not Ready=2, other=3
+     */
+    const getSecondarySortKeys = (employee: any): [number, number, number] => {
+        // UBIS Status
+        const ubis = (employee.usulan_ubis || '').toUpperCase().trim();
+        let ubisRank = 2;
+        if (ubis === 'OK') ubisRank = 0;
+        else if (ubis === 'NOK') ubisRank = 1;
+
+        // Eligibility Status
+        const elig = (employee.eligible || '').toLowerCase().trim();
+        let eligRank = 2;
+        if (elig === 'eligible') eligRank = 0;
+        else if (elig === 'not eligible') eligRank = 1;
+
+        // Readiness Status (ac_result)
+        const readiness = (employee.ac_result || '').toLowerCase().trim();
+        let readinessRank = 3;
+        if (readiness === 'ready') readinessRank = 0;
+        else if (readiness === 'ready with development') readinessRank = 1;
+        else if (readiness === 'not ready') readinessRank = 2;
+
+        return [ubisRank, eligRank, readinessRank];
+    };
+
+    /**
+     * Comparator function for sorting employees by priority.
+     * First by primary tier, then by secondary keys (UBIS → Eligibility → Readiness).
+     */
+    const priorityComparator = (a: any, b: any): number => {
+        const tierA = getPriorityTier(a);
+        const tierB = getPriorityTier(b);
+        if (tierA !== tierB) return tierA - tierB;
+
+        const [ubisA, eligA, readA] = getSecondarySortKeys(a);
+        const [ubisB, eligB, readB] = getSecondarySortKeys(b);
+
+        if (ubisA !== ubisB) return ubisA - ubisB;
+        if (eligA !== eligB) return eligA - eligB;
+        return readA - readB;
+    };
+
     // State
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedBP1, setSelectedBP1] = useState<Set<string>>(new Set());
@@ -98,7 +203,7 @@ export default function TalentManagementPage() {
         });
     };
 
-    // Filter Data Logic
+    // Filter Data Logic (with Priority Sorting applied)
     const filteredData = useMemo(() => {
         if (!tableData?.data) return [];
         let data = tableData.data;
@@ -121,6 +226,9 @@ export default function TalentManagementPage() {
                 });
             }
         });
+
+        // Apply Priority Sorting
+        data = [...data].sort(priorityComparator);
 
         return data;
     }, [tableData, searchTerm, selectedFilters]);
