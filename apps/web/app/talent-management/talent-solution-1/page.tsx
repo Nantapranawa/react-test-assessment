@@ -310,7 +310,12 @@ export default function TalentManagementPage() {
 
             if (failures.length === 0) {
                 await refreshData();
-                router.push('/batch-management');
+                setIsModalOpen(false); // Close the modal
+                setNotificationMessage('Batch created successfully');
+                setShowNotification(true);
+                setTimeout(() => {
+                    router.push('/batch-management');
+                }, 2000);
             } else {
                 alert('Failed to create some batches: ' + failures.map(f => f.error).join(', '));
             }
@@ -523,8 +528,8 @@ export default function TalentManagementPage() {
             {/* Header */}
             <div className="flex justify-between items-start mb-10">
                 <div>
-                    <h1 className="text-2xl font-bold text-zinc-900 tracking-tight">Talent Solution <span className="text-red-600">I</span></h1>
-                    <p className="text-zinc-500 text-sm">Select candidates for the new batch.</p>
+                    <h1 className="text-3xl font-bold text-zinc-900 tracking-tight">Talent Solution <span className="text-red-600">I</span></h1>
+                    <p className="text-zinc-500 text-xl">Select candidates for the new batch.</p>
                 </div>
                 <div className="flex items-center gap-4">
                     <button

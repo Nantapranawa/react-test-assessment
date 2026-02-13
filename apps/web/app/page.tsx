@@ -18,7 +18,7 @@ export default function Home() {
     <div className="p-8 max-w-[1600px] mx-auto">
       {/* SECTION: PERFORMANCE OVERVIEW */}
       <div className="mb-6">
-        <p className="text-zinc-500 text-sm font-medium">
+        <p className="text-zinc-500 text-xl font-medium">
           Welcome back. Here is the latest assessment overview.
         </p>
       </div>
@@ -31,7 +31,7 @@ export default function Home() {
           <div className="animate-in fade-in slide-in-from-bottom-2 duration-700">
             <div className="flex items-center space-x-2 mb-6">
               <span className="w-1.5 h-1.5 rounded-full bg-red-600"></span>
-              <h2 className="text-base font-bold text-zinc-900 uppercase tracking-wider text-xs">Performance Metrics</h2>
+              <h2 className="text-base font-bold text-zinc-900 uppercase tracking-wider text-m">Performance Metrics</h2>
             </div>
 
             <DashboardStats data={tableData.data} />

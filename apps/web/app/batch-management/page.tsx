@@ -271,6 +271,9 @@ export default function BatchManagementPage() {
                 fetchBatches();
                 setIsDeleteModalOpen(false);
                 setBatchToDelete(null);
+                setNotificationMessage('Batch deleted successfully');
+                setShowNotification(true);
+                setTimeout(() => setShowNotification(false), 3000);
             } else {
                 alert(result.error);
             }

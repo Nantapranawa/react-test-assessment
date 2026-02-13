@@ -31,29 +31,29 @@ const MetricCard = ({ label, value, total, icon, trend, sparkData, accentColor, 
     const percentage = total > 0 ? Math.round((value / total) * 100) : 0;
 
     return (
-        <div className={`relative overflow-hidden rounded-3xl p-6 transition-all duration-300 hover:scale-[1.02] hover:shadow-xl ${isDark ? 'bg-zinc-900 text-white shadow-2xl shadow-zinc-900/20' : 'bg-white text-zinc-900 shadow-sm border border-zinc-100'
+        <div className={`relative overflow-hidden rounded-xl p-4 transition-all duration-300 hover:scale-[1.02] hover:shadow-xl ${isDark ? 'bg-zinc-900 text-white shadow-2xl shadow-zinc-900/20' : 'bg-white text-zinc-900 shadow-sm border border-zinc-100'
             }`}>
             {/* Background Glow for Dark Card */}
             {isDark && (
                 <div className="absolute top-0 right-0 w-64 h-64 bg-red-600/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2"></div>
             )}
 
-            <div className="flex justify-between items-start mb-6 relative z-10">
-                <div className={`p-3 rounded-2xl ${isDark ? 'bg-zinc-800 text-white' : 'bg-zinc-50 text-zinc-900 border border-zinc-100'}`}>
+            <div className="flex justify-between items-start mb-3 relative z-10">
+                <div className={`p-2 rounded-lg ${isDark ? 'bg-zinc-800 text-white' : 'bg-zinc-50 text-zinc-900 border border-zinc-100'}`}>
                     {icon}
                 </div>
-                <div className={`text-xs font-semibold px-2.5 py-1 rounded-full border ${isDark ? 'bg-zinc-800 border-zinc-700 text-zinc-300' : 'bg-white border-zinc-100 text-zinc-500'
+                <div className={`text-[10px] font-semibold px-2 py-0.5 rounded-md border ${isDark ? 'bg-zinc-800 border-zinc-700 text-zinc-300' : 'bg-white border-zinc-100 text-zinc-500'
                     }`}>
                     {trend}
                 </div>
             </div>
 
-            <div className="relative z-10 mb-6">
-                <h3 className={`text-sm font-medium mb-1 ${isDark ? 'text-zinc-400' : 'text-zinc-500'}`}>{label}</h3>
+            <div className="relative z-10 mb-2">
+                <h3 className={`text-xs font-medium mb-0.5 ${isDark ? 'text-zinc-400' : 'text-zinc-500'}`}>{label}</h3>
                 <div className="flex items-baseline gap-2">
-                    <span className="text-4xl font-bold tracking-tight">{value.toLocaleString()}</span>
+                    <span className="text-2xl font-bold tracking-tight">{value.toLocaleString()}</span>
                     {label !== 'Total Candidates' && (
-                        <span className={`text-sm font-medium ${isDark ? 'text-zinc-500' : 'text-zinc-400'}`}>
+                        <span className={`text-xs font-medium ${isDark ? 'text-zinc-500' : 'text-zinc-400'}`}>
                             {percentage}%
                         </span>
                     )}
@@ -61,7 +61,7 @@ const MetricCard = ({ label, value, total, icon, trend, sparkData, accentColor, 
             </div>
 
             {/* Sparkline Area */}
-            <div className="h-16 -mx-6 -mb-6 relative opacity-80">
+            <div className="h-10 -mx-4 -mb-4 relative opacity-80">
                 <ResponsiveContainer width="100%" height="100%">
                     <AreaChart data={sparkData}>
                         <defs>
@@ -118,7 +118,7 @@ export default function DashboardStats({ data }: { data: any[] }) {
                 label="Total Candidates"
                 value={stats.total}
                 total={stats.total}
-                icon={<Users size={24} />}
+                icon={<Users size={18} />}
                 trend="+12%"
                 sparkData={generateSparkData('up')}
                 accentColor="#e11d48" // Red 600
@@ -130,7 +130,7 @@ export default function DashboardStats({ data }: { data: any[] }) {
                 label="Assessment Ready"
                 value={stats.ready}
                 total={stats.total}
-                icon={<ClipboardCheck size={24} />}
+                icon={<ClipboardCheck size={18} />}
                 trend="+8%"
                 sparkData={generateSparkData('up')}
                 accentColor="#18181b" // Zinc 900
@@ -141,7 +141,7 @@ export default function DashboardStats({ data }: { data: any[] }) {
                 label="Action Required"
                 value={stats.pending}
                 total={stats.total}
-                icon={<Clock size={24} />}
+                icon={<Clock size={18} />}
                 trend="-5%"
                 sparkData={generateSparkData('down')}
                 accentColor="#f59e0b" // Amber 500
@@ -152,7 +152,7 @@ export default function DashboardStats({ data }: { data: any[] }) {
                 label="Completed"
                 value={stats.completed}
                 total={stats.total}
-                icon={<CheckCircle2 size={24} />}
+                icon={<CheckCircle2 size={18} />}
                 trend="+15%"
                 sparkData={generateSparkData('stable')}
                 accentColor="#10b981" // Emerald 500
