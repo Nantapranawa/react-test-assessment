@@ -1,6 +1,8 @@
 import express from 'express';
 import cors from 'cors';
 import router from './routes';
+import swaggerUi from 'swagger-ui-express';
+import { swaggerSpec } from './swagger';
 
 const app = express();
 const port = 8000;
@@ -14,6 +16,9 @@ app.use(express.json());
 
 // Main Routing
 app.use('/api', router);
+
+// Swagger Documentation
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
 // Root health check
 app.get('/', (req, res) => {
