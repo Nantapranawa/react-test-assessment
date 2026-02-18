@@ -7,11 +7,15 @@ import { usePathname } from 'next/navigation';
 export default function Sidebar() {
   const pathname = usePathname();
   const [isTalentExpanded, setIsTalentExpanded] = useState(false);
+  const [isBatchExpanded, setIsBatchExpanded] = useState(false);
 
   // Auto-expand if on a talent management page
   useEffect(() => {
     if (pathname.startsWith('/talent-management')) {
       setIsTalentExpanded(true);
+    }
+    if (pathname.startsWith('/batch-management')) {
+      setIsBatchExpanded(true);
     }
   }, [pathname]);
 
@@ -37,8 +41,8 @@ export default function Sidebar() {
       */}
       <nav className="p-4 mt-4 space-y-2 flex-grow overflow-y-auto custom-scrollbar">
         <Link
-          href="/"
-          className={`flex items-center px-4 py-3 rounded-lg transition-all duration-200 ${isActive('/')
+          href="/dashboard"
+          className={`flex items-center px-4 py-3 rounded-lg transition-all duration-200 ${isActive('/dashboard')
             ? 'bg-red-600 text-white shadow-lg shadow-red-900/20'
             : 'text-zinc-400 hover:text-white hover:bg-zinc-900'
             }`}
@@ -103,19 +107,58 @@ export default function Sidebar() {
           </div>
         </div>
 
-        <Link
-          href="/batch-management"
-          className={`flex items-center px-4 py-3 rounded-lg transition-all duration-200 ${isActive('/batch-management')
-            ? 'bg-red-600 text-white shadow-lg shadow-red-900/20'
-            : 'text-zinc-400 hover:text-white hover:bg-zinc-900'
-            }`}
-        >
-          {/* ICON: Folder/Batch icon */}
-          <svg className="w-5 h-5 mr-3 opacity-80" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M5 19a2 2 0 01-2-2V7a2 2 0 012-2h4l2 2h4a2 2 0 012 2v8a2 2 0 01-2 2H5z" />
-          </svg>
-          <span className="text-sm font-semibold">Batch Management</span>
-        </Link>
+        {/* Batch Management Accordion */}
+        <div className="space-y-1">
+          <button
+            onClick={() => setIsBatchExpanded(!isBatchExpanded)}
+            className={`w-full flex items-center justify-between px-4 py-3 rounded-lg transition-all duration-200 group ${isParentActive('/batch-management')
+              ? 'text-white bg-zinc-900'
+              : 'text-zinc-400 hover:text-white hover:bg-zinc-900'
+              }`}
+          >
+            <div className="flex items-center">
+              {/* ICON: Folder/Batch icon */}
+              <svg className={`w-5 h-5 mr-3 transition-colors ${isParentActive('/batch-management') ? 'text-red-500' : 'opacity-80'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M5 19a2 2 0 01-2-2V7a2 2 0 012-2h4l2 2h4a2 2 0 012 2v8a2 2 0 01-2 2H5z" />
+              </svg>
+              <span className="text-sm font-semibold">Batch Management</span>
+            </div>
+            <svg
+              className={`w-4 h-4 transition-transform duration-200 ${isBatchExpanded ? 'rotate-180' : ''}`}
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+            </svg>
+          </button>
+
+          {/* Sub menu */}
+          <div
+            className={`overflow-hidden transition-all duration-300 ease-in-out ${isBatchExpanded ? 'max-h-40 opacity-100' : 'max-h-0 opacity-0'}`}
+          >
+            <div className="pl-12 pr-4 space-y-1 pb-2">
+              <Link
+                href="/batch-management/talent-solution-1"
+                className={`flex items-center px-4 py-2 rounded-lg text-sm transition-all duration-200 ${isActive('/batch-management/talent-solution-1')
+                  ? 'bg-red-600/10 text-red-500 font-medium'
+                  : 'text-zinc-500 hover:text-zinc-300 hover:bg-zinc-900/50'
+                  }`}
+              >
+                Talent Solution I
+              </Link>
+              <Link
+                href="/batch-management/talent-solution-2"
+                className={`flex items-center px-4 py-2 rounded-lg text-sm transition-all duration-200 ${isActive('/batch-management/talent-solution-2')
+                  ? 'bg-red-600/10 text-red-500 font-medium'
+                  : 'text-zinc-500 hover:text-zinc-300 hover:bg-zinc-900/50'
+                  }`}
+              >
+                Talent Solution II
+              </Link>
+            </div>
+          </div>
+        </div>
       </nav>
 
       {/* --- VISUAL ELEMENT: SYSTEM STATUS INDICATOR --- 

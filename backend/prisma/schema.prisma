@@ -12,7 +12,9 @@ model User {
   email           String  @unique
   name            String?
   nik_user        String  @unique
+  password        String  @default("password123")
   talent_solution Int
+  role            String  @default("USER")
 }
 
 model Employee {
@@ -33,6 +35,24 @@ model Employee {
   batches             Batch[]        @relation("BatchToEmployee")
 }
 
+model EmployeeSecond {
+  id                  Int                  @id @default(autoincrement())
+  no                  Int
+  nama                String
+  nik                 String               @unique
+  bp                  Int
+  posisi              String
+  ac_result           String
+  eligible            String
+  expired             String
+  phone               String?              @unique
+  availability_status String               @default("No Invitation")
+  usulan_ubis         String               @default("Unknown")
+  tc_result           String
+  notifications       NotificationSecond[]
+  batches             BatchSecond[]        @relation("BatchSecondToEmployeeSecond")
+}
+
 model Batch {
   id             Int        @id @default(autoincrement())
   batchName      String?
@@ -40,6 +60,15 @@ model Batch {
   assessmentDate DateTime
   createdAt      DateTime   @default(now())
   employees      Employee[] @relation("BatchToEmployee")
+}
+
+model BatchSecond {
+  id             Int              @id @default(autoincrement())
+  batchName      String?
+  location       String
+  assessmentDate DateTime
+  createdAt      DateTime         @default(now())
+  employees      EmployeeSecond[] @relation("BatchSecondToEmployeeSecond")
 }
 
 model Notification {
@@ -50,4 +79,14 @@ model Notification {
   createdAt  DateTime  @default(now())
   employeeId Int?
   employee   Employee? @relation(fields: [employeeId], references: [id])
+}
+
+model NotificationSecond {
+  id         Int             @id @default(autoincrement())
+  message    String
+  type       String
+  isRead     Boolean         @default(false)
+  createdAt  DateTime        @default(now())
+  employeeId Int?
+  employee   EmployeeSecond? @relation(fields: [employeeId], references: [id])
 }

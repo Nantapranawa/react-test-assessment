@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import aiRoutes from './aiRoutes';
+import authRoutes from './authRoutes';
 import dataRoutes from './dataRoutes';
 import batchRoutes from './batchRoutes';
 import notificationRoutes from './notificationRoutes';
@@ -11,6 +12,7 @@ import { upload } from '../middleware/upload';
 const router = Router();
 
 // Domain-specific routes
+router.use('/auth', authRoutes);  // Endpoints: /api/auth/login, /api/auth/me, /api/auth/users
 router.use('/ai', aiRoutes);      // Endpoints: /api/ai/process, /api/ai/status
 router.use('/data', dataRoutes);  // Endpoints: /api/data/, /api/data/list, etc.
 router.use('/batches', batchRoutes);

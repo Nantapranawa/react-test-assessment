@@ -1,46 +1,30 @@
 import type { Metadata } from "next";
 import "./globals.css";
-import Sidebar from "./components/Sidebar";
-import Navbar from "./components/Navbar";
 import { DataProvider } from "./lib/DataContext";
+import { AuthProvider } from "./lib/AuthContext";
+import AppShell from "./components/AppShell";
 
 export const metadata: Metadata = {
-  title: "Dashboard",
-  description: "Excel Data Dashboard",
+    title: "Assessment Planning Platform",
+    description: "Telkom HCSP Division - Assessment Planning Platform",
 };
 
 export default function RootLayout({
-  children,
+    children,
 }: Readonly<{
-  children: React.ReactNode;
+    children: React.ReactNode;
 }>) {
-  return (
-    <html lang="en">
-      <body className="antialiased">
-        <DataProvider>
-          {/* --- VISUAL ELEMENT: MAIN APP CONTAINER --- 
-              This wrapper uses 'flex' to put the Sidebar and Main Content side-by-side. 
-          */}
-          <div className="flex h-screen bg-white">
-
-            {/* --- VISUAL ELEMENT: LEFT SIDEBAR --- 
-                The persistent navigation menu on the left.
-            */}
-            <Sidebar />
-
-            {/* --- VISUAL ELEMENT: MAIN CONTENT AREA --- 
-                This is where individual pages (like page.tsx) are rendered.
-                The 'flex-1' makes it take up all remaining space.
-            */}
-            <div className="flex-1 flex flex-col min-w-0 h-screen overflow-hidden">
-              <Navbar />
-              <main className="flex-1 overflow-auto bg-[radial-gradient(#e5e7eb_1px,transparent_1px)] [background-size:16px_16px]">
-                {children}
-              </main>
-            </div>
-          </div>
-        </DataProvider>
-      </body>
-    </html>
-  );
+    return (
+        <html lang="en">
+            <body className="antialiased">
+                <AuthProvider>
+                    <DataProvider>
+                        <AppShell>
+                            {children}
+                        </AppShell>
+                    </DataProvider>
+                </AuthProvider>
+            </body>
+        </html>
+    );
 }

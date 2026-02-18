@@ -8,11 +8,23 @@ export const getRoot = (req: Request, res: Response) => {
 
 export const getData = async (req: Request, res: Response) => {
     try {
-        const employees = await prisma.employee.findMany({
-            orderBy: {
-                id: 'asc'
-            }
-        });
+        const { talent_solution } = req.query;
+        const isTS2 = talent_solution === '2' || Number(talent_solution) === 2;
+
+        let employees;
+        if (isTS2) {
+            employees = await prisma.employeeSecond.findMany({
+                orderBy: {
+                    id: 'asc'
+                }
+            });
+        } else {
+            employees = await prisma.employee.findMany({
+                orderBy: {
+                    id: 'asc'
+                }
+            });
+        }
 
         // Map data to the format expected by the frontend
         if (employees.length > 0) {
@@ -41,6 +53,8 @@ export const uploadExcel = async (req: Request, res: Response) => {
         if (!req.file) {
             return res.status(400).json({ success: false, error: "No file uploaded" });
         }
+
+        const talentSolution = req.body.talent_solution ? parseInt(req.body.talent_solution) : 1;
 
         const workbook = new ExcelJS.Workbook();
         await workbook.xlsx.load(req.file.buffer as any);
@@ -110,6 +124,9 @@ export const uploadExcel = async (req: Request, res: Response) => {
                 employeeData.availability_status = "No Invitation";
             }
 
+            // Set talent_solution - REMOVED as per schema change request
+            // employeeData.talent_solution = talentSolution;
+
             // Only add if we have at least some data and required fields are present
             if (Object.keys(employeeData).length > 0 && (employeeData.nama || employeeData.nik)) {
                 employees.push(employeeData);
@@ -122,14 +139,30 @@ export const uploadExcel = async (req: Request, res: Response) => {
 
         // SAVE TO DATABASE
         // Changed skipDuplicates to true because NIK and Phone are now UNIQUE
-        const result = await prisma.employee.createMany({
-            data: employees,
-            skipDuplicates: true
-        });
+        let result;
+        if (talentSolution === 2) {
+            // Remove talent_solution field if present in data, as it's not in the schema anymore for TS2
+            employees.forEach(e => delete e.talent_solution);
+
+            result = await prisma.employeeSecond.createMany({
+                data: employees,
+                skipDuplicates: true
+            });
+        } else {
+            // Remove talent_solution field primarily, but for TS1 schema it was removed too? 
+            // Wait, original request was remove from Employee table. 
+            // So for both tables, we shouldn't fail if we pass it, but better clean it up.
+            employees.forEach(e => delete e.talent_solution);
+
+            result = await prisma.employee.createMany({
+                data: employees,
+                skipDuplicates: true
+            });
+        }
 
         res.json({
             success: true,
-            message: `${result.count} employees saved successfully`,
+            message: `${result.count} employees saved successfully for TS ${talentSolution}`,
             columns: headers,
             data: employees,
             row_count: employees.length
