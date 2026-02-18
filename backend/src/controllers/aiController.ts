@@ -31,7 +31,7 @@ export const aiController = {
             // 'response' = original message
             // 'aiStatus' = status determined by Python AI Service (REQUIRED)
             // 'reason' / 'proposedDate' = additional details provided by Python AI
-            const { employeeNik, response, aiStatus, reason, proposedDate } = req.body;
+            const { employeeNik, response, aiStatus, reason, proposedDate, replyMessage } = req.body;
 
             if (!employeeNik || !response) {
                 return res.status(400).json({ success: false, error: "Missing employeeNik or response" });
@@ -55,7 +55,8 @@ export const aiController = {
             const aiResult = {
                 status: aiStatus,
                 reason: reason || '',
-                proposedDate: proposedDate || ''
+                proposedDate: proposedDate || '',
+                replyMessage: replyMessage || ''
             };
 
             // Determine system status based on AI result
@@ -77,7 +78,14 @@ export const aiController = {
                 case 'reschedule':
                     status = "Reschedule Requested";
                     notifType = "warning";
-                    message = `${employee.nama} requested RESCHEDULE (AI Verified).${aiResult.proposedDate ? ` Details: ${aiResult.proposedDate}` : ''}`;
+                    if (aiResult.proposedDate) {
+                        message = `${employee.nama} requested RESCHEDULE (AI Verified). Details: ${aiResult.proposedDate}`;
+                    } else {
+                        message = `${employee.nama} requested RESCHEDULE but did NOT provide a date/time.`;
+                        if (aiResult.replyMessage) {
+                            message += ` AI Reply: "${aiResult.replyMessage}"`;
+                        }
+                    }
                     break;
                 default:
                     // Unknown status from AI
