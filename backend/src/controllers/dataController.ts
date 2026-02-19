@@ -191,3 +191,76 @@ export const processData = (req: Request, res: Response) => {
         });
     }
 };
+
+export const createEmployee = async (req: Request, res: Response) => {
+    try {
+        const { talent_solution, ...data } = req.body;
+        const ts = talent_solution ? parseInt(talent_solution) : 1;
+
+        // Basic validation
+        if (!data.nik || !data.nama) {
+            return res.status(400).json({ success: false, error: "NIK and Name are required" });
+        }
+
+        // Default values for required fields
+        const employeeData = {
+            no: data.no ? parseInt(data.no) : 0,
+            nama: data.nama,
+            nik: data.nik,
+            bp: data.bp ? parseInt(data.bp) : 1, // Default BP 1
+            posisi: data.posisi || '',
+            ac_result: data.ac_result || '',
+            eligible: data.eligible || '',
+            expired: data.expired || '',
+            phone: data.phone || null,
+            availability_status: data.availability_status || "No Invitation",
+            usulan_ubis: data.usulan_ubis || "Unknown",
+            tc_result: data.tc_result || ''
+        };
+
+        let result;
+        if (ts === 2) {
+            // For TS2, ensure unique constraints are respected or handle errors
+            result = await prisma.employeeSecond.create({
+                data: employeeData
+            });
+        } else {
+            result = await prisma.employee.create({
+                data: employeeData
+            });
+        }
+
+        res.json({ success: true, employee: result });
+    } catch (error: any) {
+        console.error("Create employee error:", error);
+        res.status(500).json({ success: false, error: error.message });
+    }
+};
+
+export const deleteEmployee = async (req: Request, res: Response) => {
+    try {
+        const { nik } = req.params;
+        const { talent_solution } = req.query;
+        const ts = talent_solution ? parseInt(talent_solution as string) : 1;
+
+        if (!nik) {
+            return res.status(400).json({ success: false, error: "NIK is required" });
+        }
+
+        if (ts === 2) {
+            await prisma.employeeSecond.delete({
+                where: { nik }
+            });
+        } else {
+            await prisma.employee.delete({
+                where: { nik }
+            });
+        }
+
+        res.json({ success: true, message: "Employee deleted successfully" });
+    } catch (error: any) {
+        console.error("Delete employee error:", error);
+        res.status(500).json({ success: false, error: error.message });
+    }
+};
+

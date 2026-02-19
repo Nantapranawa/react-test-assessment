@@ -58,9 +58,12 @@ interface TalentTableProps {
     bp: number;
     onToggleSelection: (e: any, nik: string, bp: number) => void;
     onRowClick: (employee: any) => void;
+    onDeleteRow: (nik: string) => void;
+    isEditMode: boolean;
 }
 
-const TalentTable = ({ title, employees, selectedSet, quota, bp, onToggleSelection, onRowClick }: TalentTableProps) => {
+
+const TalentTable = ({ title, employees, selectedSet, quota, bp, onToggleSelection, onRowClick, onDeleteRow, isEditMode }: TalentTableProps) => {
     return (
         <div className="bg-white rounded-2xl shadow-sm border border-zinc-200 overflow-hidden mb-12">
             <div className="px-8 py-5 border-b border-zinc-100 flex justify-between items-center bg-zinc-50/50">
@@ -91,6 +94,7 @@ const TalentTable = ({ title, employees, selectedSet, quota, bp, onToggleSelecti
                             <th className="px-6 py-5 font-bold tracking-wider">TC Result</th>
                             <th className="px-6 py-5 font-bold tracking-wider">Ubis</th>
                             <th className="px-6 py-5 font-bold tracking-wider">Availability</th>
+                            {isEditMode && <th className="px-6 py-5 font-bold tracking-wider">Actions</th>}
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-zinc-100">
@@ -149,6 +153,22 @@ const TalentTable = ({ title, employees, selectedSet, quota, bp, onToggleSelecti
                                             {status}
                                         </span>
                                     </td>
+                                    {isEditMode && (
+                                        <td className="px-6 py-5">
+                                            <button
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    onDeleteRow(employee.nik);
+                                                }}
+                                                className="p-2 text-zinc-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
+                                                title="Remove Employee"
+                                            >
+                                                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                                </svg>
+                                            </button>
+                                        </td>
+                                    )}
                                 </tr>
                             );
                         }) : (
@@ -267,6 +287,30 @@ export default function TalentManagementPage() {
     const [rescheduleTime, setRescheduleTime] = useState('');
     const [rescheduleLocation, setRescheduleLocation] = useState('');
     const [isRescheduling, setIsRescheduling] = useState(false);
+
+    // Add Employee State
+    const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+    const [isAdding, setIsAdding] = useState(false);
+    const [newEmployee, setNewEmployee] = useState<any>({
+        nama: '',
+        nik: '',
+        bp: 1,
+        posisi: '',
+        phone: '',
+        eligible: 'Eligible',
+        tc_result: '',
+        ac_result: '',
+        usulan_ubis: 'OK',
+        expired: ''
+    });
+
+    // Edit Mode State
+    const [isEditMode, setIsEditMode] = useState(false);
+
+    // Delete Modal State
+    const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+    const [employeeToDelete, setEmployeeToDelete] = useState<string | null>(null);
+    const [isDeleting, setIsDeleting] = useState(false);
 
     // Notification State
     const [showNotification, setShowNotification] = useState(false);
@@ -451,6 +495,86 @@ export default function TalentManagementPage() {
         setIsRescheduleModalOpen(true);
     };
 
+    const handleAddEmployee = async () => {
+        if (!newEmployee.nama || !newEmployee.nik) {
+            alert("Name and NIK are required");
+            return;
+        }
+
+        setIsAdding(true);
+        try {
+            const res = await fetch('http://localhost:8000/api/data/employees', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    ...newEmployee,
+                    talent_solution: 1
+                })
+            });
+            const result = await res.json();
+
+            if (result.success) {
+                setIsAddModalOpen(false);
+                setNewEmployee({
+                    nama: '',
+                    nik: '',
+                    bp: 1,
+                    posisi: '',
+                    phone: '',
+                    eligible: 'Eligible',
+                    tc_result: '',
+                    ac_result: '',
+                    usulan_ubis: 'OK',
+                    expired: ''
+                });
+                await refreshData();
+                setNotificationMessage('Employee added successfully');
+                setShowNotification(true);
+                setTimeout(() => setShowNotification(false), 3000);
+            } else {
+                alert('Failed to add employee: ' + result.error);
+            }
+        } catch (error) {
+            console.error(error);
+            alert('Failed to add employee');
+        } finally {
+            setIsAdding(false);
+        }
+    };
+
+    const handleDeleteEmployee = (nik: string) => {
+        setEmployeeToDelete(nik);
+        setIsDeleteModalOpen(true);
+    };
+
+    const confirmDeleteEmployee = async () => {
+        if (!employeeToDelete) return;
+        setIsDeleting(true);
+
+        try {
+            const res = await fetch(`http://localhost:8000/api/data/employees/${employeeToDelete}?talent_solution=1`, {
+                method: 'DELETE'
+            });
+            const result = await res.json();
+
+            if (result.success) {
+                await refreshData();
+                setNotificationMessage('Employee removed successfully');
+                setShowNotification(true);
+                setTimeout(() => setShowNotification(false), 3000);
+                setIsDeleteModalOpen(false);
+                setEmployeeToDelete(null);
+            } else {
+                alert('Failed to remove employee: ' + result.error);
+            }
+        } catch (error) {
+            console.error(error);
+            alert('Failed to remove employee');
+        } finally {
+            setIsDeleting(false);
+        }
+    };
+
     const confirmReschedule = async () => {
         if (!selectedEmployee || !rescheduleDate || !rescheduleTime || !rescheduleLocation) {
             alert("Please fill in all fields.");
@@ -505,6 +629,18 @@ export default function TalentManagementPage() {
                 </div>
                 <div className="flex items-center gap-4">
                     <button
+                        onClick={() => setIsEditMode(!isEditMode)}
+                        className={`px-6 py-2.5 rounded-lg font-semibold shadow-sm transition-all flex items-center space-x-2 border ${isEditMode
+                            ? 'bg-red-50 text-red-600 border-red-200'
+                            : 'bg-white text-zinc-600 border-zinc-200 hover:bg-zinc-50'
+                            }`}
+                    >
+                        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                        </svg>
+                        <span>{isEditMode ? 'Done Editing' : 'Edit List'}</span>
+                    </button>
+                    <button
                         onClick={() => setIsModalOpen(true)}
                         disabled={!isSelectionComplete}
                         className={`px-6 py-2.5 rounded-lg font-semibold shadow-sm transition-all ${isSelectionComplete
@@ -514,6 +650,17 @@ export default function TalentManagementPage() {
                     >
                         Create Batch
                     </button>
+                    {isEditMode && (
+                        <button
+                            onClick={() => setIsAddModalOpen(true)}
+                            className="px-6 py-2.5 bg-white text-zinc-900 border border-zinc-200 rounded-lg font-semibold shadow-sm hover:bg-zinc-50 hover:shadow-md transition-all flex items-center space-x-2"
+                        >
+                            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                            </svg>
+                            <span>Add Employee</span>
+                        </button>
+                    )}
                 </div>
             </div>
 
@@ -675,8 +822,8 @@ export default function TalentManagementPage() {
             )}
 
             {/* Tables */}
-            <TalentTable title="BP 1 Candidates" employees={bp1Employees} selectedSet={selectedBP1} quota={QUOTA_BP1} bp={1} onToggleSelection={toggleSelection} onRowClick={handleEmployeeClick} />
-            <TalentTable title="BP 2 Candidates" employees={bp2Employees} selectedSet={selectedBP2} quota={QUOTA_BP2} bp={2} onToggleSelection={toggleSelection} onRowClick={handleEmployeeClick} />
+            <TalentTable title="BP 1 Candidates" employees={bp1Employees} selectedSet={selectedBP1} quota={QUOTA_BP1} bp={1} onToggleSelection={toggleSelection} onRowClick={handleEmployeeClick} onDeleteRow={handleDeleteEmployee} isEditMode={isEditMode} />
+            <TalentTable title="BP 2 Candidates" employees={bp2Employees} selectedSet={selectedBP2} quota={QUOTA_BP2} bp={2} onToggleSelection={toggleSelection} onRowClick={handleEmployeeClick} onDeleteRow={handleDeleteEmployee} isEditMode={isEditMode} />
 
             {/* Sticky Bar */}
             <div className="fixed bottom-0 left-64 right-0 bg-white border-t border-zinc-200 p-4 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] z-20 flex justify-between items-center">
@@ -1054,6 +1201,204 @@ export default function TalentManagementPage() {
                                         <span>Saving...</span>
                                     </>
                                 ) : 'Update Schedule'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Add Employee Modal */}
+            {isAddModalOpen && (
+                <div className="fixed inset-0 z-[80] flex items-center justify-center bg-zinc-950/20 backdrop-blur-[2px] p-4 animate-in fade-in duration-200">
+                    <div className="bg-white rounded-xl shadow-xl w-full max-w-lg overflow-hidden animate-in zoom-in-95 duration-200 border border-zinc-200">
+                        <div className="px-8 py-6 border-b border-zinc-100 bg-zinc-50/50">
+                            <h3 className="text-lg font-bold text-zinc-900 leading-tight">Add New Employee</h3>
+                        </div>
+
+                        <div className="p-8 space-y-4 max-h-[70vh] overflow-y-auto">
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-xs font-bold text-zinc-500 mb-1">NIK *</label>
+                                    <input
+                                        type="text"
+                                        value={newEmployee.nik}
+                                        onChange={(e) => setNewEmployee({ ...newEmployee, nik: e.target.value })}
+                                        className="w-full px-3 py-2 border border-zinc-300 rounded-lg text-sm text-zinc-900 placeholder-zinc-400 bg-white"
+                                        placeholder="NIK"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-bold text-zinc-500 mb-1">Name *</label>
+                                    <input
+                                        type="text"
+                                        value={newEmployee.nama}
+                                        onChange={(e) => setNewEmployee({ ...newEmployee, nama: e.target.value })}
+                                        className="w-full px-3 py-2 border border-zinc-300 rounded-lg text-sm text-zinc-900 placeholder-zinc-400 bg-white"
+                                        placeholder="Full Name"
+                                    />
+                                </div>
+                            </div>
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-xs font-bold text-zinc-500 mb-1">Band Position</label>
+                                    <select
+                                        value={newEmployee.bp}
+                                        onChange={(e) => setNewEmployee({ ...newEmployee, bp: parseInt(e.target.value) })}
+                                        className="w-full px-3 py-2 border border-zinc-300 rounded-lg text-sm bg-white text-zinc-900"
+                                    >
+                                        <option value={1}>BP 1</option>
+                                        <option value={2}>BP 2</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-bold text-zinc-500 mb-1">Position</label>
+                                    <input
+                                        type="text"
+                                        value={newEmployee.posisi}
+                                        onChange={(e) => setNewEmployee({ ...newEmployee, posisi: e.target.value })}
+                                        className="w-full px-3 py-2 border border-zinc-300 rounded-lg text-sm text-zinc-900 placeholder-zinc-400 bg-white"
+                                        placeholder="Job Position"
+                                    />
+                                </div>
+                            </div>
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-xs font-bold text-zinc-500 mb-1">Phone</label>
+                                    <input
+                                        type="text"
+                                        value={newEmployee.phone}
+                                        onChange={(e) => setNewEmployee({ ...newEmployee, phone: e.target.value })}
+                                        className="w-full px-3 py-2 border border-zinc-300 rounded-lg text-sm text-zinc-900 placeholder-zinc-400 bg-white"
+                                        placeholder="Phone Number"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-bold text-zinc-500 mb-1">Expire Date</label>
+                                    <input
+                                        type="date"
+                                        value={newEmployee.expired}
+                                        onChange={(e) => setNewEmployee({ ...newEmployee, expired: e.target.value })}
+                                        className="w-full px-3 py-2 border border-zinc-300 rounded-lg text-sm text-zinc-900 bg-white"
+                                    />
+                                </div>
+                            </div>
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-xs font-bold text-zinc-500 mb-1">AC Result</label>
+                                    <select
+                                        value={newEmployee.ac_result}
+                                        onChange={(e) => setNewEmployee({ ...newEmployee, ac_result: e.target.value })}
+                                        className="w-full px-3 py-2 border border-zinc-300 rounded-lg text-sm bg-white text-zinc-900"
+                                    >
+                                        <option value="">Select...</option>
+                                        <option value="Ready">Ready</option>
+                                        <option value="Ready with Development">Ready with Development</option>
+                                        <option value="Not Ready">Not Ready</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-bold text-zinc-500 mb-1">TC Result</label>
+                                    <input
+                                        type="text"
+                                        value={newEmployee.tc_result}
+                                        onChange={(e) => setNewEmployee({ ...newEmployee, tc_result: e.target.value })}
+                                        className="w-full px-3 py-2 border border-zinc-300 rounded-lg text-sm text-zinc-900 placeholder-zinc-400 bg-white"
+                                        placeholder="e.g. High Potential"
+                                    />
+                                </div>
+                            </div>
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-xs font-bold text-zinc-500 mb-1">Ubis</label>
+                                    <select
+                                        value={newEmployee.usulan_ubis}
+                                        onChange={(e) => setNewEmployee({ ...newEmployee, usulan_ubis: e.target.value })}
+                                        className="w-full px-3 py-2 border border-zinc-300 rounded-lg text-sm bg-white text-zinc-900"
+                                    >
+                                        <option value="OK">OK</option>
+                                        <option value="NOK">NOK</option>
+                                        <option value="Unknown">Unknown</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-bold text-zinc-500 mb-1">Eligibility</label>
+                                    <select
+                                        value={newEmployee.eligible}
+                                        onChange={(e) => setNewEmployee({ ...newEmployee, eligible: e.target.value })}
+                                        className="w-full px-3 py-2 border border-zinc-300 rounded-lg text-sm bg-white text-zinc-900"
+                                    >
+                                        <option value="Eligible">Eligible</option>
+                                        <option value="Not Eligible">Not Eligible</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="px-8 py-5 border-t border-zinc-100 bg-zinc-50/50 flex justify-end space-x-3">
+                            <button
+                                onClick={() => setIsAddModalOpen(false)}
+                                className="px-4 py-2 text-zinc-600 font-bold text-sm hover:text-zinc-900 transition-all"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={handleAddEmployee}
+                                disabled={isAdding}
+                                className="px-5 py-2 bg-zinc-900 text-white font-bold text-sm rounded-lg hover:bg-zinc-800 shadow-sm transition-all disabled:opacity-50"
+                            >
+                                {isAdding ? 'Adding...' : 'Add Employee'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Delete Confirmation Modal */}
+            {isDeleteModalOpen && (
+                <div className="fixed inset-0 z-[110] flex items-center justify-center bg-zinc-950/40 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+                    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200 border border-zinc-200">
+                        <div className="px-8 py-6 border-b border-zinc-100 bg-red-50/30 flex items-center space-x-4">
+                            <div className="p-3 bg-red-100 text-red-600 rounded-2xl shadow-sm">
+                                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                </svg>
+                            </div>
+                            <div>
+                                <h3 className="text-xl font-bold text-zinc-900 leading-tight">Remove Employee?</h3>
+                                <p className="text-xs text-zinc-500 mt-0.5">This action cannot be undone.</p>
+                            </div>
+                        </div>
+
+                        <div className="p-8">
+                            <p className="text-zinc-600 text-sm leading-relaxed">
+                                Are you sure you want to remove this employee from the Talent Pool? They will no longer be available for batch selection.
+                            </p>
+                        </div>
+
+                        <div className="px-8 py-5 border-t border-zinc-100 bg-zinc-50/50 flex justify-end space-x-3">
+                            <button
+                                onClick={() => {
+                                    setIsDeleteModalOpen(false);
+                                    setEmployeeToDelete(null);
+                                }}
+                                className="px-4 py-2 border border-zinc-200 text-zinc-600 rounded-lg font-bold text-sm hover:bg-white hover:border-zinc-300 transition-all shadow-sm"
+                                disabled={isDeleting}
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={confirmDeleteEmployee}
+                                className="px-5 py-2 bg-red-600 text-white rounded-lg font-bold text-sm hover:bg-red-700 transition-all shadow-lg shadow-red-600/20 flex items-center space-x-2"
+                                disabled={isDeleting}
+                            >
+                                {isDeleting ? (
+                                    <>
+                                        <svg className="animate-spin h-3.5 w-3.5 text-white" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                                        <span>Removing...</span>
+                                    </>
+                                ) : (
+                                    <span>Remove Employee</span>
+                                )}
                             </button>
                         </div>
                     </div>

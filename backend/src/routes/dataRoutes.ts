@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { getRoot, getData, uploadExcel } from '../controllers/dataController';
+import { getRoot, getData, uploadExcel, createEmployee, deleteEmployee } from '../controllers/dataController';
 import { upload } from '../middleware/upload';
 
 const router = Router();
@@ -52,5 +52,7 @@ router.get("/list", getData); // cuman array alice bob charlie
  *         description: File uploaded successfully
  */
 router.post("/upload-excel", upload.single('file'), uploadExcel);
+router.post("/employees", createEmployee);
+router.delete("/employees/:nik", deleteEmployee);
 
 export default router;

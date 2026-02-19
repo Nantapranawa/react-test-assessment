@@ -906,7 +906,7 @@ export default function BatchManagementPage() {
                                             return (
                                                 <tr key={emp.id} className="hover:bg-zinc-50/30">
                                                     <td className="px-6 py-3 font-medium text-zinc-900">BP {emp.bp}</td>
-                                                    <td className="px-6 py-3 text-zinc-600">{emp.nama}</td>
+                                                    <td className="px-6 py-3 text-zinc-900 font-bold">{emp.nama}</td>
                                                     <td className="px-6 py-3 text-zinc-500 font-mono text-sm">{emp.nik}</td>
                                                     <td className="px-6 py-3 text-zinc-600 text-base">
                                                         <div className="flex flex-col">
