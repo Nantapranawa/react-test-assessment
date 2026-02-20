@@ -41,7 +41,7 @@ export const aiController = {
                 return res.status(400).json({ success: false, error: "Missing aiStatus from AI Service. Use the AI Service to analyze first." });
             }
 
-            const employee = await prisma.employee.findUnique({
+            const employee = await prisma.employeeTS1.findUnique({
                 where: { nik: employeeNik }
             });
 
@@ -95,11 +95,11 @@ export const aiController = {
             }
 
             await prisma.$transaction([
-                prisma.employee.update({
+                prisma.employeeTS1.update({
                     where: { id: employee.id },
                     data: { availability_status: status }
                 }),
-                prisma.notification.create({
+                prisma.notificationTS1.create({
                     data: {
                         message,
                         type: notifType,

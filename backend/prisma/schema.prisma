@@ -17,76 +17,76 @@ model User {
   role            String  @default("USER")
 }
 
-model Employee {
-  id                  Int            @id @default(autoincrement())
+model EmployeeTS1 {
+  id                  Int               @id @default(autoincrement())
   no                  Int
   nama                String
-  nik                 String         @unique
+  nik                 String            @unique
   bp                  Int
   posisi              String
   ac_result           String
   eligible            String
   expired             String
-  phone               String?        @unique
-  availability_status String         @default("No Invitation")
-  usulan_ubis         String         @default("Unknown")
+  phone               String?           @unique
+  availability_status String            @default("No Invitation")
+  usulan_ubis         String            @default("Unknown")
   tc_result           String
-  notifications       Notification[]
-  batches             Batch[]        @relation("BatchToEmployee")
+  notifications       NotificationTS1[]
+  batches             BatchTS1[]        @relation("BatchTS1ToEmployeeTS1")
 }
 
-model EmployeeSecond {
-  id                  Int                  @id @default(autoincrement())
+model EmployeeTS2 {
+  id                  Int               @id @default(autoincrement())
   no                  Int
   nama                String
-  nik                 String               @unique
+  nik                 String            @unique
   bp                  Int
   posisi              String
   ac_result           String
   eligible            String
   expired             String
-  phone               String?              @unique
-  availability_status String               @default("No Invitation")
-  usulan_ubis         String               @default("Unknown")
+  phone               String?           @unique
+  availability_status String            @default("No Invitation")
+  usulan_ubis         String            @default("Unknown")
   tc_result           String
-  notifications       NotificationSecond[]
-  batches             BatchSecond[]        @relation("BatchSecondToEmployeeSecond")
+  notifications       NotificationTS2[]
+  batches             BatchTS2[]        @relation("BatchTS2ToEmployeeTS2")
 }
 
-model Batch {
-  id             Int        @id @default(autoincrement())
+model BatchTS1 {
+  id             Int           @id @default(autoincrement())
   batchName      String?
   location       String
   assessmentDate DateTime
-  createdAt      DateTime   @default(now())
-  employees      Employee[] @relation("BatchToEmployee")
+  createdAt      DateTime      @default(now())
+  employees      EmployeeTS1[] @relation("BatchTS1ToEmployeeTS1")
 }
 
-model BatchSecond {
-  id             Int              @id @default(autoincrement())
+model BatchTS2 {
+  id             Int           @id @default(autoincrement())
   batchName      String?
   location       String
   assessmentDate DateTime
-  createdAt      DateTime         @default(now())
-  employees      EmployeeSecond[] @relation("BatchSecondToEmployeeSecond")
+  createdAt      DateTime      @default(now())
+  employees      EmployeeTS2[] @relation("BatchTS2ToEmployeeTS2")
 }
 
-model Notification {
-  id         Int       @id @default(autoincrement())
+model NotificationTS1 {
+  id         Int          @id @default(autoincrement())
   message    String
   type       String
-  isRead     Boolean   @default(false)
-  createdAt  DateTime  @default(now())
+  isRead     Boolean      @default(false)
+  createdAt  DateTime     @default(now())
   employeeId Int?
-  employee   Employee? @relation(fields: [employeeId], references: [id])
+  employee   EmployeeTS1? @relation(fields: [employeeId], references: [id])
 }
 
-model NotificationSecond {
-  id         Int             @id @default(autoincrement())
+model NotificationTS2 {
+  id         Int          @id @default(autoincrement())
   message    String
   type       String
-  isRead     Boolean         @default(false)
-  createdAt  DateTime        @default(now())
+  isRead     Boolean      @default(false)
+  createdAt  DateTime     @default(now())
   employeeId Int?
-  employee   EmployeeSecond? @relation(fields: [employeeId], references: [id])
+  employee   EmployeeTS2? @relation(fields: [employeeId], references: [id])
 }

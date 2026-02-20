@@ -4,7 +4,7 @@ import { prisma } from '../lib/prisma';
 // Get all notifications
 export const getNotifications = async (req: Request, res: Response) => {
     try {
-        const notifications = await prisma.notification.findMany({
+        const notifications = await prisma.notificationTS1.findMany({
             orderBy: {
                 createdAt: 'desc'
             },
@@ -20,7 +20,7 @@ export const getNotifications = async (req: Request, res: Response) => {
         });
 
         // Count unread
-        const unreadCount = await prisma.notification.count({
+        const unreadCount = await prisma.notificationTS1.count({
             where: { isRead: false }
         });
 
@@ -40,7 +40,7 @@ export const getNotifications = async (req: Request, res: Response) => {
 export const markAsRead = async (req: Request, res: Response) => {
     try {
         const { id } = req.params;
-        await prisma.notification.update({
+        await prisma.notificationTS1.update({
             where: { id: parseInt(id) },
             data: { isRead: true }
         });
@@ -53,7 +53,7 @@ export const markAsRead = async (req: Request, res: Response) => {
 // Mark all as read
 export const markAllAsRead = async (req: Request, res: Response) => {
     try {
-        await prisma.notification.updateMany({
+        await prisma.notificationTS1.updateMany({
             where: { isRead: false },
             data: { isRead: true }
         });

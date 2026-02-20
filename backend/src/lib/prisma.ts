@@ -8,3 +8,4 @@ const adapter = new PrismaPg({ connectionString })
 const prisma = new PrismaClient({ adapter })
 
 export { prisma }
+// dedicated to forcing reload of Prisma client module

@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 import { prisma } from '../lib/prisma';
-import { Batch, Employee } from '../../generated/prisma/client';
+import { BatchTS1, EmployeeTS1 } from '../../generated/prisma/client';
 
 export const createBatch = async (req: Request, res: Response) => {
     try {
@@ -24,7 +24,7 @@ export const createBatch = async (req: Request, res: Response) => {
 
         let batch;
         if (isTS2) {
-            batch = await prisma.batchSecond.create({
+            batch = await prisma.batchTS2.create({
                 data: {
                     location,
                     assessmentDate: new Date(assessmentDate),
@@ -39,7 +39,7 @@ export const createBatch = async (req: Request, res: Response) => {
             });
 
             // Update employees status to "Batch Draft"
-            await prisma.employeeSecond.updateMany({
+            await prisma.employeeTS2.updateMany({
                 where: {
                     nik: { in: employeeNiks }
                 },
@@ -48,7 +48,7 @@ export const createBatch = async (req: Request, res: Response) => {
                 }
             });
         } else {
-            batch = await prisma.batch.create({
+            batch = await prisma.batchTS1.create({
                 data: {
                     location,
                     assessmentDate: new Date(assessmentDate),
@@ -63,7 +63,7 @@ export const createBatch = async (req: Request, res: Response) => {
             });
 
             // Update employees status to "Batch Draft"
-            await prisma.employee.updateMany({
+            await prisma.employeeTS1.updateMany({
                 where: {
                     nik: { in: employeeNiks }
                 },
@@ -90,7 +90,7 @@ export const listBatches = async (req: Request, res: Response) => {
 
         let batches;
         if (isTS2) {
-            batches = await prisma.batchSecond.findMany({
+            batches = await prisma.batchTS2.findMany({
                 include: {
                     _count: {
                         select: { employees: true }
@@ -108,7 +108,7 @@ export const listBatches = async (req: Request, res: Response) => {
                 }
             });
         } else {
-            batches = await prisma.batch.findMany({
+            batches = await prisma.batchTS1.findMany({
                 include: {
                     _count: {
                         select: { employees: true }
@@ -142,7 +142,7 @@ export const getBatch = async (req: Request, res: Response) => {
         const { talent_solution } = req.query;
         const isTS2 = talent_solution === '2' || Number(talent_solution) === 2;
 
-        const model: any = isTS2 ? prisma.batchSecond : prisma.batch;
+        const model: any = isTS2 ? prisma.batchTS2 : prisma.batchTS1;
 
         const batch = await model.findUnique({
             where: { id: parseInt(id) },
@@ -175,8 +175,8 @@ export const updateBatch = async (req: Request, res: Response) => {
         const batchId = parseInt(id);
         const isTS2 = talent_solution === 2 || talent_solution === '2';
 
-        const model: any = isTS2 ? prisma.batchSecond : prisma.batch;
-        const employeeModel: any = isTS2 ? prisma.employeeSecond : prisma.employee;
+        const model: any = isTS2 ? prisma.batchTS2 : prisma.batchTS1;
+        const employeeModel: any = isTS2 ? prisma.employeeTS2 : prisma.employeeTS1;
 
         const batch = await model.findUnique({
             where: { id: batchId },
@@ -274,8 +274,8 @@ export const removeEmployee = async (req: Request, res: Response) => {
         const batchId = parseInt(batchIdStr);
         const isTS2 = talent_solution === 2 || talent_solution === '2';
 
-        const model: any = isTS2 ? prisma.batchSecond : prisma.batch;
-        const employeeModel: any = isTS2 ? prisma.employeeSecond : prisma.employee;
+        const model: any = isTS2 ? prisma.batchTS2 : prisma.batchTS1;
+        const employeeModel: any = isTS2 ? prisma.employeeTS2 : prisma.employeeTS1;
 
         if (!employeeNik) {
             return res.status(400).json({ success: false, error: "Missing employee NIK" });
@@ -334,8 +334,8 @@ export const deleteBatch = async (req: Request, res: Response) => {
         const batchId = parseInt(id);
         const isTS2 = talent_solution === 2 || talent_solution === '2';
 
-        const model: any = isTS2 ? prisma.batchSecond : prisma.batch;
-        const employeeModel: any = isTS2 ? prisma.employeeSecond : prisma.employee;
+        const model: any = isTS2 ? prisma.batchTS2 : prisma.batchTS1;
+        const employeeModel: any = isTS2 ? prisma.employeeTS2 : prisma.employeeTS1;
 
         const batch = await model.findUnique({
             where: { id: batchId },
@@ -391,8 +391,8 @@ export const replaceEmployee = async (req: Request, res: Response) => {
         const batchId = parseInt(batchIdStr);
         const isTS2 = talent_solution === 2 || talent_solution === '2';
 
-        const model: any = isTS2 ? prisma.batchSecond : prisma.batch;
-        const employeeModel: any = isTS2 ? prisma.employeeSecond : prisma.employee;
+        const model: any = isTS2 ? prisma.batchTS2 : prisma.batchTS1;
+        const employeeModel: any = isTS2 ? prisma.employeeTS2 : prisma.employeeTS1;
 
         if (!oldEmployeeNik || !newEmployeeNik) {
             return res.status(400).json({ success: false, error: "Missing old or new employee NIK" });
@@ -459,8 +459,8 @@ export const sendInvitations = async (req: Request, res: Response) => {
         const batchId = parseInt(id);
         const isTS2 = talent_solution === 2 || talent_solution === '2';
 
-        const model: any = isTS2 ? prisma.batchSecond : prisma.batch;
-        const employeeModel: any = isTS2 ? prisma.employeeSecond : prisma.employee;
+        const model: any = isTS2 ? prisma.batchTS2 : prisma.batchTS1;
+        const employeeModel: any = isTS2 ? prisma.employeeTS2 : prisma.employeeTS1;
 
 
         const batch = await model.findUnique({
@@ -493,8 +493,8 @@ export const rescheduleEmployee = async (req: Request, res: Response) => {
         const { employeeNik, location, assessmentDate, talent_solution } = req.body;
         const isTS2 = talent_solution === 2 || talent_solution === '2';
 
-        const model: any = isTS2 ? prisma.batchSecond : prisma.batch;
-        const employeeModel: any = isTS2 ? prisma.employeeSecond : prisma.employee;
+        const model: any = isTS2 ? prisma.batchTS2 : prisma.batchTS1;
+        const employeeModel: any = isTS2 ? prisma.employeeTS2 : prisma.employeeTS1;
 
         if (!employeeNik || !location || !assessmentDate) {
             return res.status(400).json({ success: false, error: "Missing required fields" });
@@ -559,8 +559,8 @@ export const addEmployee = async (req: Request, res: Response) => {
         const batchId = parseInt(batchIdStr);
         const isTS2 = talent_solution === 2 || talent_solution === '2';
 
-        const model: any = isTS2 ? prisma.batchSecond : prisma.batch;
-        const employeeModel: any = isTS2 ? prisma.employeeSecond : prisma.employee;
+        const model: any = isTS2 ? prisma.batchTS2 : prisma.batchTS1;
+        const employeeModel: any = isTS2 ? prisma.employeeTS2 : prisma.employeeTS1;
 
         if (!employeeNik) {
             return res.status(400).json({ success: false, error: "Missing employee NIK" });

@@ -13,13 +13,13 @@ export const getData = async (req: Request, res: Response) => {
 
         let employees;
         if (isTS2) {
-            employees = await prisma.employeeSecond.findMany({
+            employees = await prisma.employeeTS2.findMany({
                 orderBy: {
                     id: 'asc'
                 }
             });
         } else {
-            employees = await prisma.employee.findMany({
+            employees = await prisma.employeeTS1.findMany({
                 orderBy: {
                     id: 'asc'
                 }
@@ -144,7 +144,7 @@ export const uploadExcel = async (req: Request, res: Response) => {
             // Remove talent_solution field if present in data, as it's not in the schema anymore for TS2
             employees.forEach(e => delete e.talent_solution);
 
-            result = await prisma.employeeSecond.createMany({
+            result = await prisma.employeeTS2.createMany({
                 data: employees,
                 skipDuplicates: true
             });
@@ -154,7 +154,7 @@ export const uploadExcel = async (req: Request, res: Response) => {
             // So for both tables, we shouldn't fail if we pass it, but better clean it up.
             employees.forEach(e => delete e.talent_solution);
 
-            result = await prisma.employee.createMany({
+            result = await prisma.employeeTS1.createMany({
                 data: employees,
                 skipDuplicates: true
             });
@@ -221,11 +221,11 @@ export const createEmployee = async (req: Request, res: Response) => {
         let result;
         if (ts === 2) {
             // For TS2, ensure unique constraints are respected or handle errors
-            result = await prisma.employeeSecond.create({
+            result = await prisma.employeeTS2.create({
                 data: employeeData
             });
         } else {
-            result = await prisma.employee.create({
+            result = await prisma.employeeTS1.create({
                 data: employeeData
             });
         }
@@ -248,11 +248,11 @@ export const deleteEmployee = async (req: Request, res: Response) => {
         }
 
         if (ts === 2) {
-            await prisma.employeeSecond.delete({
+            await prisma.employeeTS2.delete({
                 where: { nik }
             });
         } else {
-            await prisma.employee.delete({
+            await prisma.employeeTS1.delete({
                 where: { nik }
             });
         }
