@@ -1,4 +1,5 @@
 import { Request, Response } from 'express';
+import axios from 'axios';
 import { prisma } from '../lib/prisma';
 import { BatchTS1, EmployeeTS1 } from '../../generated/prisma/client';
 
@@ -462,27 +463,128 @@ export const sendInvitations = async (req: Request, res: Response) => {
         const model: any = isTS2 ? prisma.batchTS2 : prisma.batchTS1;
         const employeeModel: any = isTS2 ? prisma.employeeTS2 : prisma.employeeTS1;
 
-
         const batch = await model.findUnique({
             where: { id: batchId },
-            include: { employees: { select: { id: true } } }
+            include: { employees: { select: { id: true, phone: true, nama: true } } }
         });
+
+        // We need batchName from the batch itself, but findUnique returns it.
+        // Wait, include syntax above is slightly wrong if I wanted batchName from employee (which doesn't exist).
+        // batch object itself has batchName.
 
         if (!batch) {
             return res.status(404).json({ success: false, error: "Batch not found" });
         }
 
-        // Update all employees in this batch to "Sent"
-        await employeeModel.updateMany({
-            where: {
-                id: { in: batch.employees.map((e: any) => e.id) }
-            },
+        const batchName = batch.batchName || 'Assessment Batch';
+
+        // Format date to Indonesian format "Hari, DD Bulan YYYY"
+        // Note: Node.js standard library might need 'id-ID' locale support. 
+        // If 'id-ID' is not fully supported in the environment, it might fallback.
+        // But commonly modern Node supports it.
+        const assessmentDate = batch.assessmentDate
+            ? new Date(batch.assessmentDate).toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
+            : 'TBD';
+
+        const location = batch.location || 'Online';
+
+        const OCA_API_URL = "https://wa01.ocatelkom.co.id/api/v2/push/message";
+        const TEMPLATE_CODE_ID = process.env.OCA_TEMPLATE_CODE_ID || "";
+        const JWT_TOKEN = process.env.OCA_JWT_TOKEN || "";
+
+        if (!TEMPLATE_CODE_ID || !JWT_TOKEN) {
+            console.error("Missing OCA Env Variables");
+            return res.status(500).json({ success: false, error: "Configuration Error: Missing OCA credentials" });
+        }
+
+        const results = await Promise.all(batch.employees.map(async (emp: any) => {
+            let phone = emp.phone;
+
+            // Basic sanitization and formatting to 628...
+            if (phone) {
+                phone = phone.replace(/\D/g, ''); // Remove non-digits
+                if (phone.startsWith('0')) {
+                    phone = '62' + phone.substring(1);
+                }
+            }
+
+            if (!phone) {
+                return { id: emp.id, success: false, reason: "No phone number" };
+            }
+
+            // Construct Payload
+            const payload = {
+                "phone_number": phone,
+                "message": {
+                    "type": "template",
+                    "template": {
+                        "template_code_id": TEMPLATE_CODE_ID,
+                        "payload": [
+                            {
+                                "position": "body",
+                                "parameters": [
+                                    { "type": "text", "text": String(emp.nama || "Peserta") },
+                                    { "type": "text", "text": String(assessmentDate) },
+                                    { "type": "text", "text": String(location) },
+                                    { "type": "text", "text": String(batchName) }
+                                ]
+                            }
+                        ]
+                    }
+                }
+            };
+
+            // Console log payload for debugging
+            console.log(`Sending Payload to ${emp.nama}:`, JSON.stringify(payload, null, 2));
+
+            try {
+                const response = await axios.post(OCA_API_URL, payload, {
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                        'Authorization': JWT_TOKEN
+                    }
+                });
+
+                if (response.data && response.data.success) {
+                    return { id: emp.id, success: true, msgid: response.data.msgid };
+                } else {
+                    console.error(`OCA API Failure for ${emp.nama}:`, response.data);
+                    return { id: emp.id, success: false, reason: "OCA API failed", details: response.data };
+                }
+            } catch (error: any) {
+                console.error(`Error sending to ${emp.nama} (${phone}):`, error.message);
+                if (error.response) {
+                    console.error("Error Response Data:", error.response.data);
+                }
+                return { id: emp.id, success: false, reason: error.message };
+            }
+        }));
+
+        const successfulIds = results.filter((r: any) => r.success).map((r: any) => r.id);
+
+        // Update successful employees to "Sent"
+        if (successfulIds.length > 0) {
+            await employeeModel.updateMany({
+                where: {
+                    id: { in: successfulIds }
+                },
+                data: {
+                    availability_status: "Sent"
+                }
+            });
+        }
+
+        res.json({
+            success: true,
+            message: "Invitations process completed",
             data: {
-                availability_status: "Sent"
+                total: batch.employees.length,
+                success: successfulIds.length,
+                failed: batch.employees.length - successfulIds.length,
+                results
             }
         });
-
-        res.json({ success: true, message: "Invitations sent and status updated to 'Sent'" });
     } catch (error: any) {
         res.status(500).json({ success: false, error: error.message });
     }

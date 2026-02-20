@@ -38,7 +38,7 @@ export default function BatchManagementPage() {
     const [isMessageModalOpen, setIsMessageModalOpen] = useState(false);
     const [messageBatch, setMessageBatch] = useState<Batch | null>(null);
     const [messageLoading, setMessageLoading] = useState(false);
-    const [selectedTemplate, setSelectedTemplate] = useState('');
+
 
     // Edit Batch State
     const [isEditingBatch, setIsEditingBatch] = useState(false);
@@ -359,7 +359,7 @@ export default function BatchManagementPage() {
     const handleOpenMessageModal = async (id: number) => {
         setMessageLoading(true);
         setIsMessageModalOpen(true);
-        setSelectedTemplate(''); // Reset template
+
         try {
             const res = await fetch(`http://localhost:8000/api/batches/${id}`);
             const result = await res.json();
@@ -1205,60 +1205,59 @@ export default function BatchManagementPage() {
                                 </div>
 
                                 {/* Right Panel: Message Configuration */}
-                                <div className="w-1/3 flex flex-col bg-white p-6">
-                                    <div className="mb-6">
-                                        <label className="block text-sm font-bold text-zinc-900 mb-2">
-                                            Select Message Template
-                                        </label>
-                                        <select
-                                            value={selectedTemplate}
-                                            onChange={(e) => setSelectedTemplate(e.target.value)}
-                                            className="w-full bg-zinc-50 border border-zinc-200 text-zinc-900 text-base rounded-lg focus:ring-red-500 focus:border-red-500 block p-2.5 transition-all"
-                                        >
-                                            <option value="" disabled>Choose a template...</option>
-                                            <option value="invitation">Invitation to Assessment</option>
-                                            <option value="reminder">Assessment Reminder (H-1)</option>
-                                            <option value="change">Location Change Notice</option>
-                                            <option value="cancellation">Cancellation Notice</option>
-                                        </select>
+                                <div className="w-1/3 flex flex-col bg-white p-6 justify-between">
+                                    <div className="space-y-4">
+                                        <div>
+                                            <h3 className="text-lg font-bold text-zinc-900 mb-2">WhatsApp Invitation</h3>
+                                            <p className="text-sm text-zinc-500 leading-relaxed">
+                                                You are about to send assessment invitations to all selected recipients via WhatsApp (OCA).
+                                            </p>
+                                        </div>
+
+                                        <div>
+                                            <label className="block text-xs font-bold text-zinc-500 mb-2 uppercase tracking-wide">Message Preview</label>
+                                            <div className="bg-zinc-50 border border-zinc-200 rounded-lg p-4 text-sm text-zinc-800 font-mono leading-relaxed whitespace-pre-wrap shadow-inner relative max-h-[350px] overflow-y-auto custom-scrollbar">
+                                                <div className="absolute top-2 right-2 text-xs font-bold text-zinc-300 pointer-events-none select-none">OCA TEMPLATE</div>
+                                                {`Assalamualaikum [Name],
+
+Anda telah terpilih untuk mengikuti Assessment Center PT Telkom Indonesia.
+
+📅 Tanggal : ${messageBatch?.assessmentDate ? new Date(messageBatch.assessmentDate).toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }) : '[Tanggal]'}
+📍 Lokasi : ${messageBatch?.location || '[Lokasi]'}
+🎯 Batch : ${messageBatch?.batchName || 'Assessment Batch'}
+
+Mohon konfirmasi kehadiran Anda dengan menekan salah satu tombol di bawah ini:
+
+✅ Iya — Saya bisa hadir sesuai jadwal
+🔄 Reschedule — Saya ingin mengganti jadwal
+❌ Tidak — Saya tidak bisa hadir
+
+Terima kasih atas perhatian Anda.
+
+Hormat kami,
+PT Telkom Indonesia`}
+                                            </div>
+                                        </div>
                                     </div>
 
-                                    {selectedTemplate && (
-                                        <div className="flex-1 flex flex-col animate-in fade-in slide-in-from-bottom-2 duration-300">
-                                            <label className="block text-sm font-bold text-zinc-900 mb-2">
-                                                Message Preview
-                                            </label>
-                                            <div className="flex-1 bg-zinc-50 border border-zinc-200 rounded-lg p-4 text-base text-black overflow-y-auto mb-4 font-mono leading-relaxed whitespace-pre-wrap shadow-inner">
-                                                {/* Template: Invitation to Assessment */}
-                                                {selectedTemplate === 'invitation' && `Dear [Name],\n\nYou are invited to the assessment process.\n\nDate: ${new Date(messageBatch?.assessmentDate || '').toLocaleDateString()}\nTime: ${new Date(messageBatch?.assessmentDate || '').toLocaleTimeString()}\nLocation: ${messageBatch?.location}\n\nPlease bring your ID card.`}
-
-                                                {/* Template: Assessment Reminder (H-1) */}
-                                                {selectedTemplate === 'reminder' && `Reminder: Your assessment is tomorrow at ${messageBatch?.location}.`}
-
-                                                {/* Template: Location Change Notice */}
-                                                {selectedTemplate === 'change' && `Important: The location for your assessment has changed to ${messageBatch?.location}.`}
-
-                                                {/* Template: Cancellation Notice */}
-                                                {selectedTemplate === 'cancellation' && `We regret to inform you that the assessment scheduled for ${new Date(messageBatch?.assessmentDate || '').toLocaleDateString()} has been cancelled.`}
-                                            </div>
-
-                                            <button
-                                                onClick={handleSendMessageClick}
-                                                className="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-4 rounded-lg shadow-lg shadow-green-600/20 transition-all flex items-center justify-center space-x-2"
-                                            >
-                                                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
-                                                </svg>
-                                                <span>Send via WhatsApp</span>
-                                            </button>
-                                        </div>
-                                    )}
-
-                                    {!selectedTemplate && (
-                                        <div className="flex-1 flex items-center justify-center text-zinc-400 text-sm text-center italic border-2 border-dashed border-zinc-100 rounded-lg bg-zinc-50/50">
-                                            Select a template to preview message
-                                        </div>
-                                    )}
+                                    <div className="space-y-3 pt-6 border-t border-zinc-50">
+                                        <button
+                                            onClick={handleSendMessageClick}
+                                            className="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3.5 px-4 rounded-xl shadow-lg shadow-green-600/20 transition-all flex items-center justify-center space-x-2 transform active:scale-[0.98]"
+                                            disabled={!messageBatch}
+                                        >
+                                            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                                            </svg>
+                                            <span>Send via WhatsApp</span>
+                                        </button>
+                                        <button
+                                            onClick={() => setIsMessageModalOpen(false)}
+                                            className="w-full bg-white border border-zinc-200 text-zinc-600 font-bold py-3 px-4 rounded-xl hover:bg-zinc-50 hover:text-zinc-900 transition-colors shadow-sm"
+                                        >
+                                            Cancel
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
 
