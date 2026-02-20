@@ -2,18 +2,18 @@
 
 A monorepo for Assessment Management with Next.js frontend, Express backend, and AI Service.
 
-## 🚀 Local Hosting URLs
+## Local Hosting URLs
 - **Frontend**: [http://localhost:3000](http://localhost:3000)
 - **Backend API**: [http://localhost:8000](http://localhost:8000)
 - **API Documentation (Swagger)**: [http://localhost:8000/api-docs](http://localhost:8000/api-docs)
-- **Prisma Studio**: [http://localhost:5555](http://localhost:5555)
+- **AI Service**: [http://localhost:8001](http://localhost:8001)
 
-## 📁 Project Structure
+## Project Structure
 - `/apps/web`: Next.js Frontend
 - `/backend`: Express.js & Prisma (PostgreSQL)
 - `/apps/ai_service`: Python AI Processing
 
-## 🛠️ Quick Start
+## Quick Start
 
 ### 1. Backend & Database
 ```bash
