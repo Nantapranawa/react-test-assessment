@@ -1,45 +1,41 @@
-# Project Monorepo
+# Assessment Planning Platform
 
-This project is structured with a Next.js frontend, a TypeScript Express backend, and a Python AI service.
+A monorepo for Assessment Management with Next.js frontend, Express backend, and AI Service.
 
-## Project Structure
-- **apps/web**: Next.js Frontend.
-- **backend**: TypeScript Express Backend (Port 8000). Handles data and bridges to AI service.
-- **ai_service**: Python FastAPI Service (Port 8001). Handles AI/ML processing logic.
+## 🚀 Local Hosting URLs
+- **Frontend**: [http://localhost:3000](http://localhost:3000)
+- **Backend API**: [http://localhost:8000](http://localhost:8000)
+- **API Documentation (Swagger)**: [http://localhost:8000/api-docs](http://localhost:8000/api-docs)
+- **Prisma Studio**: [http://localhost:5555](http://localhost:5555)
 
-## Getting Started
+## 📁 Project Structure
+- `/apps/web`: Next.js Frontend
+- `/backend`: Express.js & Prisma (PostgreSQL)
+- `/apps/ai_service`: Python AI Processing
 
-### Prerequisites
-- Node.js (v18+)
-- Python 3.8+
+## 🛠️ Quick Start
 
-### 1. TypeScript Backend
-The backend is responsible for API routing and communicating with the AI service.
+### 1. Backend & Database
 ```bash
 cd backend
 npm install
+npx prisma generate
+npx prisma db push
 npm run dev
 ```
 
-### 2. Python AI Service
-A simple FastAPI "Hello World" service to get you started with Python processing.
-```bash
-cd ai_service
-# Recommended: Create and activate a virtual environment
-# python -m venv venv
-# venv\Scripts\activate
-pip install -r requirements.txt
-python main.py
-```
-
-### 3. Frontend (Web)
+### 2. Frontend
 ```bash
 cd apps/web
 npm install
 npm run dev
 ```
 
-## API Endpoints
-- **GET** `http://localhost:8000/api/ai/status`: Check health of Backend and AI Service.
-- **POST** `http://localhost:8000/api/process`: Endpoint used by the frontend to process data via the AI service.
-- **POST** `http://localhost:8000/api/data/upload-excel`: Upload and parse Excel files.
+### 3. AI Service
+```bash
+cd apps/ai_service
+python -m venv .venv
+.venv\Scripts\activate
+pip install -r requirements.txt
+python main.py
+```
