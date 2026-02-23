@@ -4,6 +4,7 @@ import authRoutes from './authRoutes';
 import dataRoutes from './dataRoutes';
 import batchRoutes from './batchRoutes';
 import notificationRoutes from './notificationRoutes';
+import webhookRoutes from './webhookRoutes';
 import { aiController } from '../controllers/aiController';
 
 import { uploadExcel } from '../controllers/dataController';
@@ -17,6 +18,7 @@ router.use('/ai', aiRoutes);      // Endpoints: /api/ai/process, /api/ai/status,
 router.use('/data', dataRoutes);  // Endpoints: /api/data/, /api/data/list, etc.
 router.use('/batches', batchRoutes);
 router.use('/notifications', notificationRoutes);
+router.use('/webhooks', webhookRoutes);
 
 
 // Legacy/Frontend compatibility routes (mapped to /api/...)

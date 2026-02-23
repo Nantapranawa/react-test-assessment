@@ -3,6 +3,21 @@ import { prisma } from '../lib/prisma';
 import { aiService } from '../services/aiService';
 
 export const webhookController = {
+    // Handle Webhook Verification (Handshake)
+    async verifyWebhook(req: Request, res: Response) {
+        const mode = req.query['hub.mode'];
+        const token = req.query['hub.verify_token'];
+        const challenge = req.query['hub.challenge'];
+
+        // You can set a VERIFY_TOKEN in your .env for extra security
+        // For now, we respond to any request to allow quick setup
+        if (mode && token) {
+            console.log('Webhook Verified Successfully.');
+            return res.status(200).send(challenge);
+        }
+        return res.status(403).send('Verification failed');
+    },
+
     // WhatsApp webhook ingestion
     async receiveWhatsAppWebhook(req: Request, res: Response) {
         try {

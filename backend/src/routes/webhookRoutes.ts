@@ -5,13 +5,14 @@ const router = Router();
 
 /**
  * @openapi
- * /inbound-message:
+ * /api/webhooks/whatsapp:
  *   post:
  *     summary: Receive WhatsApp webhook from OCA
  *     responses:
  *       200:
  *         description: Webhook processed
  */
-router.post('/inbound-message', webhookController.receiveWhatsAppWebhook);
+router.get('/whatsapp', webhookController.verifyWebhook);
+router.post('/whatsapp', webhookController.receiveWhatsAppWebhook);
 
 export default router;
