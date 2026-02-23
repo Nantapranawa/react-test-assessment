@@ -3,6 +3,7 @@ import cors from 'cors';
 import router from './routes';
 import swaggerUi from 'swagger-ui-express';
 import { swaggerSpec } from './swagger';
+import webhookRoutes from './routes/webhookRoutes';
 
 const app = express();
 const port = 8000;
@@ -16,6 +17,7 @@ app.use(express.json());
 
 // Main Routing
 app.use('/api', router);
+app.use('/', webhookRoutes);
 
 // Swagger Documentation
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));

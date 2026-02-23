@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { Bell, Check, X, Calendar, UserCheck, AlertCircle } from 'lucide-react';
+import { useAuth } from '../lib/AuthContext';
 
 interface Notification {
     id: number;
@@ -9,6 +10,7 @@ interface Notification {
     type: string;
     isRead: boolean;
     createdAt: string;
+    talent_solution?: number;
     employee?: {
         nama: string;
         posisi: string;
@@ -16,6 +18,7 @@ interface Notification {
 }
 
 export default function NotificationDropdown() {
+    const { user } = useAuth();
     const [notifications, setNotifications] = useState<Notification[]>([]);
     const [unreadCount, setUnreadCount] = useState(0);
     const [isOpen, setIsOpen] = useState(false);
@@ -23,8 +26,10 @@ export default function NotificationDropdown() {
 
     // Fetch notifications
     const fetchNotifications = async () => {
+        if (!user) return;
         try {
-            const res = await fetch('http://localhost:8000/api/notifications');
+            const ts = user.role === 'ADMIN' ? 'all' : user.talent_solution;
+            const res = await fetch(`http://localhost:8000/api/notifications?talent_solution=${ts}`);
             const data = await res.json();
             if (data.success) {
                 setNotifications(data.data.notifications);
@@ -36,11 +41,13 @@ export default function NotificationDropdown() {
     };
 
     useEffect(() => {
-        fetchNotifications();
-        // Poll every 3 seconds for real-time updates
-        const interval = setInterval(fetchNotifications, 3000);
-        return () => clearInterval(interval);
-    }, []);
+        if (user) {
+            fetchNotifications();
+            // Poll every 10 seconds for real-time updates (increased from 3s to be more efficient)
+            const interval = setInterval(fetchNotifications, 10000);
+            return () => clearInterval(interval);
+        }
+    }, [user]);
 
     // Click outside to close
     useEffect(() => {
@@ -53,11 +60,12 @@ export default function NotificationDropdown() {
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, []);
 
-    const handleMarkRead = async (id: number) => {
+    const handleMarkRead = async (id: number, ts?: number) => {
         try {
-            await fetch(`http://localhost:8000/api/notifications/${id}/read`, { method: 'PUT' });
+            const queryTs = ts || user?.talent_solution || 1;
+            await fetch(`http://localhost:8000/api/notifications/${id}/read?talent_solution=${queryTs}`, { method: 'PUT' });
             // Update local state
-            setNotifications(prev => prev.map(n => n.id === id ? { ...n, isRead: true } : n));
+            setNotifications(prev => prev.map(n => (n.id === id && n.talent_solution === ts) ? { ...n, isRead: true } : n));
             setUnreadCount(prev => Math.max(0, prev - 1));
         } catch (error) {
             console.error('Error marking read:', error);
@@ -66,7 +74,8 @@ export default function NotificationDropdown() {
 
     const handleMarkAllRead = async () => {
         try {
-            await fetch(`http://localhost:8000/api/notifications/read-all`, { method: 'PUT' });
+            const ts = user?.role === 'ADMIN' ? 'all' : user?.talent_solution || 1;
+            await fetch(`http://localhost:8000/api/notifications/read-all?talent_solution=${ts}`, { method: 'PUT' });
             setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
             setUnreadCount(0);
         } catch (error) {
@@ -135,7 +144,7 @@ export default function NotificationDropdown() {
                                     <div
                                         key={notif.id}
                                         className={`p-4 hover:bg-zinc-50 transition-colors flex gap-3 ${!notif.isRead ? 'bg-red-50/10' : ''}`}
-                                        onClick={() => !notif.isRead && handleMarkRead(notif.id)}
+                                        onClick={() => !notif.isRead && handleMarkRead(notif.id, notif.talent_solution)}
                                     >
                                         <div className={`mt-1 w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 border ${getBgColor(notif.type)}`}>
                                             {getIcon(notif.type)}
