@@ -55,7 +55,7 @@ export default function DashboardCharts({ data }: { data: any[] }) {
         const batchSize = Math.ceil(data.length / points);
         for (let i = 0; i < points; i++) {
             const slice = data.slice(i * batchSize, (i + 1) * batchSize);
-            // Add some randomness to make it look "alive" if data is static
+
             const randomFactor = Math.floor(Math.random() * 5);
             trendData.push({
                 name: `Day ${i + 1}`,

@@ -40,6 +40,9 @@ export function DataProvider({ children }: { children: ReactNode }) {
                         params.append('talent_solution', '1');
                     } else if (pathname.includes('/talent-management/talent-solution-2') || pathname.includes('/batch-management/talent-solution-2')) {
                         params.append('talent_solution', '2');
+                    } else {
+                        // Admin on dashboard or other pages sees everything
+                        params.append('talent_solution', 'all');
                     }
                 } else {
                     // Regular User logic: view their own TS data

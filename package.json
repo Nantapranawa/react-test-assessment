@@ -5,15 +5,12 @@
   "type": "module",
   "workspaces": [
     "apps/*",
-    "packages/*"
+    "backend"
   ],
   "scripts": {
-    "dev": "turbo dev",
-    "build": "turbo build",
-    "start": "turbo start",
-    "lint": "turbo lint"
-  },
-  "devDependencies": {
-    "turbo": "^2.0.0"
+    "dev:web": "npm run dev --workspace=@repo/web",
+    "dev:backend": "npm run dev --workspace=backend",
+    "build": "npm run build --workspaces",
+    "lint": "npm run lint --workspaces"
   }
 }

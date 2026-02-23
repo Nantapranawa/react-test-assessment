@@ -512,7 +512,7 @@ export const sendInvitations = async (req: Request, res: Response) => {
                 return { id: emp.id, success: false, reason: "No phone number" };
             }
 
-            // Construct Payload
+            // Construct Payload for OCA API
             const payload = {
                 "phone_number": phone,
                 "message": {

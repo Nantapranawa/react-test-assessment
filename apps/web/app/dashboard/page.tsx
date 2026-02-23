@@ -4,9 +4,11 @@ import { useData } from '../lib/DataContext';
 import FileUpload from '../components/FileUpload';
 import DashboardStats from '../components/DashboardStats';
 import DashboardCharts from '../components/DashboardCharts';
+import { useAuth } from '../lib/AuthContext';
 
 export default function DashboardPage() {
     const { tableData, setTableData, loading } = useData();
+    const { user } = useAuth();
 
     const handleDataLoaded = (data: any) => {
         setTableData(data);
@@ -19,7 +21,7 @@ export default function DashboardPage() {
             {/* SECTION: PERFORMANCE OVERVIEW */}
             <div className="mb-6">
                 <p className="text-zinc-500 text-xl font-medium">
-                    Welcome back. Here is the latest assessment overview.
+                    Welcome back. Here is the latest assessment overview {user?.role === 'ADMIN' ? 'across all Talent Solutions' : `for Talent Solution ${user?.talent_solution}`}.
                 </p>
             </div>
 

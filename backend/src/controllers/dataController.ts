@@ -9,10 +9,22 @@ export const getRoot = (req: Request, res: Response) => {
 export const getData = async (req: Request, res: Response) => {
     try {
         const { talent_solution } = req.query;
-        const isTS2 = talent_solution === '2' || Number(talent_solution) === 2;
 
-        let employees;
-        if (isTS2) {
+        let employees = [];
+        if (talent_solution === 'all') {
+            const employeesTS1 = await prisma.employeeTS1.findMany({
+                orderBy: {
+                    id: 'asc'
+                }
+            });
+            const employeesTS2 = await prisma.employeeTS2.findMany({
+                orderBy: {
+                    id: 'asc'
+                }
+            });
+            // Combine both sets of employees
+            employees = [...employeesTS1, ...employeesTS2];
+        } else if (talent_solution === '2' || Number(talent_solution) === 2) {
             employees = await prisma.employeeTS2.findMany({
                 orderBy: {
                     id: 'asc'
