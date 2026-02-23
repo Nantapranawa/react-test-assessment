@@ -36,4 +36,15 @@ router.get('/status', aiController.status);
  */
 router.post('/analyze-response', aiController.analyzeEmployeeResponse);
 
+/**
+ * @openapi
+ * /api/ai/trigger-analysis:
+ *   post:
+ *     summary: Trigger AI analysis manually
+ *     responses:
+ *       200:
+ *         description: AI analysis triggered
+ */
+router.post('/trigger-analysis', aiController.triggerAIAnalysis);
+
 export default router;

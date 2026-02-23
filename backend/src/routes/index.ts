@@ -4,6 +4,7 @@ import authRoutes from './authRoutes';
 import dataRoutes from './dataRoutes';
 import batchRoutes from './batchRoutes';
 import notificationRoutes from './notificationRoutes';
+import webhookRoutes from './webhookRoutes';
 import { aiController } from '../controllers/aiController';
 
 import { uploadExcel } from '../controllers/dataController';
@@ -13,10 +14,11 @@ const router = Router();
 
 // Domain-specific routes
 router.use('/auth', authRoutes);  // Endpoints: /api/auth/login, /api/auth/me, /api/auth/users
-router.use('/ai', aiRoutes);      // Endpoints: /api/ai/process, /api/ai/status
+router.use('/ai', aiRoutes);      // Endpoints: /api/ai/process, /api/ai/status, /api/ai/trigger-analysis
 router.use('/data', dataRoutes);  // Endpoints: /api/data/, /api/data/list, etc.
 router.use('/batches', batchRoutes);
 router.use('/notifications', notificationRoutes);
+router.use('/webhooks', webhookRoutes); // Endpoints: /api/webhooks/whatsapp
 
 
 // Legacy/Frontend compatibility routes (mapped to /api/...)

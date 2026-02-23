@@ -41,9 +41,17 @@ export const aiController = {
                 return res.status(400).json({ success: false, error: "Missing aiStatus from AI Service. Use the AI Service to analyze first." });
             }
 
-            const employee = await prisma.employeeTS1.findUnique({
+            let employeeType = 'TS1';
+            let employee: any = await prisma.employeeTS1.findUnique({
                 where: { nik: employeeNik }
             });
+
+            if (!employee) {
+                employee = await prisma.employeeTS2.findUnique({
+                    where: { nik: employeeNik }
+                });
+                employeeType = 'TS2';
+            }
 
             if (!employee) {
                 return res.status(404).json({ success: false, error: "Employee not found" });
@@ -94,20 +102,37 @@ export const aiController = {
                     break;
             }
 
-            await prisma.$transaction([
-                prisma.employeeTS1.update({
-                    where: { id: employee.id },
-                    data: { availability_status: status }
-                }),
-                prisma.notificationTS1.create({
-                    data: {
-                        message,
-                        type: notifType,
-                        employeeId: employee.id,
-                        isRead: false
-                    }
-                })
-            ]);
+            if (employeeType === 'TS1') {
+                await prisma.$transaction([
+                    prisma.employeeTS1.update({
+                        where: { id: employee.id },
+                        data: { availability_status: status }
+                    }),
+                    prisma.notificationTS1.create({
+                        data: {
+                            message,
+                            type: notifType,
+                            employeeId: employee.id,
+                            isRead: false
+                        }
+                    })
+                ]);
+            } else {
+                await prisma.$transaction([
+                    prisma.employeeTS2.update({
+                        where: { id: employee.id },
+                        data: { availability_status: status }
+                    }),
+                    prisma.notificationTS2.create({
+                        data: {
+                            message,
+                            type: notifType,
+                            employeeId: employee.id,
+                            isRead: false
+                        }
+                    })
+                ]);
+            }
 
             res.json({
                 success: true,
@@ -116,6 +141,31 @@ export const aiController = {
             });
 
         } catch (error: any) {
+            res.status(500).json({ success: false, error: error.message });
+        }
+    },
+
+    // Manually trigger AI analysis
+    async triggerAIAnalysis(req: Request, res: Response) {
+        try {
+            const { employeeNik, text } = req.body;
+
+            if (!employeeNik || !text) {
+                return res.status(400).json({ success: false, error: "Missing employeeNik or text" });
+            }
+
+            console.log(`Manually triggering AI analysis for ${employeeNik}...`);
+
+            // Call AI Service
+            const aiResult = await aiService.analyzeResponse(employeeNik, text);
+
+            return res.status(200).json({
+                success: true,
+                message: "AI analysis triggered successfully",
+                aiResponse: aiResult
+            });
+        } catch (error: any) {
+            console.error("Analysis Trigger Error:", error);
             res.status(500).json({ success: false, error: error.message });
         }
     }
