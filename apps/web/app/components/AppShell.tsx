@@ -5,6 +5,7 @@ import { useRouter, usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import Sidebar from './Sidebar';
 import NotificationDropdown from './NotificationDropdown';
+import { io } from 'socket.io-client';
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
     const { user, isAuthenticated, isLoading, logout } = useAuth();
@@ -56,6 +57,57 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
             setDeniedMessage('');
         }
     }, [isAuthenticated, isLoading, pathname, user, router, isLoginPage]);
+
+    // Socket state & toast
+    const [socketConnected, setSocketConnected] = useState(false);
+    const [toastMessage, setToastMessage] = useState<{
+        title: string;
+        body: string;
+        timestamp: string;
+        visible: boolean;
+    }>({ title: '', body: '', timestamp: '', visible: false });
+
+    useEffect(() => {
+        if (!isAuthenticated) return;
+
+        const socket = io(process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000', {
+            withCredentials: true
+        });
+
+        socket.on('connect', () => {
+            console.log('Connected to WebSocket server');
+            setSocketConnected(true);
+        });
+
+        socket.on('disconnect', () => {
+            console.log('Disconnected from WebSocket server');
+            setSocketConnected(false);
+        });
+
+        socket.on('whatsapp_message_received', (data: any) => {
+            console.log("WebSocket event: whatsapp_message_received", data);
+
+            // Format timestamp slightly
+            const timeRaw = new Date(data.timestamp);
+            const formattedTime = `${timeRaw.getHours().toString().padStart(2, '0')}:${timeRaw.getMinutes().toString().padStart(2, '0')}`;
+
+            setToastMessage({
+                title: `New WhatsApp: ${data.employee?.nama || 'Unknown'}`,
+                body: data.message || 'No content',
+                timestamp: formattedTime,
+                visible: true
+            });
+
+            // Auto hide after 5 seconds
+            setTimeout(() => {
+                setToastMessage(prev => ({ ...prev, visible: false }));
+            }, 5000);
+        });
+
+        return () => {
+            socket.disconnect();
+        };
+    }, [isAuthenticated]);
 
     // Login page - render without shell
     if (isLoginPage) {
@@ -154,6 +206,37 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                     </div>
                 </div>
             )}
+
+            {/* Global Web Socket Toast Notification */}
+            {toastMessage.visible && (
+                <div className="fixed bottom-6 right-6 z-[300] bg-white rounded-2xl p-4 shadow-2xl border border-zinc-200 animate-in slide-in-from-bottom-5 fade-in duration-300 min-w-[300px] max-w-sm flex items-start gap-3">
+                    <div className="flex-shrink-0 w-10 h-10 rounded-full bg-emerald-100 flex items-center justify-center border border-emerald-200 mt-0.5">
+                        <svg className="w-5 h-5 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
+                        </svg>
+                    </div>
+                    <div className="flex-1 w-0">
+                        <div className="flex items-center justify-between mb-1">
+                            <p className="text-sm font-bold text-zinc-900 truncate pr-2">{toastMessage.title}</p>
+                            <p className="text-[10px] font-semibold text-zinc-400">{toastMessage.timestamp}</p>
+                        </div>
+                        <p className="text-xs text-zinc-600 line-clamp-2 leading-relaxed">
+                            {toastMessage.body}
+                        </p>
+                    </div>
+                    <button onClick={() => setToastMessage(prev => ({ ...prev, visible: false }))} className="flex-shrink-0 text-zinc-400 hover:text-red-500 transition-colors">
+                        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                </div>
+            )}
+
+            {/* Socket connection indicator (optional, but good for UX) */}
+            <div className={`fixed bottom-4 left-4 flex items-center gap-2 px-3 py-1.5 rounded-full text-[10px] font-bold shadow-sm z-50 transition-colors border ${socketConnected ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 'bg-red-50 text-red-600 border-red-100'}`}>
+                <div className={`w-2 h-2 rounded-full ${socketConnected ? 'bg-emerald-500 animate-pulse' : 'bg-red-500'}`}></div>
+                {socketConnected ? 'Realtime Connected' : 'Realtime Disconnected'}
+            </div>
         </div>
     );
 }

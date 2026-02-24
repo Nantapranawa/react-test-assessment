@@ -12,7 +12,6 @@ const router = Router();
  *       200:
  *         description: Webhook processed
  */
-router.get('/whatsapp', webhookController.verifyWebhook);
 router.post('/whatsapp', webhookController.receiveWhatsAppWebhook);
 
 export default router;

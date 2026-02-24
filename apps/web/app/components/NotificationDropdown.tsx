@@ -17,6 +17,8 @@ interface Notification {
     };
 }
 
+import { io } from 'socket.io-client';
+
 export default function NotificationDropdown() {
     const { user } = useAuth();
     const [notifications, setNotifications] = useState<Notification[]>([]);
@@ -29,7 +31,7 @@ export default function NotificationDropdown() {
         if (!user) return;
         try {
             const ts = user.role === 'ADMIN' ? 'all' : user.talent_solution;
-            const res = await fetch(`http://localhost:8000/api/notifications?talent_solution=${ts}`);
+            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/notifications?talent_solution=${ts}`);
             const data = await res.json();
             if (data.success) {
                 setNotifications(data.data.notifications);
@@ -43,9 +45,25 @@ export default function NotificationDropdown() {
     useEffect(() => {
         if (user) {
             fetchNotifications();
-            // Poll every 10 seconds for real-time updates (increased from 3s to be more efficient)
-            const interval = setInterval(fetchNotifications, 10000);
-            return () => clearInterval(interval);
+
+            // Realtime sync via Websocket instead of polling!
+            const socket = io(process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000', {
+                withCredentials: true
+            });
+
+            socket.on('notification_updated', () => {
+                console.log('[NotificationDropdown] Notification updated via WebSocket, refreshing...');
+                fetchNotifications();
+            });
+
+            // Also listen to the direct whatsapp messages hook to update notification instantly
+            socket.on('whatsapp_message_received', () => {
+                fetchNotifications();
+            });
+
+            return () => {
+                socket.disconnect();
+            };
         }
     }, [user]);
 
@@ -63,7 +81,7 @@ export default function NotificationDropdown() {
     const handleMarkRead = async (id: number, ts?: number) => {
         try {
             const queryTs = ts || user?.talent_solution || 1;
-            await fetch(`http://localhost:8000/api/notifications/${id}/read?talent_solution=${queryTs}`, { method: 'PUT' });
+            await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/notifications/${id}/read?talent_solution=${queryTs}`, { method: 'PUT' });
             // Update local state
             setNotifications(prev => prev.map(n => (n.id === id && n.talent_solution === ts) ? { ...n, isRead: true } : n));
             setUnreadCount(prev => Math.max(0, prev - 1));
@@ -75,7 +93,7 @@ export default function NotificationDropdown() {
     const handleMarkAllRead = async () => {
         try {
             const ts = user?.role === 'ADMIN' ? 'all' : user?.talent_solution || 1;
-            await fetch(`http://localhost:8000/api/notifications/read-all?talent_solution=${ts}`, { method: 'PUT' });
+            await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/notifications/read-all?talent_solution=${ts}`, { method: 'PUT' });
             setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
             setUnreadCount(0);
         } catch (error) {

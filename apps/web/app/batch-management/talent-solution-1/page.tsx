@@ -155,7 +155,7 @@ export default function BatchManagementPage() {
 
     const fetchBatches = async () => {
         try {
-            const res = await fetch('http://localhost:8000/api/batches');
+            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/batches`);
             const result = await res.json();
             if (result.success) {
                 setBatches(result.data);
@@ -172,7 +172,7 @@ export default function BatchManagementPage() {
         setIsDetailsOpen(true);
         setIsEditingBatch(false); // Reset edit mode
         try {
-            const res = await fetch(`http://localhost:8000/api/batches/${id}`);
+            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/batches/${id}`);
             const result = await res.json();
             if (result.success) {
                 // Sort once initially to establish stable rows
@@ -221,7 +221,7 @@ export default function BatchManagementPage() {
                 editTime !== originalTime ||
                 hasEmployeeChanges;
 
-            const res = await fetch(`http://localhost:8000/api/batches/${selectedBatch.id}`, {
+            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/batches/${selectedBatch.id}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -262,7 +262,7 @@ export default function BatchManagementPage() {
 
         setIsDeleting(true);
         try {
-            const res = await fetch(`http://localhost:8000/api/batches/${batchToDelete}`, {
+            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/batches/${batchToDelete}`, {
                 method: 'DELETE',
             });
             const result = await res.json();
@@ -318,7 +318,7 @@ export default function BatchManagementPage() {
 
         setIsReplacing(true);
         try {
-            const res = await fetch(`http://localhost:8000/api/batches/${selectedBatch.id}/replace-employee`, {
+            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/batches/${selectedBatch.id}/replace-employee`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -361,7 +361,7 @@ export default function BatchManagementPage() {
         setIsMessageModalOpen(true);
 
         try {
-            const res = await fetch(`http://localhost:8000/api/batches/${id}`);
+            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/batches/${id}`);
             const result = await res.json();
             if (result.success) {
                 // Sort once initially to establish stable rows
@@ -386,7 +386,7 @@ export default function BatchManagementPage() {
         if (!messageBatch) return;
         setIsSendingInvitations(true);
         try {
-            const res = await fetch(`http://localhost:8000/api/batches/${messageBatch.id}/send-invitations`, {
+            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/batches/${messageBatch.id}/send-invitations`, {
                 method: 'POST',
             });
             const result = await res.json();
@@ -429,7 +429,7 @@ export default function BatchManagementPage() {
         setIsRescheduling(true);
         try {
             const dateTime = `${rescheduleDate}T${rescheduleTime}:00`;
-            const res = await fetch('http://localhost:8000/api/batches/reschedule-employee', {
+            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/batches/reschedule-employee`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -496,7 +496,7 @@ export default function BatchManagementPage() {
 
         setIsAdding(true);
         try {
-            const res = await fetch(`http://localhost:8000/api/batches/${selectedBatch.id}/add-employee`, {
+            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/batches/${selectedBatch.id}/add-employee`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ employeeNik })

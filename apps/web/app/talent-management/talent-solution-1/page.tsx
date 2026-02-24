@@ -428,7 +428,7 @@ export default function TalentManagementPage() {
                     ? `${assessmentDateBP1}T${assessmentTimeBP1}:00`
                     : `${assessmentDateBP1}T00:00:00`;
 
-                promises.push(fetch('http://localhost:8000/api/batches', {
+                promises.push(fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/batches`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
@@ -446,7 +446,7 @@ export default function TalentManagementPage() {
                     ? `${assessmentDateBP2}T${assessmentTimeBP2}:00`
                     : `${assessmentDateBP2}T00:00:00`;
 
-                promises.push(fetch('http://localhost:8000/api/batches', {
+                promises.push(fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/batches`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
@@ -503,7 +503,7 @@ export default function TalentManagementPage() {
 
         setIsAdding(true);
         try {
-            const res = await fetch('http://localhost:8000/api/data/employees', {
+            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/data/employees`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -552,7 +552,7 @@ export default function TalentManagementPage() {
         setIsDeleting(true);
 
         try {
-            const res = await fetch(`http://localhost:8000/api/data/employees/${employeeToDelete}?talent_solution=1`, {
+            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/data/employees/${employeeToDelete}?talent_solution=1`, {
                 method: 'DELETE'
             });
             const result = await res.json();
@@ -584,7 +584,7 @@ export default function TalentManagementPage() {
         setIsRescheduling(true);
         try {
             const dateTime = `${rescheduleDate}T${rescheduleTime}:00`;
-            const res = await fetch('http://localhost:8000/api/batches/reschedule-employee', {
+            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/batches/reschedule-employee`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({

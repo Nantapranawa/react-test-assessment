@@ -76,29 +76,21 @@ export const aiController = {
                 case 'accepted':
                     status = "Accepted";
                     notifType = "success";
-                    message = `${employee.nama} has ACCEPTED the invitation (AI Verified).`;
+                    message = `${employee.nama} accepted: "${response}"`;
                     break;
                 case 'rejected':
                     status = "Rejected";
                     notifType = "error";
-                    message = `${employee.nama} has REJECTED the invitation (AI Verified).${aiResult.reason ? ` Reason: ${aiResult.reason}` : ''}`;
+                    message = `${employee.nama} rejected: "${response}"`;
                     break;
                 case 'reschedule':
                     status = "Reschedule Requested";
                     notifType = "warning";
-                    if (aiResult.proposedDate) {
-                        message = `${employee.nama} requested RESCHEDULE (AI Verified). Details: ${aiResult.proposedDate}`;
-                    } else {
-                        message = `${employee.nama} requested RESCHEDULE but did NOT provide a date/time.`;
-                        if (aiResult.replyMessage) {
-                            message += ` AI Reply: "${aiResult.replyMessage}"`;
-                        }
-                    }
+                    message = `${employee.nama} requested reschedule: "${response}"`;
                     break;
                 default:
-                    // Unknown status from AI
                     notifType = "info";
-                    message = `Manual review needed for ${employee.nama}. AI Status: ${aiResult.status}`;
+                    message = `${employee.nama} response: "${response}"`;
                     break;
             }
 

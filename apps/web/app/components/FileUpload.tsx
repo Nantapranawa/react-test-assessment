@@ -25,7 +25,7 @@ export default function FileUpload({ onDataLoaded }: { onDataLoaded: (data: any)
       const ts = user?.role === 'ADMIN' ? selectedTS : (user?.talent_solution || 1);
       formData.append('talent_solution', ts.toString());
 
-      const response = await fetch('http://localhost:8000/api/upload-excel', { //dikirim ke backend
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/upload-excel`, { //dikirim ke backend
         method: 'POST',
         body: formData,
       });

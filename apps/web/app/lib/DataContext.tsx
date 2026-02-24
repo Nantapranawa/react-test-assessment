@@ -18,6 +18,8 @@ interface DataContextType {
     loading: boolean;
 }
 
+import { io } from 'socket.io-client';
+
 const DataContext = createContext<DataContextType | undefined>(undefined);
 
 export function DataProvider({ children }: { children: ReactNode }) {
@@ -29,7 +31,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
     const refreshData = async (showLoading = false) => {
         if (showLoading) setLoading(true);
         try {
-            let url = 'http://localhost:8000/api/data/list';
+            let url = `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/data/list`;
 
             if (user) {
                 const params = new URLSearchParams();
@@ -73,12 +75,19 @@ export function DataProvider({ children }: { children: ReactNode }) {
             refreshData(true); // Show loading when path or user changes
         }
 
-        // Auto-refresh every 5 seconds for "real-time" sync
-        const interval = setInterval(() => {
-            if (user) refreshData(false); // Background refresh - don't show loading
-        }, 5000);
+        // Realtime sync via Websocket instead of polling!
+        const socket = io(process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000', {
+            withCredentials: true
+        });
 
-        return () => clearInterval(interval);
+        socket.on('data_updated', () => {
+            console.log('[DataContext] Data updated via WebSocket, refreshing...');
+            if (user) refreshData(false);
+        });
+
+        return () => {
+            socket.disconnect();
+        };
     }, [user, pathname]);
 
     return (
