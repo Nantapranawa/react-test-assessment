@@ -12,8 +12,11 @@ logger = logging.getLogger(__name__)
 
 app = FastAPI()
 
+import os
+
 # Configuration
-BACKEND_URL = "http://localhost:8000/api/ai/analyze-response"
+# Read from environment variable or fallback to localhost
+BACKEND_URL = os.getenv("BACKEND_URL", "http://localhost:8000/api/ai/analyze-response")
 
 # Initialize LLM
 gpt = GPTRunTime()
@@ -145,4 +148,6 @@ async def analyze_response(payload: SimulationRequest):
         raise HTTPException(status_code=500, detail=str(e))
 
 if __name__ == "__main__":
-    uvicorn.run(app, host="0.0.0.0", port=8001)
+    # In Railway, the port is provided as an environment variable
+    port = int(os.getenv("PORT", 8001))
+    uvicorn.run(app, host="0.0.0.0", port=port)
