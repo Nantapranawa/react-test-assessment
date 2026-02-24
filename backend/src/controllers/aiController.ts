@@ -1,6 +1,8 @@
 import { Request, Response } from 'express';
 import { aiService } from '../services/aiService';
 import { prisma } from '../lib/prisma';
+import { employeeStatusService } from '../services/employeeStatusService';
+import { keywordAnalysisService } from '../services/keywordAnalysisService';
 
 export const aiController = {
     async process(req: Request, res: Response) {
@@ -41,23 +43,6 @@ export const aiController = {
                 return res.status(400).json({ success: false, error: "Missing aiStatus from AI Service. Use the AI Service to analyze first." });
             }
 
-            let employeeType = 'TS1';
-            let employee: any = await prisma.employeeTS1.findUnique({
-                where: { nik: employeeNik }
-            });
-
-            if (!employee) {
-                employee = await prisma.employeeTS2.findUnique({
-                    where: { nik: employeeNik }
-                });
-                employeeType = 'TS2';
-            }
-
-            if (!employee) {
-                return res.status(404).json({ success: false, error: "Employee not found" });
-            }
-
-            // We trust the status provided by the AI service (Python)
             console.log(`Received pre-analyzed status from AI Service: ${aiStatus}`);
 
             const aiResult = {
@@ -67,72 +52,16 @@ export const aiController = {
                 replyMessage: replyMessage || ''
             };
 
-            // Determine system status based on AI result
-            let status = "No Invitation";
-            let notifType = "info";
-            let message = "";
-
-            switch (aiResult.status) {
-                case 'accepted':
-                    status = "Accepted";
-                    notifType = "success";
-                    message = `${employee.nama} accepted: "${response}"`;
-                    break;
-                case 'rejected':
-                    status = "Rejected";
-                    notifType = "error";
-                    message = `${employee.nama} rejected: "${response}"`;
-                    break;
-                case 'reschedule':
-                    status = "Reschedule Requested";
-                    notifType = "warning";
-                    message = `${employee.nama} requested reschedule: "${response}"`;
-                    break;
-                default:
-                    notifType = "info";
-                    message = `${employee.nama} response: "${response}"`;
-                    break;
-            }
-
-            if (employeeType === 'TS1') {
-                await prisma.$transaction([
-                    prisma.employeeTS1.update({
-                        where: { id: employee.id },
-                        data: { availability_status: status }
-                    }),
-                    prisma.notificationTS1.create({
-                        data: {
-                            message,
-                            type: notifType,
-                            employeeId: employee.id,
-                            isRead: false
-                        }
-                    })
-                ]);
-            } else {
-                await prisma.$transaction([
-                    prisma.employeeTS2.update({
-                        where: { id: employee.id },
-                        data: { availability_status: status }
-                    }),
-                    prisma.notificationTS2.create({
-                        data: {
-                            message,
-                            type: notifType,
-                            employeeId: employee.id,
-                            isRead: false
-                        }
-                    })
-                ]);
-            }
+            await employeeStatusService.updateStatus(employeeNik, response, aiResult);
 
             res.json({
                 success: true,
-                message: "Response processed and recorded.",
+                message: "Response processed and recorded via AI Service.",
                 aiAnalysis: aiResult
             });
 
         } catch (error: any) {
+            console.error("Error in analyzeEmployeeResponse:", error);
             res.status(500).json({ success: false, error: error.message });
         }
     },
@@ -148,14 +77,27 @@ export const aiController = {
 
             console.log(`Manually triggering AI analysis for ${employeeNik}...`);
 
-            // Call AI Service
-            const aiResult = await aiService.analyzeResponse(employeeNik, text);
+            try {
+                // Try Call AI Service
+                const aiResult = await aiService.analyzeResponse(employeeNik, text);
+                return res.status(200).json({
+                    success: true,
+                    message: "AI analysis triggered successfully via AI Service",
+                    aiResponse: aiResult
+                });
+            } catch (aiError: any) {
+                console.warn(`AI Service failed for manual trigger, falling back to keywords: ${aiError.message}`);
 
-            return res.status(200).json({
-                success: true,
-                message: "AI analysis triggered successfully",
-                aiResponse: aiResult
-            });
+                // Fallback to local keyword logic
+                const fallbackResult = keywordAnalysisService.analyze(text);
+                await employeeStatusService.updateStatus(employeeNik, text, fallbackResult);
+
+                return res.status(200).json({
+                    success: true,
+                    message: "AI Service unavailable. Status updated via Backend Keyword Fallback.",
+                    fallbackResult
+                });
+            }
         } catch (error: any) {
             console.error("Analysis Trigger Error:", error);
             res.status(500).json({ success: false, error: error.message });

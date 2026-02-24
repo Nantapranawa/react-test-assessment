@@ -1,6 +1,8 @@
 import { Request, Response } from 'express';
 import { prisma } from '../lib/prisma';
 import { aiService } from '../services/aiService';
+import { keywordAnalysisService } from '../services/keywordAnalysisService';
+import { employeeStatusService } from '../services/employeeStatusService';
 import { getIO } from '../socket';
 
 export const webhookController = {
@@ -53,8 +55,16 @@ export const webhookController = {
                 .then(() => {
                     console.log(`AI completely finished processing for ${employee.nik}`);
                 })
-                .catch((err: any) => {
-                    console.error(`Delayed AI analysis failed for ${employee.nik}:`, err.message);
+                .catch(async (err: any) => {
+                    console.error(`AI Analysis failed for ${employee.nik}:`, err.message);
+                    console.log(`Falling back to backend keyword logic for ${employee.nik}...`);
+                    try {
+                        const fallbackResult = keywordAnalysisService.analyze(message.content.text);
+                        await employeeStatusService.updateStatus(employee.nik, message.content.text, fallbackResult);
+                        console.log(`Fallback keyword analysis completed for ${employee.nik} with status: ${fallbackResult.status}`);
+                    } catch (fallbackErr: any) {
+                        console.error(`Fallback keyword analysis also failed for ${employee.nik}:`, fallbackErr.message);
+                    }
                 })
                 .finally(() => {
                     // Emit to frontend clients via Socket.io AFTER AI finishes (or fails)
