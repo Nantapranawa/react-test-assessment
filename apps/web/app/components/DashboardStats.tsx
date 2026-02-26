@@ -123,20 +123,20 @@ export default function DashboardStats({ data }: { data: any[] }) {
                 isDark={true}
             />
 
-            {/* 2. READY */}
+            {/* 2. READY (Rescheduled) */}
             <MetricCard
-                label="Assessment Ready"
+                label="Rescheduled"
                 value={stats.ready}
                 total={stats.total}
                 icon={<ClipboardCheck size={18} />}
                 trend="+8%"
                 sparkData={generateSparkData('up')}
-                accentColor="#18181b" // Zinc 900
+                accentColor="#3b82f6" // Blue 500
             />
 
-            {/* 3. PENDING */}
+            {/* 3. PENDING (Sent) */}
             <MetricCard
-                label="Action Required"
+                label="Sent"
                 value={stats.pending}
                 total={stats.total}
                 icon={<Clock size={18} />}
