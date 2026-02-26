@@ -49,23 +49,50 @@ export default function DashboardCharts({ data }: { data: any[] }) {
             .map(([name, value]) => ({ name, value }))
             .sort((a, b) => b.value - a.value);
 
-        // 3. Mock Trend Data
-        const trendData = [];
-        const points = 7;
-        const batchSize = Math.ceil(data.length / points);
-        for (let i = 0; i < points; i++) {
-            const slice = data.slice(i * batchSize, (i + 1) * batchSize);
+        // 3. Trend Data based on updatedAt
+        const trendMap = new Map();
+        const now = new Date();
+        const days = timeRange === 'Week' ? 7 : timeRange === 'Month' ? 30 : 365;
 
-            const randomFactor = Math.floor(Math.random() * 5);
-            trendData.push({
-                name: `Day ${i + 1}`,
-                candidates: slice.length + randomFactor,
-                ready: slice.filter((item: any) => item.tc_result === 'Ready').length
-            });
+        if (timeRange === 'Year') {
+            for (let i = 11; i >= 0; i--) {
+                const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+                const key = d.toLocaleString('default', { month: 'short' });
+                trendMap.set(key, { name: key, accepted: 0, rejected: 0, resched: 0 });
+            }
+        } else {
+            for (let i = days - 1; i >= 0; i--) {
+                const d = new Date(now);
+                d.setDate(d.getDate() - i);
+                const key = d.toISOString().split('T')[0];
+                const displayKey = d.toLocaleDateString('default', { month: 'short', day: 'numeric' });
+                trendMap.set(key, { name: displayKey, accepted: 0, rejected: 0, resched: 0 });
+            }
         }
 
+        data.forEach((item: any) => {
+            if (!item.updatedAt) return;
+            const itemDate = new Date(item.updatedAt);
+            let key = '';
+            if (timeRange === 'Year') {
+                key = itemDate.toLocaleString('default', { month: 'short' });
+            } else {
+                key = itemDate.toISOString().split('T')[0];
+            }
+
+            if (trendMap.has(key)) {
+                const status = (item.availability_status || '').toLowerCase();
+                const record = trendMap.get(key);
+                if (status.includes('accept')) record.accepted++;
+                else if (status.includes('reject')) record.rejected++;
+                else if (status.includes('reschedule')) record.resched++;
+            }
+        });
+
+        const trendData = Array.from(trendMap.values());
+
         return { statusDistribution, trendData, resultDistribution };
-    }, [data]);
+    }, [data, timeRange]);
 
     const CustomTooltip = ({ active, payload, label }: any) => {
         if (active && payload && payload.length) {
@@ -117,13 +144,17 @@ export default function DashboardCharts({ data }: { data: any[] }) {
                     <ResponsiveContainer width="100%" height="100%">
                         <AreaChart data={chartsData.trendData} margin={{ top: 10, right: 0, left: -20, bottom: 0 }}>
                             <defs>
-                                <linearGradient id="colorCandidates" x1="0" y1="0" x2="0" y2="1">
+                                <linearGradient id="colorAccepted" x1="0" y1="0" x2="0" y2="1">
+                                    <stop offset="5%" stopColor="#10b981" stopOpacity={0.15} />
+                                    <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
+                                </linearGradient>
+                                <linearGradient id="colorRejected" x1="0" y1="0" x2="0" y2="1">
                                     <stop offset="5%" stopColor="#e11d48" stopOpacity={0.15} />
                                     <stop offset="95%" stopColor="#e11d48" stopOpacity={0} />
                                 </linearGradient>
-                                <linearGradient id="colorReady" x1="0" y1="0" x2="0" y2="1">
-                                    <stop offset="5%" stopColor="#18181b" stopOpacity={0.1} />
-                                    <stop offset="95%" stopColor="#18181b" stopOpacity={0} />
+                                <linearGradient id="colorResched" x1="0" y1="0" x2="0" y2="1">
+                                    <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.15} />
+                                    <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
                                 </linearGradient>
                             </defs>
                             <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f4f4f5" />
@@ -142,22 +173,31 @@ export default function DashboardCharts({ data }: { data: any[] }) {
                             <Tooltip content={<CustomTooltip />} cursor={{ stroke: '#e4e4e7', strokeWidth: 1 }} />
                             <Area
                                 type="monotone"
-                                dataKey="candidates"
-                                name="New Candidates"
-                                stroke="#e11d48"
+                                dataKey="accepted"
+                                name="Accepted"
+                                stroke="#10b981"
                                 strokeWidth={3}
                                 fillOpacity={1}
-                                fill="url(#colorCandidates)"
+                                fill="url(#colorAccepted)"
                             />
                             <Area
                                 type="monotone"
-                                dataKey="ready"
-                                name="Assessment Ready"
-                                stroke="#18181b"
+                                dataKey="rejected"
+                                name="Rejected"
+                                stroke="#e11d48"
+                                strokeWidth={3}
+                                fillOpacity={1}
+                                fill="url(#colorRejected)"
+                            />
+                            <Area
+                                type="monotone"
+                                dataKey="resched"
+                                name="Rescheduled"
+                                stroke="#3b82f6"
                                 strokeWidth={3}
                                 strokeDasharray="4 4"
                                 fillOpacity={1}
-                                fill="url(#colorReady)"
+                                fill="url(#colorResched)"
                             />
                         </AreaChart>
                     </ResponsiveContainer>

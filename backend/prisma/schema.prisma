@@ -31,6 +31,7 @@ model EmployeeTS1 {
   availability_status String            @default("No Invitation")
   usulan_ubis         String            @default("Unknown")
   tc_result           String
+  updatedAt           DateTime          @default(now()) @updatedAt
   notifications       NotificationTS1[]
   batches             BatchTS1[]        @relation("BatchTS1ToEmployeeTS1")
 }
@@ -49,6 +50,7 @@ model EmployeeTS2 {
   availability_status String            @default("No Invitation")
   usulan_ubis         String            @default("Unknown")
   tc_result           String
+  updatedAt           DateTime          @default(now()) @updatedAt
   notifications       NotificationTS2[]
   batches             BatchTS2[]        @relation("BatchTS2ToEmployeeTS2")
 }
