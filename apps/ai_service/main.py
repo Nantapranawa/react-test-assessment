@@ -94,28 +94,13 @@ async def analyze_response(payload: SimulationRequest):
             logger.error(f"Failed to parse LLM response: {e}. Falling back to keyword matching.")
             llm_response_text = None # Trigger fallback
     
-    # 2. Fallback to Keyword Matching if LLM fails or returns nothing
+    # 2. If LLM fails or status is unknown, hand over to Backend Fallback
     if not llm_response_text or status == "unknown":
-        message = payload.response.lower()
-        
-        # Extended keywords for Indonesian and English fallback
-        rejection_words = ['reject', 'no', 'cancel', 'unable', 'cannot', 'tolak', 'tidak bisa', 'batal', 'halangan', 'maaf']
-        reschedule_words = ['reschedule', 'change date', 'postpone', 'jadwal ulang', 'ganti tanggal', 'tunda', 'undur', 'minggu depan', 'pindah jam']
-        acceptance_words = ['accept', 'yes', 'confirm', 'ok', 'sure', 'setuju', 'bisa', 'siap', 'konfirmasi', 'oke', 'baik', 'hadir']
-        
-        if any(word in message for word in rejection_words):
-            status = "rejected"
-            reason = "AI mendeteksi kata kunci penolakan"
-        elif any(word in message for word in reschedule_words):
-            status = "reschedule"
-            proposedDate = ""  # Let backend detect missing date
-            reason = "AI mendeteksi kata kunci penjadwalan ulang"
-            replyMessage = "Mohon maaf, silakan berikan tanggal dan waktu yang diusulkan untuk penjadwalan ulang."
-        elif any(word in message for word in acceptance_words):
-            status = "accepted"
-            reason = "AI mendeteksi kata kunci persetujuan"
-        
-        logger.info(f"Fallback Matching Result: {status}")
+        logger.warning(f"LLM could not determine status for: {payload.response}. Triggering backend fallback.")
+        raise HTTPException(
+            status_code=422, 
+            detail="AI Service could not determine status. Please use backend keyword fallback."
+        )
 
     # 3. Prepare payload for the Backend
     backend_payload = {
@@ -129,9 +114,18 @@ async def analyze_response(payload: SimulationRequest):
     
     try:
         # 4. Send to Backend
-        response = requests.post(BACKEND_URL, json=backend_payload)
+        logger.info(f"Sending analysis result to backend: {BACKEND_URL}")
+        # Added timeout to avoid hanging the entire request
+        response = requests.post(BACKEND_URL, json=backend_payload, timeout=10)
         
+        backend_data = {}
+        try:
+            backend_data = response.json()
+        except:
+            backend_data = {"status": "error", "message": "Backend did not return valid JSON"}
+
         return {
+            "status": "success",
             "ai_service_analysis": {
                 "determined_status": status,
                 "reason": reason,
@@ -140,11 +134,24 @@ async def analyze_response(payload: SimulationRequest):
                 "method": "llm" if llm_response_text else "fallback"
             },
             "backend_response_code": response.status_code,
-            "backend_response": response.json()
+            "backend_response": backend_data
         }
     except requests.exceptions.ConnectionError:
-        raise HTTPException(status_code=503, detail="Backend server (localhost:8000) is not reachable")
+        logger.error(f"Could not connect to backend at {BACKEND_URL}")
+        # Return partial success since AI analysis actually finished
+        return {
+            "status": "partial_success",
+            "message": f"AI analysis completed but backend at {BACKEND_URL} was unreachable.",
+            "ai_service_analysis": {
+                "determined_status": status,
+                "reason": reason,
+                "proposed_date": proposedDate,
+                "reply_message": replyMessage,
+                "method": "llm" if llm_response_text else "fallback"
+            }
+        }
     except Exception as e:
+        logger.error(f"Unexpected error in analyze_response: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 if __name__ == "__main__":
