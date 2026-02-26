@@ -52,7 +52,45 @@ router.get("/list", getData); // cuman array alice bob charlie
  *         description: File uploaded successfully
  */
 router.post("/upload-excel", upload.single('file'), uploadExcel);
+
+/**
+ * @openapi
+ * /api/data/employees:
+ *   post:
+ *     summary: Create a new employee
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/Employee'
+ *     responses:
+ *       201:
+ *         description: Employee created successfully
+ *       500:
+ *         description: Internal server error
+ */
 router.post("/employees", createEmployee);
+
+/**
+ * @openapi
+ * /api/data/employees/{nik}:
+ *   delete:
+ *     summary: Delete an employee by NIK
+ *     parameters:
+ *       - in: path
+ *         name: nik
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Employee deleted successfully
+ *       404:
+ *         description: Employee not found
+ *       500:
+ *         description: Internal server error
+ */
 router.delete("/employees/:nik", deleteEmployee);
 
 export default router;
