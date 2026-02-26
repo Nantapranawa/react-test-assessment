@@ -90,21 +90,19 @@ export default function DashboardStats({ data }: { data: any[] }) {
 
         const total = data.length;
 
-        // Normalize ready checks
+        // Normalize ready checks (Reschedules)
         const ready = data.filter((item: any) =>
-            ['ready', 'eligible'].includes(item.tc_result?.toLowerCase())
+            (item.availability_status || '').toLowerCase().includes('reschedule')
         ).length;
 
-        // Normalize pending checks
+        // Normalize pending checks (Sent)
         const pending = data.filter((item: any) =>
-            !item.availability_status ||
-            ['Sent', 'No Invitation'].includes(item.availability_status)
+            (item.availability_status || '').toLowerCase() === 'sent'
         ).length;
 
-        // Normalize completed checks
+        // Normalize completed checks (Accepted)
         const completed = data.filter((item: any) =>
-            ['Completed'].includes(item.availability_status) ||
-            ['Completed'].includes(item.ac_result)
+            (item.availability_status || '').toLowerCase().includes('accept')
         ).length;
 
         return { total, ready, pending, completed };
