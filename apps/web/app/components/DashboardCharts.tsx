@@ -16,7 +16,7 @@ import {
     BarChart,
     Bar
 } from 'recharts';
-import { Filter, Download, MoreHorizontal, Calendar } from 'lucide-react';
+import { Filter, MoreHorizontal, Calendar } from 'lucide-react';
 
 const COLORS = ['#e11d48', '#18181b', '#71717a', '#d4d4d8']; // Rose 600, Zinc 900, Zinc 500, Zinc 300
 
@@ -253,20 +253,6 @@ export default function DashboardCharts({ data }: { data: any[] }) {
                                 <span className="truncate">{entry.name}</span>
                             </div>
                         ))}
-                    </div>
-                </div>
-
-                {/* Mini Stat or Action Card */}
-                <div className="bg-zinc-900 p-6 rounded-3xl shadow-lg relative overflow-hidden group cursor-pointer">
-                    <div className="absolute top-0 right-0 w-32 h-32 bg-red-600/20 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 group-hover:bg-red-600/30 transition-colors"></div>
-                    <div className="relative z-10 flex justify-between items-center">
-                        <div>
-                            <p className="text-zinc-400 text-xs font-bold uppercase tracking-wider mb-1">Quick Export</p>
-                            <h3 className="text-white font-bold text-lg">Download Report</h3>
-                        </div>
-                        <div className="w-10 h-10 bg-white/10 rounded-full flex items-center justify-center text-white backdrop-blur-sm group-hover:scale-110 transition-transform">
-                            <Download size={20} />
-                        </div>
                     </div>
                 </div>
 

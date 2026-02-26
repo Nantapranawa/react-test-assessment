@@ -1205,7 +1205,7 @@ export default function BatchManagementPage() {
                                 </div>
 
                                 {/* Right Panel: Message Configuration */}
-                                <div className="w-1/3 flex flex-col bg-white p-6 justify-between">
+                                <div className="w-1/3 flex flex-col bg-white p-6 justify-between overflow-y-auto">
                                     <div className="space-y-4">
                                         <div>
                                             <h3 className="text-lg font-bold text-zinc-900 mb-2">WhatsApp Invitation</h3>
