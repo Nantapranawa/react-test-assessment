@@ -110,6 +110,7 @@ const TalentTable = ({ title, employees, selectedSet, quota, bp, onToggleSelecti
                             if (lowerStatus.includes("accepted")) badgeClass = "bg-emerald-50 text-emerald-700 border-emerald-100";
                             else if (lowerStatus.includes("rejected")) badgeClass = "bg-red-50 text-red-700 border-red-100";
                             else if (lowerStatus.includes("sent")) badgeClass = "bg-amber-50 text-amber-700 border-amber-100";
+                            else if (lowerStatus.includes("pending")) badgeClass = "bg-yellow-50 text-yellow-800 border-yellow-200";
                             else if (lowerStatus.includes("reschedule")) badgeClass = "bg-blue-50 text-blue-700 border-blue-100";
                             else if (lowerStatus.includes("draft")) badgeClass = "bg-orange-50 text-orange-700 border-orange-100";
 
@@ -1100,6 +1101,7 @@ export default function TalentManagementPage() {
                                                 if (s.includes('accepted')) return 'bg-emerald-50 text-emerald-700 border-emerald-100';
                                                 if (s.includes('rejected')) return 'bg-red-50 text-red-700 border-red-100';
                                                 if (s.includes('sent')) return 'bg-amber-50 text-amber-700 border-amber-100';
+                                                if (s.includes('pending')) return 'bg-yellow-50 text-yellow-800 border-yellow-200';
                                                 if (s.includes('reschedule')) return 'bg-blue-50 text-blue-700 border-blue-100';
                                                 if (s.includes('draft')) return 'bg-orange-50 text-orange-700 border-orange-100';
                                                 return 'bg-zinc-100 text-zinc-600 border-zinc-200';

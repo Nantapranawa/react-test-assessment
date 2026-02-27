@@ -65,6 +65,8 @@ export default function DataTable({ columns, data, rowCount }: DataTableProps) {
                       badgeClass = "bg-red-100 text-red-700 border-red-200";
                     } else if (lowerStatus.includes("sent")) {
                       badgeClass = "bg-amber-100 text-amber-700 border-amber-200";
+                    } else if (lowerStatus.includes("pending")) {
+                      badgeClass = "bg-yellow-100 text-yellow-800 border-yellow-300";
                     } else if (lowerStatus.includes("reschedule")) {
                       badgeClass = "bg-blue-100 text-blue-700 border-blue-200";
                     }

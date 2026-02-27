@@ -95,10 +95,11 @@ export default function DashboardStats({ data }: { data: any[] }) {
             (item.availability_status || '').toLowerCase().includes('reschedule')
         ).length;
 
-        // Normalize pending checks (Sent)
-        const pending = data.filter((item: any) =>
-            (item.availability_status || '').toLowerCase() === 'sent'
-        ).length;
+        // Normalize pending checks (Sent & Pending)
+        const pending = data.filter((item: any) => {
+            const status = (item.availability_status || '').toLowerCase();
+            return status === 'sent' || status === 'pending';
+        }).length;
 
         // Normalize completed checks (Accepted)
         const completed = data.filter((item: any) =>

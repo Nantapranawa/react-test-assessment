@@ -563,14 +563,14 @@ export const sendInvitations = async (req: Request, res: Response) => {
 
         const successfulIds = results.filter((r: any) => r.success).map((r: any) => r.id);
 
-        // Update successful employees to "Sent"
+        // Update successful employees to "Pending" initially
         if (successfulIds.length > 0) {
             await employeeModel.updateMany({
                 where: {
                     id: { in: successfulIds }
                 },
                 data: {
-                    availability_status: "Sent"
+                    availability_status: "Pending"
                 }
             });
         }
