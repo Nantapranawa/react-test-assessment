@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { getNotifications, markAsRead, markAllAsRead } from '../controllers/notificationController';
+import { getNotifications, markAsRead, markAllAsRead, resolveNotificationAction } from '../controllers/notificationController';
 
 const router = Router();
 
@@ -30,6 +30,36 @@ router.get('/', getNotifications);
  *         description: Notification marked as read
  */
 router.put('/:id/read', markAsRead);
+
+/**
+ * @openapi
+ * /api/notifications/{id}/resolve:
+ *   post:
+ *     summary: Resolve an action notification
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               talent_solution:
+ *                 type: number
+ *               action:
+ *                 type: string
+ *               proposedStatus:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Action resolved successfully
+ */
+router.post('/:id/resolve', resolveNotificationAction);
 
 /**
  * @openapi

@@ -120,3 +120,59 @@ export const markAllAsRead = async (req: Request, res: Response) => {
         res.status(500).json({ success: false, error: error.message });
     }
 };
+
+// Resolve action notification (accept/decline)
+export const resolveNotificationAction = async (req: Request, res: Response) => {
+    try {
+        const { id } = req.params;
+        const { talent_solution, action, proposedStatus } = req.body;
+        // action is 'accept' or 'decline'
+
+        const ts = talent_solution === '2' || Number(talent_solution) === 2 ? 2 : 1;
+
+        if (ts === 1) {
+            const notif = await prisma.notificationTS1.findUnique({ where: { id: parseInt(id) } });
+            if (!notif) return res.status(404).json({ success: false, error: "Notification not found" });
+
+            if (action === 'accept' && proposedStatus && notif.employeeId) {
+                await prisma.employeeTS1.update({
+                    where: { id: notif.employeeId },
+                    data: { availability_status: proposedStatus }
+                });
+            }
+
+            let newType = action === 'accept' ? 'success' : 'info';
+            if (action === 'accept' && proposedStatus === 'Rejected') newType = 'error';
+            if (action === 'accept' && proposedStatus === 'Reschedule Requested') newType = 'warning';
+
+            await prisma.notificationTS1.update({
+                where: { id: parseInt(id) },
+                data: { type: newType, isRead: true }
+            });
+        } else {
+            const notif = await prisma.notificationTS2.findUnique({ where: { id: parseInt(id) } });
+            if (!notif) return res.status(404).json({ success: false, error: "Notification not found" });
+
+            if (action === 'accept' && proposedStatus && notif.employeeId) {
+                await prisma.employeeTS2.update({
+                    where: { id: notif.employeeId },
+                    data: { availability_status: proposedStatus }
+                });
+            }
+
+            let newType = action === 'accept' ? 'success' : 'info';
+            if (action === 'accept' && proposedStatus === 'Rejected') newType = 'error';
+            if (action === 'accept' && proposedStatus === 'Reschedule Requested') newType = 'warning';
+
+            await prisma.notificationTS2.update({
+                where: { id: parseInt(id) },
+                data: { type: newType, isRead: true }
+            });
+        }
+
+        res.json({ success: true, message: `Notification resolved. Status ${action === 'accept' ? 'updated' : 'unchanged'}.` });
+
+    } catch (err: any) {
+        res.status(500).json({ success: false, error: err.message });
+    }
+};

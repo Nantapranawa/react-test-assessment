@@ -26,24 +26,26 @@ export const employeeStatusService = {
         }
 
         // Determine system status based on AI/Keyword result
-        let status = "No Invitation";
+        let proposedStatus = "No Invitation";
         let notifType = "info";
         let message = "";
 
+        const requiresAction = employee.availability_status !== "Sent";
+
         switch (aiResult.status) {
             case 'accepted':
-                status = "Accepted";
-                notifType = "success";
+                proposedStatus = "Accepted";
+                notifType = requiresAction ? "action:Accepted" : "success";
                 message = `${employee.nama} accepted: "${response}"`;
                 break;
             case 'rejected':
-                status = "Rejected";
-                notifType = "error";
+                proposedStatus = "Rejected";
+                notifType = requiresAction ? "action:Rejected" : "error";
                 message = `${employee.nama} rejected: "${response}"`;
                 break;
             case 'reschedule':
-                status = "Reschedule Requested";
-                notifType = "warning";
+                proposedStatus = "Reschedule Requested";
+                notifType = requiresAction ? "action:Reschedule Requested" : "warning";
                 message = `${employee.nama} requested reschedule: "${response}"`;
                 break;
             default:
@@ -52,36 +54,60 @@ export const employeeStatusService = {
                 break;
         }
 
+        const updateStatusDirectly = !requiresAction && proposedStatus !== "No Invitation";
+
         if (employeeType === 'TS1') {
-            return await prisma.$transaction([
-                prisma.employeeTS1.update({
-                    where: { id: employee.id },
-                    data: { availability_status: status }
-                }),
-                prisma.notificationTS1.create({
+            if (updateStatusDirectly) {
+                return await prisma.$transaction([
+                    prisma.employeeTS1.update({
+                        where: { id: employee.id },
+                        data: { availability_status: proposedStatus }
+                    }),
+                    prisma.notificationTS1.create({
+                        data: {
+                            message,
+                            type: notifType,
+                            employeeId: employee.id,
+                            isRead: false
+                        }
+                    })
+                ]);
+            } else {
+                return await prisma.notificationTS1.create({
                     data: {
                         message,
                         type: notifType,
                         employeeId: employee.id,
                         isRead: false
                     }
-                })
-            ]);
+                });
+            }
         } else {
-            return await prisma.$transaction([
-                prisma.employeeTS2.update({
-                    where: { id: employee.id },
-                    data: { availability_status: status }
-                }),
-                prisma.notificationTS2.create({
+            if (updateStatusDirectly) {
+                return await prisma.$transaction([
+                    prisma.employeeTS2.update({
+                        where: { id: employee.id },
+                        data: { availability_status: proposedStatus }
+                    }),
+                    prisma.notificationTS2.create({
+                        data: {
+                            message,
+                            type: notifType,
+                            employeeId: employee.id,
+                            isRead: false
+                        }
+                    })
+                ]);
+            } else {
+                return await prisma.notificationTS2.create({
                     data: {
                         message,
                         type: notifType,
                         employeeId: employee.id,
                         isRead: false
                     }
-                })
-            ]);
+                });
+            }
         }
     }
 };
