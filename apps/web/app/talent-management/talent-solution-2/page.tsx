@@ -64,6 +64,16 @@ interface TalentTableProps {
 
 
 const TalentTable = ({ title, employees, selectedSet, quota, bp, onToggleSelection, onRowClick, onDeleteRow, isEditMode }: TalentTableProps) => {
+    const [currentPage, setCurrentPage] = useState(1);
+    const rowsPerPage = 20;
+    const totalPages = Math.max(1, Math.ceil(employees.length / rowsPerPage));
+    const startIndex = (currentPage - 1) * rowsPerPage;
+    const paginatedEmployees = employees.slice(startIndex, startIndex + rowsPerPage);
+
+    // Reset to page 1 if employees list shrinks below current page
+    if (currentPage > totalPages) {
+        setCurrentPage(totalPages);
+    }
     return (
         <div className="bg-white rounded-2xl shadow-sm border border-zinc-200 overflow-hidden mb-12">
             <div className="px-8 py-5 border-b border-zinc-100 flex justify-between items-center bg-zinc-50/50">
@@ -98,7 +108,8 @@ const TalentTable = ({ title, employees, selectedSet, quota, bp, onToggleSelecti
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-zinc-100">
-                        {employees.length > 0 ? employees.map((employee: any, index: number) => {
+                        {paginatedEmployees.length > 0 ? paginatedEmployees.map((employee: any, idx: number) => {
+                            const index = startIndex + idx;
                             const isSelected = selectedSet.has(employee.nik);
                             const status = employee.availability_status || 'No Invitation';
                             const isAlreadyInBatch = status !== 'No Invitation';
@@ -179,6 +190,31 @@ const TalentTable = ({ title, employees, selectedSet, quota, bp, onToggleSelecti
                         )}
                     </tbody>
                 </table>
+            </div>
+
+            <div className="px-8 py-4 border-t border-zinc-100 flex items-center justify-between bg-zinc-50/50">
+                <span className="text-sm text-zinc-500">
+                    Showing {employees.length === 0 ? 0 : startIndex + 1} to {Math.min(startIndex + rowsPerPage, employees.length)} of {employees.length} entries
+                </span>
+                <div className="flex items-center space-x-2">
+                    <button
+                        onClick={(e) => { e.stopPropagation(); setCurrentPage(p => Math.max(1, p - 1)); }}
+                        disabled={currentPage === 1}
+                        className="p-2 rounded-lg border border-zinc-200 text-zinc-600 hover:bg-zinc-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    >
+                        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
+                    </button>
+                    <div className="text-sm font-medium text-zinc-700">
+                        Page {currentPage} of {totalPages}
+                    </div>
+                    <button
+                        onClick={(e) => { e.stopPropagation(); setCurrentPage(p => Math.min(totalPages, p + 1)); }}
+                        disabled={currentPage === totalPages}
+                        className="p-2 rounded-lg border border-zinc-200 text-zinc-600 hover:bg-zinc-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    >
+                        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
+                    </button>
+                </div>
             </div>
         </div>
     );
@@ -262,6 +298,7 @@ export default function TalentManagementPage() {
     };
 
     // State
+    const [activeTab, setActiveTab] = useState<'bp1' | 'bp2'>('bp1');
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedBP1, setSelectedBP1] = useState<Set<string>>(new Set());
     const [selectedBP2, setSelectedBP2] = useState<Set<string>>(new Set());
@@ -825,9 +862,29 @@ export default function TalentManagementPage() {
                 </div>
             )}
 
+            {/* Tabs */}
+            <div className="mb-6 flex space-x-6 border-b border-zinc-200">
+                <button
+                    onClick={() => setActiveTab('bp1')}
+                    className={`pb-3 px-2 font-bold text-lg transition-all border-b-2 ${activeTab === 'bp1' ? 'border-red-600 text-red-600' : 'border-transparent text-zinc-500 hover:text-zinc-700'}`}
+                >
+                    BP 1 List
+                </button>
+                <button
+                    onClick={() => setActiveTab('bp2')}
+                    className={`pb-3 px-2 font-bold text-lg transition-all border-b-2 ${activeTab === 'bp2' ? 'border-red-600 text-red-600' : 'border-transparent text-zinc-500 hover:text-zinc-700'}`}
+                >
+                    BP 2 List
+                </button>
+            </div>
+
             {/* Tables */}
-            <TalentTable title="BP 1 Candidates" employees={bp1Employees} selectedSet={selectedBP1} quota={QUOTA_BP1} bp={1} onToggleSelection={toggleSelection} onRowClick={handleEmployeeClick} onDeleteRow={handleDeleteEmployee} isEditMode={isEditMode} />
-            <TalentTable title="BP 2 Candidates" employees={bp2Employees} selectedSet={selectedBP2} quota={QUOTA_BP2} bp={2} onToggleSelection={toggleSelection} onRowClick={handleEmployeeClick} onDeleteRow={handleDeleteEmployee} isEditMode={isEditMode} />
+            {activeTab === 'bp1' && (
+                <TalentTable title="BP 1 Candidates" employees={bp1Employees} selectedSet={selectedBP1} quota={QUOTA_BP1} bp={1} onToggleSelection={toggleSelection} onRowClick={handleEmployeeClick} onDeleteRow={handleDeleteEmployee} isEditMode={isEditMode} />
+            )}
+            {activeTab === 'bp2' && (
+                <TalentTable title="BP 2 Candidates" employees={bp2Employees} selectedSet={selectedBP2} quota={QUOTA_BP2} bp={2} onToggleSelection={toggleSelection} onRowClick={handleEmployeeClick} onDeleteRow={handleDeleteEmployee} isEditMode={isEditMode} />
+            )}
 
             {/* Sticky Bar */}
             <div className="fixed bottom-0 left-64 right-0 bg-white border-t border-zinc-200 p-4 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] z-20 flex justify-between items-center">
