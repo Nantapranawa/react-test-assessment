@@ -367,7 +367,6 @@ export default function TalentManagementPage() {
     const QUOTA_BP2 = 6;
 
     const FILTER_COLUMNS = [
-        { key: 'posisi', label: 'Position' },
         { key: 'availability_status', label: 'Status' },
         { key: 'eligible', label: 'Eligibility' },
         { key: 'ac_result', label: 'AC Result' },
@@ -676,41 +675,7 @@ export default function TalentManagementPage() {
                     <h1 className="text-3xl font-bold text-zinc-900 tracking-tight">Talent Solution <span className="text-red-600">II</span></h1>
                     <p className="text-zinc-500 text-xl">Select candidates for the new batch.</p>
                 </div>
-                <div className="flex items-center gap-4">
-                    <button
-                        onClick={() => setIsEditMode(!isEditMode)}
-                        className={`px-6 py-2.5 rounded-lg font-semibold shadow-sm transition-all flex items-center space-x-2 border ${isEditMode
-                            ? 'bg-red-50 text-red-600 border-red-200'
-                            : 'bg-white text-zinc-600 border-zinc-200 hover:bg-zinc-50'
-                            }`}
-                    >
-                        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                        </svg>
-                        <span>{isEditMode ? 'Done Editing' : 'Edit List'}</span>
-                    </button>
-                    <button
-                        onClick={() => setIsModalOpen(true)}
-                        disabled={!isSelectionComplete}
-                        className={`px-6 py-2.5 rounded-lg font-semibold shadow-sm transition-all ${isSelectionComplete
-                            ? 'bg-zinc-900 text-white hover:bg-zinc-800 hover:shadow-md'
-                            : 'bg-zinc-100 text-zinc-400 cursor-not-allowed'
-                            }`}
-                    >
-                        Create Batch
-                    </button>
-                    {isEditMode && (
-                        <button
-                            onClick={() => setIsAddModalOpen(true)}
-                            className="px-6 py-2.5 bg-white text-zinc-900 border border-zinc-200 rounded-lg font-semibold shadow-sm hover:bg-zinc-50 hover:shadow-md transition-all flex items-center space-x-2"
-                        >
-                            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                            </svg>
-                            <span>Add Employee</span>
-                        </button>
-                    )}
-                </div>
+
             </div>
 
             {/* Search and Filters */}
@@ -732,29 +697,65 @@ export default function TalentManagementPage() {
                         />
                     </div>
 
-                    {/* Filter Trigger Button */}
-                    <button
-                        onClick={() => setIsFilterModalOpen(true)}
-                        className={`px-5 py-3.5 rounded-2xl border font-bold flex items-center space-x-3 transition-all transform hover:scale-[1.02] active:scale-[0.98] ${Object.keys(selectedFilters).length > 0
-                            ? 'bg-zinc-900 text-white border-zinc-900 shadow-xl shadow-zinc-900/20'
-                            : 'bg-white text-zinc-700 border-zinc-200 hover:border-zinc-300 shadow-sm'
-                            }`}
-                    >
-                        <div className="relative">
-                            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
-                            </svg>
-                            {Object.keys(selectedFilters).length > 0 && (
-                                <span className="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full border-2 border-white"></span>
-                            )}
-                        </div>
-                        <span className="text-sm">Filter Options</span>
-                        {Object.keys(selectedFilters).length > 0 && (
-                            <div className="flex items-center justify-center bg-red-600 text-white text-[10px] font-black w-5 h-5 rounded-full ring-2 ring-white">
-                                {Object.values(selectedFilters).flat().length}
+                    <div className="flex items-center gap-3">
+                        {/* Filter Trigger Button */}
+                        <button
+                            onClick={() => setIsFilterModalOpen(true)}
+                            className={`px-5 py-3.5 rounded-2xl border font-bold flex items-center space-x-3 transition-all transform hover:scale-[1.02] active:scale-[0.98] ${Object.keys(selectedFilters).length > 0
+                                ? 'bg-zinc-900 text-white border-zinc-900 shadow-xl shadow-zinc-900/20'
+                                : 'bg-white text-zinc-700 border-zinc-200 hover:border-zinc-300 shadow-sm'
+                                }`}
+                        >
+                            <div className="relative">
+                                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
+                                </svg>
+                                {Object.keys(selectedFilters).length > 0 && (
+                                    <span className="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full border-2 border-white"></span>
+                                )}
                             </div>
+                            <span className="text-sm">Filter Options</span>
+                            {Object.keys(selectedFilters).length > 0 && (
+                                <div className="flex items-center justify-center bg-red-600 text-white text-[10px] font-black w-5 h-5 rounded-full ring-2 ring-white">
+                                    {Object.values(selectedFilters).flat().length}
+                                </div>
+                            )}
+                        </button>
+
+                        <button
+                            onClick={() => setIsEditMode(!isEditMode)}
+                            className={`px-5 py-3.5 rounded-2xl font-bold transition-all flex items-center space-x-2 border shadow-sm ${isEditMode
+                                ? 'bg-red-50 text-red-600 border-red-200'
+                                : 'bg-white text-zinc-600 border-zinc-200 hover:bg-zinc-50'
+                                }`}
+                        >
+                            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                            </svg>
+                            <span className="text-sm">{isEditMode ? 'Done Editing' : 'Edit List'}</span>
+                        </button>
+                        <button
+                            onClick={() => setIsModalOpen(true)}
+                            disabled={!isSelectionComplete}
+                            className={`px-5 py-3.5 rounded-2xl font-bold shadow-sm transition-all text-sm ${isSelectionComplete
+                                ? 'bg-zinc-900 text-white hover:bg-zinc-800 hover:shadow-md'
+                                : 'bg-zinc-100 text-zinc-400 cursor-not-allowed'
+                                }`}
+                        >
+                            Create Batch
+                        </button>
+                        {isEditMode && (
+                            <button
+                                onClick={() => setIsAddModalOpen(true)}
+                                className="px-5 py-3.5 bg-white text-zinc-900 border border-zinc-200 rounded-2xl font-bold shadow-sm hover:bg-zinc-50 hover:shadow-md transition-all flex items-center space-x-2"
+                            >
+                                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                                </svg>
+                                <span className="text-sm">Add Employee</span>
+                            </button>
                         )}
-                    </button>
+                    </div>
                 </div>
 
                 {/* Active Filter Chips - Red Colored */}

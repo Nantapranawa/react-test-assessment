@@ -42,10 +42,6 @@ const MetricCard = ({ label, value, total, icon, trend, sparkData, accentColor, 
                 <div className={`p-2 rounded-lg ${isDark ? 'bg-zinc-800 text-white' : 'bg-zinc-50 text-zinc-900 border border-zinc-100'}`}>
                     {icon}
                 </div>
-                <div className={`text-[10px] font-semibold px-2 py-0.5 rounded-md border ${isDark ? 'bg-zinc-800 border-zinc-700 text-zinc-300' : 'bg-white border-zinc-100 text-zinc-500'
-                    }`}>
-                    {trend}
-                </div>
             </div>
 
             <div className="relative z-10 mb-2">

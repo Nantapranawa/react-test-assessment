@@ -861,7 +861,7 @@ export default function BatchManagementPage() {
             {/* Details Modal */}
             {isDetailsOpen && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-                    <div className="bg-white rounded-xl shadow-2xl w-full max-w-6xl overflow-hidden animate-in zoom-in-95 duration-200 max-h-[90vh] flex flex-col">
+                    <div className="bg-white rounded-xl shadow-2xl w-full max-w-[75vw] overflow-hidden animate-in zoom-in-95 duration-200 max-h-[90vh] flex flex-col">
                         <div className="p-6 border-b border-zinc-100 flex justify-between items-start bg-zinc-50/50">
                             <div className="flex-1">
                                 <h2 className="text-xl font-bold text-zinc-900 mb-2">Batch Details #{selectedBatch?.id}</h2>
@@ -898,9 +898,9 @@ export default function BatchManagementPage() {
                                         </div>
                                     </div>
                                 ) : (
-                                    <p className="text-sm text-zinc-500">
+                                    <p className="text-base text-zinc-600 font-medium">
                                         {selectedBatch?.location} - {selectedBatch?.assessmentDate && formatDate(selectedBatch.assessmentDate)}
-                                        <span className="ml-2 font-mono bg-zinc-100 px-2 py-0.5 rounded text-xs text-zinc-600">
+                                        <span className="ml-2 font-mono bg-zinc-100 px-2.5 py-1 rounded text-sm text-zinc-700 font-bold">
                                             {selectedBatch?.assessmentDate && new Date(selectedBatch.assessmentDate).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                         </span>
                                     </p>
@@ -971,7 +971,7 @@ export default function BatchManagementPage() {
                                             <th className="px-6 py-3">Phone</th>
                                             <th className="px-6 py-3">Assessment Date</th>
                                             <th className="px-6 py-3">Position</th>
-                                            <th className="px-6 py-3">Status</th>
+                                            <th className="px-6 py-3 min-w-[200px]">Status</th>
                                             <th className="px-6 py-3 text-right">Actions</th>
                                         </tr>
                                     </thead>
@@ -991,8 +991,8 @@ export default function BatchManagementPage() {
                                                 <tr key={emp.id} className="hover:bg-zinc-50/30">
                                                     <td className="px-6 py-3 font-medium text-zinc-900">BP {emp.bp}</td>
                                                     <td className="px-6 py-3 text-zinc-900 font-bold">{emp.nama}</td>
-                                                    <td className="px-6 py-3 text-zinc-500 font-mono text-sm">{emp.nik}</td>
-                                                    <td className="px-6 py-3 text-zinc-500 font-mono text-sm">{emp.phone || '-'}</td>
+                                                    <td className="px-6 py-3 text-zinc-500 font-mono text-base font-semibold">{emp.nik}</td>
+                                                    <td className="px-6 py-3 text-zinc-500 font-mono text-base font-semibold">{emp.phone || '-'}</td>
                                                     <td className="px-6 py-3 text-zinc-600 text-base">
                                                         <div className="flex flex-col">
                                                             <span>{selectedBatch.assessmentDate && formatDate(selectedBatch.assessmentDate)}</span>
@@ -1147,7 +1147,7 @@ export default function BatchManagementPage() {
                                         placeholder="Search by name or NIK..."
                                         value={replaceSearchTerm}
                                         onChange={(e) => setReplaceSearchTerm(e.target.value)}
-                                        className="block w-full pl-10 pr-4 py-2 bg-white border border-zinc-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 transition-all font-medium"
+                                        className="block w-full pl-10 pr-4 py-2 bg-white border border-zinc-200 rounded-lg text-zinc-900 text-sm focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 transition-all font-medium"
                                     />
                                 </div>
                             </div>
@@ -1574,7 +1574,7 @@ PT Telkom Indonesia`}
                                         placeholder="Search by name or NIK..."
                                         value={addSearchTerm}
                                         onChange={(e) => setAddSearchTerm(e.target.value)}
-                                        className="block w-full pl-10 pr-4 py-2 bg-white border border-zinc-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 transition-all font-medium"
+                                        className="block w-full pl-10 pr-4 py-2 bg-white border border-zinc-200 rounded-lg text-zinc-900 text-sm focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 transition-all font-medium"
                                     />
                                 </div>
                             </div>
