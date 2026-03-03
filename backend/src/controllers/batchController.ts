@@ -188,16 +188,24 @@ export const updateBatch = async (req: Request, res: Response) => {
             return res.status(404).json({ success: false, error: "Batch not found" });
         }
 
-        // Validate that all current employees are "Batch Draft"
-        const allDraft = batch.employees.every((emp: any) => emp.availability_status === "Batch Draft");
-        if (!allDraft) {
-            return res.status(400).json({ success: false, error: "Cannot update batch. some employees have advanced status." });
+        // Validate that there is at least one draft or rejected employee to edit, or we are just updating location/date
+        const hasEditable = batch.employees.some((emp: any) => emp.availability_status === "Batch Draft" || emp.availability_status.toLowerCase().includes("rejected"));
+        if (!hasEditable && employeeNiks) {
+            // We could block entirely, or just allow location/date edits instead of employee replacements
         }
 
         if (employeeNiks && Array.isArray(employeeNiks)) {
             const currentEmployeeNiks = batch.employees.map((e: any) => e.nik);
             const addedNiks = employeeNiks.filter((nik: any) => !currentEmployeeNiks.includes(nik));
             const removedNiks = currentEmployeeNiks.filter((nik: any) => !employeeNiks.includes(nik));
+
+            // Validate that we only remove Draft or Rejected employees
+            for (const nik of removedNiks) {
+                const emp = batch.employees.find((e: any) => e.nik === nik);
+                if (emp && emp.availability_status !== "Batch Draft" && !emp.availability_status.toLowerCase().includes("rejected")) {
+                    return res.status(400).json({ success: false, error: `Cannot remove employee with advanced status: ${emp.nama}` });
+                }
+            }
 
             // Validate new employees are available and match BP if batch not empty after removals
             const remainingEmployees = batch.employees.filter((e: any) => !removedNiks.includes(e.nik));
@@ -296,8 +304,8 @@ export const removeEmployee = async (req: Request, res: Response) => {
             return res.status(404).json({ success: false, error: "Employee not in batch" });
         }
 
-        if (employee.availability_status !== "Batch Draft") {
-            return res.status(400).json({ success: false, error: "Can only remove employees with 'Batch Draft' status." });
+        if (employee.availability_status !== "Batch Draft" && !employee.availability_status.toLowerCase().includes("rejected")) {
+            return res.status(400).json({ success: false, error: "Can only remove employees with 'Batch Draft' or 'Rejected' status." });
         }
 
         await prisma.$transaction([

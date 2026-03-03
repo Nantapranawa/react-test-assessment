@@ -578,8 +578,37 @@ export default function BatchManagementPage() {
     };
 
     const handleRemoveEmployee = async (employeeNik: string) => {
-        if (!isEditingBatch) return;
-        setStagedEmployees(stagedEmployees.filter(e => e.nik !== employeeNik));
+        if (isEditingBatch) {
+            setStagedEmployees(stagedEmployees.filter(e => e.nik !== employeeNik));
+            return;
+        }
+
+        if (!selectedBatch) return;
+
+        if (!confirm("Are you sure you want to remove this employee?")) return;
+
+        try {
+            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/batches/${selectedBatch.id}/remove-employee`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ employeeNik })
+            });
+            const result = await res.json();
+            if (result.success) {
+                const updatedEmployees = selectedBatch.employees?.filter(e => e.nik !== employeeNik);
+                setSelectedBatch({ ...selectedBatch, employees: updatedEmployees, _count: { employees: (selectedBatch._count?.employees || 1) - 1 } });
+                fetchBatches();
+                refreshTalentPool();
+                setNotificationMessage('Employee removed successfully');
+                setShowNotification(true);
+                setTimeout(() => setShowNotification(false), 3000);
+            } else {
+                alert(result.error);
+            }
+        } catch (error) {
+            console.error('Failed to remove employee', error);
+            alert('Failed to remove employee');
+        }
     };
 
     const filteredCandidates = useMemo(() => {
@@ -898,7 +927,7 @@ export default function BatchManagementPage() {
                                 ) : (
                                     <>
                                         {(() => {
-                                            const isEditable = selectedBatch?.employees?.every((e: any) => e.availability_status === "Batch Draft");
+                                            const isEditable = selectedBatch?.employees?.some((e: any) => e.availability_status === "Batch Draft");
                                             return (
                                                 <button
                                                     onClick={handleEditBatchClick}
@@ -907,7 +936,7 @@ export default function BatchManagementPage() {
                                                         ? 'bg-white border-zinc-200 text-zinc-700 hover:bg-zinc-50 hover:text-zinc-900 hover:border-zinc-300'
                                                         : 'bg-zinc-50 border-zinc-100 text-zinc-400 cursor-not-allowed'
                                                         }`}
-                                                    title={isEditable ? "Edit Batch Details" : "Cannot edit: Some employees have advanced status"}
+                                                    title={isEditable ? "Edit Batch Details" : "Cannot edit: No editable employees found"}
                                                 >
                                                     <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
                                                     <span>Edit Batch</span>
@@ -932,6 +961,7 @@ export default function BatchManagementPage() {
                                             <th className="px-6 py-3">Selection Type (BP)</th>
                                             <th className="px-6 py-3">Name</th>
                                             <th className="px-6 py-3">NIK</th>
+                                            <th className="px-6 py-3">Phone</th>
                                             <th className="px-6 py-3">Assessment Date</th>
                                             <th className="px-6 py-3">Position</th>
                                             <th className="px-6 py-3">Status</th>
@@ -955,6 +985,7 @@ export default function BatchManagementPage() {
                                                     <td className="px-6 py-3 font-medium text-zinc-900">BP {emp.bp}</td>
                                                     <td className="px-6 py-3 text-zinc-900 font-bold">{emp.nama}</td>
                                                     <td className="px-6 py-3 text-zinc-500 font-mono text-sm">{emp.nik}</td>
+                                                    <td className="px-6 py-3 text-zinc-500 font-mono text-sm">{emp.phone || '-'}</td>
                                                     <td className="px-6 py-3 text-zinc-600 text-base">
                                                         <div className="flex flex-col">
                                                             <span>{selectedBatch.assessmentDate && formatDate(selectedBatch.assessmentDate)}</span>
@@ -968,62 +999,63 @@ export default function BatchManagementPage() {
                                                         </span>
                                                     </td>
                                                     <td className="px-6 py-3 text-right">
-                                                        {lowerStatus === "batch draft" && isEditingBatch && (
-                                                            <div className="flex items-center justify-end space-x-4">
+                                                        <div className="flex items-center justify-end space-x-4 whitespace-nowrap">
+                                                            {((lowerStatus === "batch draft" && isEditingBatch) || lowerStatus.includes("rejected")) && (
+                                                                <div className="flex items-center justify-end space-x-4">
+                                                                    <button
+                                                                        onClick={() => {
+                                                                            setReplacingEmployee(emp);
+                                                                            setIsReplaceModalOpen(true);
+                                                                        }}
+                                                                        className="text-sm font-bold text-zinc-900 hover:text-red-600 transition-colors uppercase tracking-tight underline underline-offset-4"
+                                                                    >
+                                                                        Replace
+                                                                    </button>
+                                                                    <button
+                                                                        onClick={() => handleRemoveEmployee(emp.nik)}
+                                                                        className="text-sm font-bold text-red-500 hover:text-red-700 transition-colors uppercase tracking-tight underline underline-offset-4"
+                                                                    >
+                                                                        Remove
+                                                                    </button>
+                                                                </div>
+                                                            )}
+                                                            {lowerStatus.includes("reschedule") && (
                                                                 <button
-                                                                    onClick={() => {
-                                                                        setReplacingEmployee(emp);
-                                                                        setIsReplaceModalOpen(true);
-                                                                    }}
-                                                                    className="text-sm font-bold text-zinc-900 hover:text-red-600 transition-colors uppercase tracking-tight underline underline-offset-4"
+                                                                    onClick={() => handleRescheduleClick(emp)}
+                                                                    className="px-3 py-1.5 bg-red-600 text-white text-xs font-bold rounded shadow-sm hover:bg-red-700 transition-colors uppercase tracking-wide flex items-center space-x-1"
                                                                 >
-                                                                    Replace
+                                                                    <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                                                                    <span>Reschedule</span>
                                                                 </button>
-                                                                <button
-                                                                    onClick={() => handleRemoveEmployee(emp.nik)}
-                                                                    className="text-sm font-bold text-red-500 hover:text-red-700 transition-colors uppercase tracking-tight underline underline-offset-4"
-                                                                >
-                                                                    Remove
-                                                                </button>
-                                                            </div>
-                                                        )}
-                                                        {lowerStatus.includes("reschedule") && (
-                                                            <button
-                                                                onClick={() => handleRescheduleClick(emp)}
-                                                                className="px-3 py-1.5 bg-red-600 text-white text-xs font-bold rounded shadow-sm hover:bg-red-700 transition-colors uppercase tracking-wide flex items-center space-x-1"
-                                                            >
-                                                                <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
-                                                                <span>Reschedule</span>
-                                                            </button>
-                                                        )}
-                                                        {lowerStatus.includes("pending") && (() => {
-                                                            const getMinutesPassed = () => {
-                                                                if (!emp.updatedAt) return 15;
-                                                                let t = new Date(emp.updatedAt).getTime();
-                                                                let diff = now - t;
-                                                                if (diff < -300000) diff += 7 * 60 * 60 * 1000;
-                                                                return diff / 60000;
-                                                            };
-                                                            const elapsed = getMinutesPassed();
-                                                            const canResend = !isResendingRecord[emp.id] && elapsed >= 15;
-                                                            const remaining = Math.max(0, Math.ceil(15 - elapsed));
+                                                            )}
+                                                            {(lowerStatus.includes("pending") || lowerStatus.includes("rejected")) && (() => {
+                                                                const getMinutesPassed = () => {
+                                                                    if (!emp.updatedAt) return 15;
+                                                                    let t = new Date(emp.updatedAt).getTime();
+                                                                    let diff = now - t;
+                                                                    if (diff < -300000) diff += 7 * 60 * 60 * 1000;
+                                                                    return diff / 60000;
+                                                                };
+                                                                const elapsed = getMinutesPassed();
+                                                                const canResend = !isResendingRecord[emp.id] && elapsed >= 15;
+                                                                const remaining = Math.max(0, Math.ceil(15 - elapsed));
 
-                                                            return (
-                                                                <button
-                                                                    onClick={() => {
-                                                                        setEmployeeToResend(emp);
-                                                                        setIsResendConfirmOpen(true);
-                                                                    }}
-                                                                    disabled={!canResend}
-                                                                    className={`px-3 py-1.5 text-xs font-bold rounded shadow-sm transition-colors uppercase tracking-wide flex items-center space-x-1 ${!canResend ? 'bg-zinc-100 text-zinc-400 cursor-not-allowed border border-zinc-200' : 'bg-blue-600 text-white hover:bg-blue-700'}`}
-                                                                    title={!canResend ? `You can resend after ${remaining} minutes` : "Resend Invitation"}
-                                                                >
-                                                                    <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
-                                                                    <span>{isResendingRecord[emp.id] ? 'Sending...' : 'Resend'}</span>
-                                                                </button>
-                                                            );
-                                                        })()}
-
+                                                                return (
+                                                                    <button
+                                                                        onClick={() => {
+                                                                            setEmployeeToResend(emp);
+                                                                            setIsResendConfirmOpen(true);
+                                                                        }}
+                                                                        disabled={!canResend}
+                                                                        className={`px-3 py-1.5 text-xs font-bold rounded shadow-sm transition-colors uppercase tracking-wide flex items-center space-x-1 ${!canResend ? 'bg-zinc-100 text-zinc-400 cursor-not-allowed border border-zinc-200' : 'bg-blue-600 text-white hover:bg-blue-700'}`}
+                                                                        title={!canResend ? `You can resend after ${remaining} minutes` : "Resend Invitation"}
+                                                                    >
+                                                                        <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
+                                                                        <span>{isResendingRecord[emp.id] ? 'Sending...' : 'Resend'}</span>
+                                                                    </button>
+                                                                );
+                                                            })()}
+                                                        </div>
                                                     </td>
                                                 </tr>
                                             );
