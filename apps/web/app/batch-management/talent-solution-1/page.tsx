@@ -71,6 +71,52 @@ export default function BatchManagementPage() {
     const [showNotification, setShowNotification] = useState(false);
     const [notificationMessage, setNotificationMessage] = useState('');
 
+    // Resend State
+    const [isResendingRecord, setIsResendingRecord] = useState<Record<number, boolean>>({});
+    const [now, setNow] = useState<number>(0);
+    const [isResendConfirmOpen, setIsResendConfirmOpen] = useState(false);
+    const [employeeToResend, setEmployeeToResend] = useState<any>(null);
+
+    useEffect(() => {
+        setNow(Date.now());
+        const timer = setInterval(() => setNow(Date.now()), 10000);
+        return () => clearInterval(timer);
+    }, []);
+
+    const handleResendMessage = async (employeeId: number) => {
+        if (!selectedBatch) return;
+        setIsResendingRecord(prev => ({ ...prev, [employeeId]: true }));
+        try {
+            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/batches/${selectedBatch.id}/send-invitations`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ employeeId })
+            });
+            const result = await res.json();
+            if (result.success) {
+                fetchBatches();
+                handleViewDetails(selectedBatch.id);
+                setNotificationMessage('Invitation resent successfully');
+                setShowNotification(true);
+                setTimeout(() => setShowNotification(false), 3000);
+            } else {
+                alert('Failed to resend: ' + result.error);
+            }
+        } catch (error) {
+            console.error('Failed to resend message', error);
+            alert('Failed to resend message');
+        } finally {
+            setIsResendingRecord(prev => ({ ...prev, [employeeId]: false }));
+        }
+    };
+
+    const handleConfirmResend = async () => {
+        if (!employeeToResend) return;
+        await handleResendMessage(employeeToResend.id);
+        setIsResendConfirmOpen(false);
+        setEmployeeToResend(null);
+    };
+
     const formatDate = (dateInput: string | Date | null | undefined) => {
         if (!dateInput) return '-';
         const date = new Date(dateInput);
@@ -950,6 +996,33 @@ export default function BatchManagementPage() {
                                                                 <span>Reschedule</span>
                                                             </button>
                                                         )}
+                                                        {lowerStatus.includes("pending") && (() => {
+                                                            const getMinutesPassed = () => {
+                                                                if (!emp.updatedAt) return 15;
+                                                                let t = new Date(emp.updatedAt).getTime();
+                                                                let diff = now - t;
+                                                                if (diff < -300000) diff += 7 * 60 * 60 * 1000;
+                                                                return diff / 60000;
+                                                            };
+                                                            const elapsed = getMinutesPassed();
+                                                            const canResend = !isResendingRecord[emp.id] && elapsed >= 15;
+                                                            const remaining = Math.max(0, Math.ceil(15 - elapsed));
+
+                                                            return (
+                                                                <button
+                                                                    onClick={() => {
+                                                                        setEmployeeToResend(emp);
+                                                                        setIsResendConfirmOpen(true);
+                                                                    }}
+                                                                    disabled={!canResend}
+                                                                    className={`px-3 py-1.5 text-xs font-bold rounded shadow-sm transition-colors uppercase tracking-wide flex items-center space-x-1 ${!canResend ? 'bg-zinc-100 text-zinc-400 cursor-not-allowed border border-zinc-200' : 'bg-blue-600 text-white hover:bg-blue-700'}`}
+                                                                    title={!canResend ? `You can resend after ${remaining} minutes` : "Resend Invitation"}
+                                                                >
+                                                                    <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
+                                                                    <span>{isResendingRecord[emp.id] ? 'Sending...' : 'Resend'}</span>
+                                                                </button>
+                                                            );
+                                                        })()}
 
                                                     </td>
                                                 </tr>
@@ -1383,6 +1456,52 @@ PT Telkom Indonesia`}
                                     className="px-4 py-2 bg-red-600 text-white font-bold text-sm rounded-lg hover:bg-red-700 shadow-lg shadow-red-600/20 disabled:opacity-50 transition-all"
                                 >
                                     {isRescheduling ? 'Rescheduling...' : 'Confirm Reschedule'}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )
+            }
+            {/* Resend Confirmation Modal */}
+            {
+                isResendConfirmOpen && (
+                    <div className="fixed inset-0 z-[90] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+                        <div className="bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200">
+                            <div className="p-6 border-b border-zinc-100 flex items-center space-x-4 bg-blue-50/50">
+                                <div className="p-3 bg-blue-100 text-blue-600 rounded-full">
+                                    <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                                    </svg>
+                                </div>
+                                <div>
+                                    <h3 className="text-xl font-bold text-zinc-900">Resend Invitation?</h3>
+                                    <p className="text-base text-zinc-500">Confirm WhatsApp Broadcast</p>
+                                </div>
+                            </div>
+
+                            <div className="p-6">
+                                <p className="text-zinc-600 text-base leading-relaxed">
+                                    Are you sure you want to resend the invitation to <strong className="text-zinc-900">{employeeToResend?.nama}</strong>? They will receive another WhatsApp message.
+                                </p>
+                            </div>
+
+                            <div className="p-4 border-t border-zinc-100 bg-zinc-50 flex justify-end space-x-3">
+                                <button
+                                    onClick={() => {
+                                        setIsResendConfirmOpen(false);
+                                        setEmployeeToResend(null);
+                                    }}
+                                    className="px-4 py-2 bg-white border border-zinc-200 text-zinc-700 font-medium text-base rounded-lg hover:bg-zinc-50 hover:text-zinc-900 transition-colors shadow-sm"
+                                    disabled={employeeToResend ? isResendingRecord[employeeToResend.id] : false}
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    onClick={handleConfirmResend}
+                                    className="px-4 py-2 bg-blue-600 text-white font-bold text-base rounded-lg hover:bg-blue-700 transition-colors shadow-lg shadow-blue-600/20 disabled:opacity-50"
+                                    disabled={employeeToResend ? isResendingRecord[employeeToResend.id] : false}
+                                >
+                                    {(employeeToResend && isResendingRecord[employeeToResend.id]) ? 'Sending...' : 'Yes, Resend Now'}
                                 </button>
                             </div>
                         </div>

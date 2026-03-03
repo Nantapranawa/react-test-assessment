@@ -456,7 +456,7 @@ export const replaceEmployee = async (req: Request, res: Response) => {
 export const sendInvitations = async (req: Request, res: Response) => {
     try {
         const { id } = req.params;
-        const { talent_solution } = req.body;
+        const { talent_solution, employeeId } = req.body;
         const batchId = parseInt(id);
         const isTS2 = talent_solution === 2 || talent_solution === '2';
 
@@ -467,6 +467,11 @@ export const sendInvitations = async (req: Request, res: Response) => {
             where: { id: batchId },
             include: { employees: { select: { id: true, phone: true, nama: true } } }
         });
+
+        if (batch && employeeId) {
+            batch.employees = batch.employees.filter((e: any) => e.id === employeeId);
+        }
+
 
         // We need batchName from the batch itself, but findUnique returns it.
         // Wait, include syntax above is slightly wrong if I wanted batchName from employee (which doesn't exist).
@@ -570,7 +575,8 @@ export const sendInvitations = async (req: Request, res: Response) => {
                     id: { in: successfulIds }
                 },
                 data: {
-                    availability_status: "Pending"
+                    availability_status: "Pending",
+                    updatedAt: new Date()
                 }
             });
         }
