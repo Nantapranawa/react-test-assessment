@@ -147,7 +147,7 @@ export default function BatchManagementPage() {
         return false;
     };
 
-    const getPriorityTier = (employee: any): number => {
+    const getPriorityTier = (employee: any): number | null => {
         const expired = isExpired(employee.expired);
         const tcResult = (employee.tc_result || '').toLowerCase().trim();
         const isHP = tcResult.includes('high potential');
@@ -156,8 +156,7 @@ export default function BatchManagementPage() {
         if (expired && isProm) return 2;
         if (!expired && isHP) return 3;
         if (!expired && isProm) return 4;
-        if (expired) return 5;
-        return 6;
+        return null;
     };
 
     const getSecondarySortKeys = (employee: any): [number, number, number] => {
@@ -183,12 +182,20 @@ export default function BatchManagementPage() {
     const priorityComparator = (a: any, b: any): number => {
         const tierA = getPriorityTier(a);
         const tierB = getPriorityTier(b);
-        if (tierA !== tierB) return tierA - tierB;
-        const [ubisA, eligA, readA] = getSecondarySortKeys(a);
-        const [ubisB, eligB, readB] = getSecondarySortKeys(b);
-        if (ubisA !== ubisB) return ubisA - ubisB;
-        if (eligA !== eligB) return eligA - eligB;
-        return readA - readB;
+
+        if (tierA !== null && tierB !== null) {
+            if (tierA !== tierB) return tierA - tierB;
+            const [ubisA, eligA, readA] = getSecondarySortKeys(a);
+            const [ubisB, eligB, readB] = getSecondarySortKeys(b);
+            if (ubisA !== ubisB) return ubisA - ubisB;
+            if (eligA !== eligB) return eligA - eligB;
+            return readA - readB;
+        }
+
+        if (tierA !== null) return -1;
+        if (tierB !== null) return 1;
+
+        return 0;
     };
 
     const { tableData, refreshData: refreshTalentPool } = useData();

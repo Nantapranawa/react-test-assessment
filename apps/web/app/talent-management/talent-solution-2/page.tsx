@@ -227,15 +227,14 @@ export default function TalentManagementPage() {
 
 
     /**
-     * Determines the primary priority tier (1-6) based on:
+     * Determines the primary priority tier (1-4) for HP/Promotable employees only:
      *   1. Expired + High Potential
      *   2. Expired + Promotable
      *   3. Not Expired + High Potential
      *   4. Not Expired + Promotable
-     *   5. Expired + (neither High Potential nor Promotable)
-     *   6. Not Expired + (neither High Potential nor Promotable)
+     * Returns null for employees that are neither HP nor Promotable.
      */
-    const getPriorityTier = (employee: any): number => {
+    const getPriorityTier = (employee: any): number | null => {
         const expired = isExpired(employee.expired);
         const tcResult = (employee.tc_result || '').toLowerCase().trim();
         const isHighPotential = tcResult.includes('high potential');
@@ -245,8 +244,7 @@ export default function TalentManagementPage() {
         if (expired && isPromotable) return 2;
         if (!expired && isHighPotential) return 3;
         if (!expired && isPromotable) return 4;
-        if (expired) return 5;   // Expired but neither HP nor Promotable
-        return 6;                // Not expired, neither HP nor Promotable
+        return null;
     };
 
     /**
@@ -282,19 +280,29 @@ export default function TalentManagementPage() {
 
     /**
      * Comparator function for sorting employees by priority.
-     * First by primary tier, then by secondary keys (UBIS → Eligibility → Readiness).
+     * Only HP/Promotable employees are priority-sorted (tiers 1-4).
+     * Non-HP/non-Promotable employees appear at the bottom in original order.
      */
     const priorityComparator = (a: any, b: any): number => {
         const tierA = getPriorityTier(a);
         const tierB = getPriorityTier(b);
-        if (tierA !== tierB) return tierA - tierB;
 
-        const [ubisA, eligA, readA] = getSecondarySortKeys(a);
-        const [ubisB, eligB, readB] = getSecondarySortKeys(b);
+        // Both have priority tiers → sort by tier, then secondary keys
+        if (tierA !== null && tierB !== null) {
+            if (tierA !== tierB) return tierA - tierB;
+            const [ubisA, eligA, readA] = getSecondarySortKeys(a);
+            const [ubisB, eligB, readB] = getSecondarySortKeys(b);
+            if (ubisA !== ubisB) return ubisA - ubisB;
+            if (eligA !== eligB) return eligA - eligB;
+            return readA - readB;
+        }
 
-        if (ubisA !== ubisB) return ubisA - ubisB;
-        if (eligA !== eligB) return eligA - eligB;
-        return readA - readB;
+        // Only one has a tier → prioritized employee comes first
+        if (tierA !== null) return -1;
+        if (tierB !== null) return 1;
+
+        // Neither has a tier → preserve original order
+        return 0;
     };
 
     // State
