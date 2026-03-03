@@ -927,7 +927,7 @@ export default function BatchManagementPage() {
                                 ) : (
                                     <>
                                         {(() => {
-                                            const isEditable = selectedBatch?.employees?.some((e: any) => e.availability_status === "Batch Draft");
+                                            const isEditable = true;
                                             return (
                                                 <button
                                                     onClick={handleEditBatchClick}
@@ -1000,7 +1000,7 @@ export default function BatchManagementPage() {
                                                     </td>
                                                     <td className="px-6 py-3 text-right">
                                                         <div className="flex items-center justify-end space-x-4 whitespace-nowrap">
-                                                            {((lowerStatus === "batch draft" && isEditingBatch) || lowerStatus.includes("rejected")) && (
+                                                            {(isEditingBatch && !lowerStatus.includes("sent")) && (
                                                                 <div className="flex items-center justify-end space-x-4">
                                                                     <button
                                                                         onClick={() => {

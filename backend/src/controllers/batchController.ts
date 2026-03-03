@@ -199,11 +199,11 @@ export const updateBatch = async (req: Request, res: Response) => {
             const addedNiks = employeeNiks.filter((nik: any) => !currentEmployeeNiks.includes(nik));
             const removedNiks = currentEmployeeNiks.filter((nik: any) => !employeeNiks.includes(nik));
 
-            // Validate that we only remove Draft or Rejected employees
+            // Validate that we only remove employees with status other than "sent"
             for (const nik of removedNiks) {
                 const emp = batch.employees.find((e: any) => e.nik === nik);
-                if (emp && emp.availability_status !== "Batch Draft" && !emp.availability_status.toLowerCase().includes("rejected")) {
-                    return res.status(400).json({ success: false, error: `Cannot remove employee with advanced status: ${emp.nama}` });
+                if (emp && emp.availability_status.toLowerCase() === "sent") {
+                    return res.status(400).json({ success: false, error: `Cannot remove employee with 'Sent' status: ${emp.nama}` });
                 }
             }
 
@@ -304,8 +304,8 @@ export const removeEmployee = async (req: Request, res: Response) => {
             return res.status(404).json({ success: false, error: "Employee not in batch" });
         }
 
-        if (employee.availability_status !== "Batch Draft" && !employee.availability_status.toLowerCase().includes("rejected")) {
-            return res.status(400).json({ success: false, error: "Can only remove employees with 'Batch Draft' or 'Rejected' status." });
+        if (employee.availability_status.toLowerCase() === "sent") {
+            return res.status(400).json({ success: false, error: "Cannot remove employee with 'Sent' status." });
         }
 
         await prisma.$transaction([
