@@ -58,6 +58,7 @@ model EmployeeTS2 {
 model BatchTS1 {
   id             Int           @id @default(autoincrement())
   batchName      String?
+  assessmentType String?
   location       String
   assessmentDate DateTime
   createdAt      DateTime      @default(now())
@@ -67,6 +68,7 @@ model BatchTS1 {
 model BatchTS2 {
   id             Int           @id @default(autoincrement())
   batchName      String?
+  assessmentType String?
   location       String
   assessmentDate DateTime
   createdAt      DateTime      @default(now())

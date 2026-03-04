@@ -7,6 +7,7 @@ import { useData } from '../../lib/DataContext';
 interface Batch {
     id: number;
     batchName: string | null;
+    assessmentType?: string | null;
     location: string;
     assessmentDate: string;
     createdAt: string;
@@ -756,17 +757,17 @@ export default function BatchManagementPage() {
                                                         );
                                                     })()}
                                                     {(() => {
-                                                        const isSent = batch.employees?.some(e => e.availability_status.toLowerCase() === "sent");
+                                                        const isSentOrPending = batch.employees?.some(e => e.availability_status.toLowerCase() === "sent" || e.availability_status.toLowerCase() === "pending");
                                                         return (
                                                             <button
-                                                                onClick={() => !isSent && handleOpenMessageModal(batch.id)}
-                                                                disabled={isSent}
-                                                                className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${isSent
+                                                                onClick={() => !isSentOrPending && handleOpenMessageModal(batch.id)}
+                                                                disabled={isSentOrPending}
+                                                                className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${isSentOrPending
                                                                     ? 'bg-zinc-100 text-zinc-400 cursor-not-allowed border border-zinc-200'
                                                                     : 'bg-zinc-900 text-white hover:bg-red-600'
                                                                     }`}
                                                             >
-                                                                {isSent ? 'Message Sent' : 'Send Message'}
+                                                                {isSentOrPending ? 'Message Sent' : 'Send Message'}
                                                             </button>
                                                         );
                                                     })()}
@@ -848,17 +849,17 @@ export default function BatchManagementPage() {
                                                         );
                                                     })()}
                                                     {(() => {
-                                                        const isSent = batch.employees?.some(e => e.availability_status.toLowerCase() === "sent");
+                                                        const isSentOrPending = batch.employees?.some(e => e.availability_status.toLowerCase() === "sent" || e.availability_status.toLowerCase() === "pending");
                                                         return (
                                                             <button
-                                                                onClick={() => !isSent && handleOpenMessageModal(batch.id)}
-                                                                disabled={isSent}
-                                                                className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${isSent
+                                                                onClick={() => !isSentOrPending && handleOpenMessageModal(batch.id)}
+                                                                disabled={isSentOrPending}
+                                                                className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${isSentOrPending
                                                                     ? 'bg-zinc-100 text-zinc-400 cursor-not-allowed border border-zinc-200'
                                                                     : 'bg-zinc-900 text-white hover:bg-red-600'
                                                                     }`}
                                                             >
-                                                                {isSent ? 'Message Sent' : 'Send Message'}
+                                                                {isSentOrPending ? 'Message Sent' : 'Send Message'}
                                                             </button>
                                                         );
                                                     })()}
@@ -1353,15 +1354,17 @@ export default function BatchManagementPage() {
                                             <label className="block text-xs font-bold text-zinc-500 mb-2 uppercase tracking-wide">Message Preview</label>
                                             <div className="bg-zinc-50 border border-zinc-200 rounded-lg p-4 text-sm text-zinc-800 font-mono leading-relaxed whitespace-pre-wrap shadow-inner relative max-h-[350px] overflow-y-auto custom-scrollbar">
                                                 <div className="absolute top-2 right-2 text-xs font-bold text-zinc-300 pointer-events-none select-none">OCA TEMPLATE</div>
-                                                {`Assalamualaikum [Name],
+                                                {`INVITATION ASSESSMENT TELKOM INDONESIA
+Yth. Bapak/Ibu [name],
+Mohon maaf mengganggu waktunya.
 
-Anda telah terpilih untuk mengikuti Assessment Center PT Telkom Indonesia.
+Izin menyampaikan informasi bahwa Bapak/Ibu kami undang untuk mengikuti ${messageBatch?.assessmentType || '[assessment]'} yang akan dilaksanakan pada:
 
-📅 Tanggal : ${messageBatch?.assessmentDate ? new Date(messageBatch.assessmentDate).toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }) : '[Tanggal]'}
-📍 Lokasi : ${messageBatch?.location || '[Lokasi]'}
-🎯 Batch : ${messageBatch?.batchName || 'Assessment Batch'}
+📅 Hari & Tanggal : ${messageBatch?.assessmentDate ? new Date(messageBatch.assessmentDate).toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }) : '[tanggal]'}
+📍 Tempat: ${messageBatch?.location || '[lokasi]'}
+🎯 Batch   : ${messageBatch?.batchName || '[batch]'}
 
-Mohon konfirmasi kehadiran Anda dengan menekan salah satu tombol di bawah ini:
+Kami mohon kesediaan Bapak/Ibu untuk dapat memberikan konfirmasi terkait  ketersediaan waktu agar dapat mengikuti agenda assessment di atas dengan menekan salah satu tombol di bawah ini:
 
 ✅ Iya — Saya bisa hadir sesuai jadwal
 🔄 Reschedule — Saya ingin mengganti jadwal
@@ -1370,6 +1373,7 @@ Mohon konfirmasi kehadiran Anda dengan menekan salah satu tombol di bawah ini:
 Terima kasih atas perhatian Anda.
 
 Hormat kami,
+Team HCSP
 PT Telkom Indonesia`}
                                             </div>
                                         </div>
@@ -1428,7 +1432,7 @@ PT Telkom Indonesia`}
 
                             <div className="p-6">
                                 <p className="text-zinc-600 text-base leading-relaxed">
-                                    Are you sure you want to send invitations to <strong className="text-zinc-900">{messageBatch?.employees?.length} employees</strong> in this batch? This will update their status to <strong className="text-zinc-900">"Pending"</strong>.
+                                    Are you sure you want to send invitations to <strong className="text-zinc-900">{messageBatch?.employees?.length} employees</strong> in this batch? This will update their status to <strong className="text-zinc-900">"Sent"</strong>.
                                 </p>
                             </div>
 

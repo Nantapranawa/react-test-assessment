@@ -314,9 +314,11 @@ export default function TalentManagementPage() {
     const [locationBP1, setLocationBP1] = useState('');
     const [assessmentDateBP1, setAssessmentDateBP1] = useState('');
     const [assessmentTimeBP1, setAssessmentTimeBP1] = useState('');
+    const [assessmentTypeBP1, setAssessmentTypeBP1] = useState('');
     const [locationBP2, setLocationBP2] = useState('');
     const [assessmentDateBP2, setAssessmentDateBP2] = useState('');
     const [assessmentTimeBP2, setAssessmentTimeBP2] = useState('');
+    const [assessmentTypeBP2, setAssessmentTypeBP2] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     // Filter State
@@ -479,6 +481,7 @@ export default function TalentManagementPage() {
                     body: JSON.stringify({
                         location: locationBP1,
                         assessmentDate: dateTime,
+                        assessmentType: assessmentTypeBP1,
                         employeeNiks: Array.from(selectedBP1),
                         batchName: "BP 1 Batch",
                         talent_solution: 2
@@ -498,6 +501,7 @@ export default function TalentManagementPage() {
                     body: JSON.stringify({
                         location: locationBP2,
                         assessmentDate: dateTime,
+                        assessmentType: assessmentTypeBP2,
                         employeeNiks: Array.from(selectedBP2),
                         batchName: "BP 2 Batch",
                         talent_solution: 2
@@ -944,6 +948,16 @@ export default function TalentManagementPage() {
                                     </h3>
 
                                     <div>
+                                        <label className="block text-base font-semibold text-zinc-700 mb-1">Assessment Name</label>
+                                        <input
+                                            type="text"
+                                            value={assessmentTypeBP1}
+                                            onChange={(e) => setAssessmentTypeBP1(e.target.value)}
+                                            className="w-full px-3 py-2 border border-zinc-300 rounded-lg focus:ring-2 focus:ring-red-500/20 focus:border-red-500 text-base text-zinc-900 bg-white"
+                                            placeholder="e.g. Assessment Center"
+                                        />
+                                    </div>
+                                    <div>
                                         <label className="block text-base font-semibold text-zinc-700 mb-1">Location</label>
                                         <input
                                             type="text"
@@ -993,6 +1007,16 @@ export default function TalentManagementPage() {
                                         BP 2 Batch Configuration
                                     </h3>
 
+                                    <div>
+                                        <label className="block text-base font-semibold text-zinc-700 mb-1">Assessment Name</label>
+                                        <input
+                                            type="text"
+                                            value={assessmentTypeBP2}
+                                            onChange={(e) => setAssessmentTypeBP2(e.target.value)}
+                                            className="w-full px-3 py-2 border border-zinc-300 rounded-lg focus:ring-2 focus:ring-red-500/20 focus:border-red-500 text-base text-zinc-900 bg-white"
+                                            placeholder="e.g. Assessment Center"
+                                        />
+                                    </div>
                                     <div>
                                         <label className="block text-base font-semibold text-zinc-700 mb-1">Location</label>
                                         <input
@@ -1045,7 +1069,7 @@ export default function TalentManagementPage() {
                             </button>
                             <button
                                 onClick={handleCreateBatch}
-                                disabled={isSubmitting || (isBP1Ready && (!locationBP1 || !assessmentDateBP1 || !assessmentTimeBP1)) || (isBP2Ready && (!locationBP2 || !assessmentDateBP2 || !assessmentTimeBP2))}
+                                disabled={isSubmitting || (isBP1Ready && (!locationBP1 || !assessmentDateBP1 || !assessmentTimeBP1 || !assessmentTypeBP1)) || (isBP2Ready && (!locationBP2 || !assessmentDateBP2 || !assessmentTimeBP2 || !assessmentTypeBP2))}
                                 className="px-6 py-2 bg-red-600 text-white rounded-lg font-medium text-sm hover:bg-red-700 shadow-lg shadow-red-600/20 disabled:opacity-50 disabled:shadow-none transition-all"
                             >
                                 {isSubmitting ? 'Saving...' : 'Save & Create Batch'}

@@ -5,7 +5,7 @@ import { BatchTS1, EmployeeTS1 } from '../../generated/prisma/client';
 
 export const createBatch = async (req: Request, res: Response) => {
     try {
-        const { location, assessmentDate, employeeNiks, batchName, talent_solution } = req.body;
+        const { location, assessmentDate, employeeNiks, batchName, assessmentType, talent_solution } = req.body;
         const isTS2 = talent_solution === 2 || talent_solution === '2';
 
         if (!location || !assessmentDate || !employeeNiks || !Array.isArray(employeeNiks)) {
@@ -30,6 +30,7 @@ export const createBatch = async (req: Request, res: Response) => {
                     location,
                     assessmentDate: new Date(assessmentDate),
                     batchName: batchName || null,
+                    assessmentType: assessmentType || null,
                     employees: {
                         connect: employeeNiks.map((nik: string) => ({ nik }))
                     }
@@ -54,6 +55,7 @@ export const createBatch = async (req: Request, res: Response) => {
                     location,
                     assessmentDate: new Date(assessmentDate),
                     batchName: batchName || null,
+                    assessmentType: assessmentType || null,
                     employees: {
                         connect: employeeNiks.map((nik: string) => ({ nik }))
                     }
@@ -172,7 +174,7 @@ export const getBatch = async (req: Request, res: Response) => {
 export const updateBatch = async (req: Request, res: Response) => {
     try {
         const { id } = req.params;
-        const { location, assessmentDate, employeeNiks, talent_solution } = req.body; // Added employeeNiks
+        const { location, assessmentDate, employeeNiks, assessmentType, talent_solution } = req.body; // Added employeeNiks
         const batchId = parseInt(id);
         const isTS2 = talent_solution === 2 || talent_solution === '2';
 
@@ -236,6 +238,7 @@ export const updateBatch = async (req: Request, res: Response) => {
                     data: {
                         location,
                         assessmentDate: assessmentDate ? new Date(assessmentDate) : undefined,
+                        assessmentType: assessmentType !== undefined ? assessmentType : undefined,
                         employees: {
                             disconnect: removedNiks.map((nik: any) => ({ nik })),
                             connect: addedNiks.map((nik: any) => ({ nik }))
@@ -259,7 +262,8 @@ export const updateBatch = async (req: Request, res: Response) => {
                 where: { id: batchId },
                 data: {
                     location,
-                    assessmentDate: assessmentDate ? new Date(assessmentDate) : undefined
+                    assessmentDate: assessmentDate ? new Date(assessmentDate) : undefined,
+                    assessmentType: assessmentType !== undefined ? assessmentType : undefined
                 }
             });
         }
@@ -500,6 +504,7 @@ export const sendInvitations = async (req: Request, res: Response) => {
             : 'TBD';
 
         const location = batch.location || 'Online';
+        const assessmentType = batch.assessmentType || 'Assessment Center';
 
         const OCA_API_URL = "https://wa01.ocatelkom.co.id/api/v2/push/message";
         const TEMPLATE_CODE_ID = process.env.OCA_TEMPLATE_CODE_ID || "";
@@ -537,6 +542,7 @@ export const sendInvitations = async (req: Request, res: Response) => {
                                 "position": "body",
                                 "parameters": [
                                     { "type": "text", "text": String(emp.nama || "Peserta") },
+                                    { "type": "text", "text": String(assessmentType) },
                                     { "type": "text", "text": String(assessmentDate) },
                                     { "type": "text", "text": String(location) },
                                     { "type": "text", "text": String(batchName) }
