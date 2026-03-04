@@ -64,6 +64,11 @@ export default function BatchManagementPage() {
     const [addSearchTerm, setAddSearchTerm] = useState('');
     const [isAdding, setIsAdding] = useState(false);
 
+    // Remove Employee State
+    const [isRemoveModalOpen, setIsRemoveModalOpen] = useState(false);
+    const [employeeToRemove, setEmployeeToRemove] = useState<any>(null);
+    const [isRemoving, setIsRemoving] = useState(false);
+
     // Staged Changes State
     const [stagedEmployees, setStagedEmployees] = useState<any[]>([]);
 
@@ -584,25 +589,28 @@ export default function BatchManagementPage() {
         }
     };
 
-    const handleRemoveEmployee = async (employeeNik: string) => {
+    const confirmRemoveEmployee = async () => {
+        if (!employeeToRemove) return;
+
         if (isEditingBatch) {
-            setStagedEmployees(stagedEmployees.filter(e => e.nik !== employeeNik));
+            setStagedEmployees(stagedEmployees.filter(e => e.nik !== employeeToRemove.nik));
+            setIsRemoveModalOpen(false);
+            setEmployeeToRemove(null);
             return;
         }
 
         if (!selectedBatch) return;
 
-        if (!confirm("Are you sure you want to remove this employee?")) return;
-
+        setIsRemoving(true);
         try {
             const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/batches/${selectedBatch.id}/remove-employee`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ employeeNik })
+                body: JSON.stringify({ employeeNik: employeeToRemove.nik })
             });
             const result = await res.json();
             if (result.success) {
-                const updatedEmployees = selectedBatch.employees?.filter(e => e.nik !== employeeNik);
+                const updatedEmployees = selectedBatch.employees?.filter(e => e.nik !== employeeToRemove.nik);
                 setSelectedBatch({ ...selectedBatch, employees: updatedEmployees, _count: { employees: (selectedBatch._count?.employees || 1) - 1 } });
                 fetchBatches();
                 refreshTalentPool();
@@ -615,6 +623,10 @@ export default function BatchManagementPage() {
         } catch (error) {
             console.error('Failed to remove employee', error);
             alert('Failed to remove employee');
+        } finally {
+            setIsRemoving(false);
+            setIsRemoveModalOpen(false);
+            setEmployeeToRemove(null);
         }
     };
 
@@ -1007,7 +1019,7 @@ export default function BatchManagementPage() {
                                                     </td>
                                                     <td className="px-6 py-3 text-right">
                                                         <div className="flex items-center justify-end space-x-4 whitespace-nowrap">
-                                                            {(isEditingBatch && !lowerStatus.includes("sent")) && (
+                                                            {((isEditingBatch && !lowerStatus.includes("sent")) || lowerStatus.includes("rejected")) && (
                                                                 <div className="flex items-center justify-end space-x-4">
                                                                     <button
                                                                         onClick={() => {
@@ -1019,7 +1031,10 @@ export default function BatchManagementPage() {
                                                                         Replace
                                                                     </button>
                                                                     <button
-                                                                        onClick={() => handleRemoveEmployee(emp.nik)}
+                                                                        onClick={() => {
+                                                                            setEmployeeToRemove(emp);
+                                                                            setIsRemoveModalOpen(true);
+                                                                        }}
                                                                         className="text-sm font-bold text-red-500 hover:text-red-700 transition-colors uppercase tracking-tight underline underline-offset-4"
                                                                     >
                                                                         Remove
@@ -1035,7 +1050,7 @@ export default function BatchManagementPage() {
                                                                     <span>Reschedule</span>
                                                                 </button>
                                                             )}
-                                                            {(lowerStatus.includes("pending") || lowerStatus.includes("rejected")) && (() => {
+                                                            {lowerStatus.includes("pending") && (() => {
                                                                 const getMinutesPassed = () => {
                                                                     if (!emp.updatedAt) return 15;
                                                                     let t = new Date(emp.updatedAt).getTime();
@@ -1626,6 +1641,53 @@ PT Telkom Indonesia`}
                                     className="px-4 py-2 text-zinc-500 hover:text-zinc-900 font-bold text-xs uppercase tracking-widest transition-colors"
                                 >
                                     Close
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )
+            }
+
+            {/* Remove Employee Confirmation Modal */}
+            {
+                isRemoveModalOpen && (
+                    <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+                        <div className="bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200">
+                            <div className="p-6 border-b border-zinc-100 flex items-center space-x-4 bg-red-50/50">
+                                <div className="p-3 bg-red-100 text-red-600 rounded-full">
+                                    <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                                    </svg>
+                                </div>
+                                <div>
+                                    <h3 className="text-lg font-bold text-zinc-900">Remove Employee</h3>
+                                    <p className="text-sm text-zinc-500">This action cannot be undone.</p>
+                                </div>
+                            </div>
+
+                            <div className="p-6">
+                                <p className="text-zinc-600 text-sm leading-relaxed">
+                                    Are you sure you want to remove <strong className="text-zinc-900">{employeeToRemove?.nama}</strong> from this batch?
+                                </p>
+                            </div>
+
+                            <div className="p-4 border-t border-zinc-100 bg-zinc-50 flex justify-end space-x-3">
+                                <button
+                                    onClick={() => {
+                                        setIsRemoveModalOpen(false);
+                                        setEmployeeToRemove(null);
+                                    }}
+                                    className="px-4 py-2 bg-white border border-zinc-200 text-zinc-700 font-medium text-sm rounded-lg hover:bg-zinc-50 hover:text-zinc-900 transition-colors shadow-sm"
+                                    disabled={isRemoving}
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    onClick={confirmRemoveEmployee}
+                                    className="px-4 py-2 bg-red-600 text-white font-medium text-sm rounded-lg hover:bg-red-700 transition-colors shadow-lg shadow-red-600/20 disabled:opacity-50"
+                                    disabled={isRemoving}
+                                >
+                                    {isRemoving ? 'Removing...' : 'Yes, Remove Employee'}
                                 </button>
                             </div>
                         </div>
