@@ -87,8 +87,8 @@ export default function FileUpload({ onDataLoaded }: { onDataLoaded: (data: any)
           <button
             onClick={() => setSelectedTS(1)}
             className={`px-4 py-2 rounded-lg font-bold text-sm transition-all ${selectedTS === 1
-                ? 'bg-red-600 text-white shadow-lg shadow-red-600/20'
-                : 'bg-zinc-100 text-zinc-500 hover:bg-zinc-200'
+              ? 'bg-red-600 text-white shadow-lg shadow-red-600/20'
+              : 'bg-zinc-100 text-zinc-500 hover:bg-zinc-200'
               }`}
           >
             Talent Solution I
@@ -96,11 +96,11 @@ export default function FileUpload({ onDataLoaded }: { onDataLoaded: (data: any)
           <button
             onClick={() => setSelectedTS(2)}
             className={`px-4 py-2 rounded-lg font-bold text-sm transition-all ${selectedTS === 2
-                ? 'bg-red-600 text-white shadow-lg shadow-red-600/20'
-                : 'bg-zinc-100 text-zinc-500 hover:bg-zinc-200'
+              ? 'bg-red-600 text-white shadow-lg shadow-red-600/20'
+              : 'bg-zinc-100 text-zinc-500 hover:bg-zinc-200'
               }`}
           >
-            Talent Solution II
+            Organizing Committee
           </button>
         </div>
       )}

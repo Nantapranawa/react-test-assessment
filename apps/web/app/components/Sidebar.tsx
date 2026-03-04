@@ -101,7 +101,7 @@ export default function Sidebar() {
                   : 'text-zinc-500 hover:text-zinc-300 hover:bg-zinc-900/50'
                   }`}
               >
-                Talent Solution II
+                Organizing Committee
               </Link>
             </div>
           </div>
@@ -154,7 +154,7 @@ export default function Sidebar() {
                   : 'text-zinc-500 hover:text-zinc-300 hover:bg-zinc-900/50'
                   }`}
               >
-                Talent Solution II
+                Organizing Committee
               </Link>
             </div>
           </div>
