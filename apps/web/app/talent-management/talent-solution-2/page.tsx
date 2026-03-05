@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useData } from '../../lib/DataContext';
 import { useRouter } from 'next/navigation';
 
@@ -237,13 +237,16 @@ export default function TalentManagementPage() {
     const getPriorityTier = (employee: any): number | null => {
         const expired = isExpired(employee.expired);
         const tcResult = (employee.tc_result || '').toLowerCase().trim();
-        const isHighPotential = tcResult.includes('high potential');
+        const isVeryHighPotential = tcResult.includes('very high potential');
+        const isHighPotential = tcResult.includes('high potential') && !isVeryHighPotential;
         const isPromotable = tcResult.includes('promotable');
 
-        if (expired && isHighPotential) return 1;
-        if (expired && isPromotable) return 2;
-        if (!expired && isHighPotential) return 3;
-        if (!expired && isPromotable) return 4;
+        if (expired && isVeryHighPotential) return 1;
+        if (expired && isHighPotential) return 2;
+        if (expired && isPromotable) return 3;
+        if (!expired && isVeryHighPotential) return 4;
+        if (!expired && isHighPotential) return 5;
+        if (!expired && isPromotable) return 6;
         return null;
     };
 
@@ -306,19 +309,33 @@ export default function TalentManagementPage() {
     };
 
     // State
-    const [activeTab, setActiveTab] = useState<'bp1' | 'bp2'>('bp1');
+    const [activeTab, setActiveTab] = useState<'bp3' | 'bp4' | 'bp5' | 'bp6'>('bp3');
     const [searchTerm, setSearchTerm] = useState('');
-    const [selectedBP1, setSelectedBP1] = useState<Set<string>>(new Set());
-    const [selectedBP2, setSelectedBP2] = useState<Set<string>>(new Set());
+    const [selectedBP3, setSelectedBP3] = useState<Set<string>>(new Set());
+    const [selectedBP4, setSelectedBP4] = useState<Set<string>>(new Set());
+    const [selectedBP5, setSelectedBP5] = useState<Set<string>>(new Set());
+    const [selectedBP6, setSelectedBP6] = useState<Set<string>>(new Set());
     const [isModalOpen, setIsModalOpen] = useState(false);
-    const [locationBP1, setLocationBP1] = useState('');
-    const [assessmentDateBP1, setAssessmentDateBP1] = useState('');
-    const [assessmentTimeBP1, setAssessmentTimeBP1] = useState('');
-    const [assessmentTypeBP1, setAssessmentTypeBP1] = useState('');
-    const [locationBP2, setLocationBP2] = useState('');
-    const [assessmentDateBP2, setAssessmentDateBP2] = useState('');
-    const [assessmentTimeBP2, setAssessmentTimeBP2] = useState('');
-    const [assessmentTypeBP2, setAssessmentTypeBP2] = useState('');
+
+    const [locationBP3, setLocationBP3] = useState('');
+    const [assessmentDateBP3, setAssessmentDateBP3] = useState('');
+    const [assessmentTimeBP3, setAssessmentTimeBP3] = useState('');
+    const [assessmentTypeBP3, setAssessmentTypeBP3] = useState('');
+
+    const [locationBP4, setLocationBP4] = useState('');
+    const [assessmentDateBP4, setAssessmentDateBP4] = useState('');
+    const [assessmentTimeBP4, setAssessmentTimeBP4] = useState('');
+    const [assessmentTypeBP4, setAssessmentTypeBP4] = useState('');
+
+    const [locationBP5, setLocationBP5] = useState('');
+    const [assessmentDateBP5, setAssessmentDateBP5] = useState('');
+    const [assessmentTimeBP5, setAssessmentTimeBP5] = useState('');
+    const [assessmentTypeBP5, setAssessmentTypeBP5] = useState('');
+
+    const [locationBP6, setLocationBP6] = useState('');
+    const [assessmentDateBP6, setAssessmentDateBP6] = useState('');
+    const [assessmentTimeBP6, setAssessmentTimeBP6] = useState('');
+    const [assessmentTypeBP6, setAssessmentTypeBP6] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     // Filter State
@@ -342,7 +359,7 @@ export default function TalentManagementPage() {
     const [newEmployee, setNewEmployee] = useState<any>({
         nama: '',
         nik: '',
-        bp: 1,
+        bp: 3,
         posisi: '',
         phone: '',
         eligible: 'Eligible',
@@ -365,8 +382,10 @@ export default function TalentManagementPage() {
     const [notificationMessage, setNotificationMessage] = useState('');
 
     // Constants
-    const QUOTA_BP1 = 3;
-    const QUOTA_BP2 = 6;
+    const QUOTA_BP3 = 3;
+    const QUOTA_BP4 = 6;
+    const QUOTA_BP5 = 9;
+    const QUOTA_BP6 = 12;
 
     const FILTER_COLUMNS = [
         { key: 'availability_status', label: 'Status' },
@@ -435,79 +454,59 @@ export default function TalentManagementPage() {
         return data;
     }, [tableData, searchTerm, selectedFilters]);
 
-    const bp1Employees = useMemo(() => filteredData.filter((e: any) => e.bp === 1), [filteredData]);
-    const bp2Employees = useMemo(() => filteredData.filter((e: any) => e.bp === 2), [filteredData]);
+    const bp3Employees = useMemo(() => filteredData.filter((e: any) => e.bp === 3), [filteredData]);
+    const bp4Employees = useMemo(() => filteredData.filter((e: any) => e.bp === 4), [filteredData]);
+    const bp5Employees = useMemo(() => filteredData.filter((e: any) => e.bp === 5), [filteredData]);
+    const bp6Employees = useMemo(() => filteredData.filter((e: any) => e.bp === 6), [filteredData]);
 
     // Handlers
     const toggleSelection = (e: any, nik: string, bp: number) => {
-        if (bp === 1) {
-            const newSet = new Set(selectedBP1);
-            if (newSet.has(nik)) {
-                newSet.delete(nik);
-            } else {
-                newSet.add(nik);
-            }
-            setSelectedBP1(newSet);
-        } else if (bp === 2) {
-            const newSet = new Set(selectedBP2);
-            if (newSet.has(nik)) {
-                newSet.delete(nik);
-            } else {
-                newSet.add(nik);
-            }
-            setSelectedBP2(newSet);
-        }
+        const updateSet = (setSelected: any, currentSet: Set<string>) => {
+            const newSet = new Set(currentSet);
+            if (newSet.has(nik)) newSet.delete(nik);
+            else newSet.add(nik);
+            setSelected(newSet);
+        };
+        if (bp === 3) updateSet(setSelectedBP3, selectedBP3);
+        else if (bp === 4) updateSet(setSelectedBP4, selectedBP4);
+        else if (bp === 5) updateSet(setSelectedBP5, selectedBP5);
+        else if (bp === 6) updateSet(setSelectedBP6, selectedBP6);
     };
 
-    const isBP1Ready = selectedBP1.size > 0;
-    const isBP2Ready = selectedBP2.size > 0;
-    const isSelectionComplete = isBP1Ready || isBP2Ready;
-    const isBothSelected = isBP1Ready && isBP2Ready;
+    const isBP3Ready = selectedBP3.size > 0;
+    const isBP4Ready = selectedBP4.size > 0;
+    const isBP5Ready = selectedBP5.size > 0;
+    const isBP6Ready = selectedBP6.size > 0;
+    const isSelectionComplete = isBP3Ready || isBP4Ready || isBP5Ready || isBP6Ready;
+    const selectedCount = [isBP3Ready, isBP4Ready, isBP5Ready, isBP6Ready].filter(Boolean).length;
+    const isBothSelected = selectedCount > 1;
 
     const handleCreateBatch = async () => {
         setIsSubmitting(true);
         try {
-            const promises = [];
+            const promises: Promise<any>[] = [];
 
-            if (isBP1Ready) {
-                // Combine date and time
-                const dateTime = assessmentTimeBP1
-                    ? `${assessmentDateBP1}T${assessmentTimeBP1}:00`
-                    : `${assessmentDateBP1}T00:00:00`;
-
-                promises.push(fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/batches`, {
+            const addPromise = (bp: number, location: string, date: string, time: string, type: string, selectedSet: Set<string>) => {
+                const dateTime = time ? date + 'T' + time + ':00' : date + 'T00:00:00';
+                promises.push(fetch((process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000') + '/api/batches', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
-                        location: locationBP1,
+                        location,
                         assessmentDate: dateTime,
-                        assessmentType: assessmentTypeBP1,
-                        employeeNiks: Array.from(selectedBP1),
-                        batchName: "BP 1 Batch",
+                        assessmentType: type,
+                        employeeNiks: Array.from(selectedSet),
+                        batchName: 'BP ' + bp + ' Batch',
                         talent_solution: 2
                     })
                 }));
-            }
+            };
 
-            if (isBP2Ready) {
-                // Combine date and time
-                const dateTime = assessmentTimeBP2
-                    ? `${assessmentDateBP2}T${assessmentTimeBP2}:00`
-                    : `${assessmentDateBP2}T00:00:00`;
+            if (isBP3Ready) addPromise(3, locationBP3, assessmentDateBP3, assessmentTimeBP3, assessmentTypeBP3, selectedBP3);
+            if (isBP4Ready) addPromise(4, locationBP4, assessmentDateBP4, assessmentTimeBP4, assessmentTypeBP4, selectedBP4);
+            if (isBP5Ready) addPromise(5, locationBP5, assessmentDateBP5, assessmentTimeBP5, assessmentTypeBP5, selectedBP5);
+            if (isBP6Ready) addPromise(6, locationBP6, assessmentDateBP6, assessmentTimeBP6, assessmentTypeBP6, selectedBP6);
 
-                promises.push(fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/batches`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        location: locationBP2,
-                        assessmentDate: dateTime,
-                        assessmentType: assessmentTypeBP2,
-                        employeeNiks: Array.from(selectedBP2),
-                        batchName: "BP 2 Batch",
-                        talent_solution: 2
-                    })
-                }));
-            }
 
             const responses = await Promise.all(promises);
             const results = await Promise.all(responses.map(r => r.json()));
@@ -520,7 +519,7 @@ export default function TalentManagementPage() {
                 setNotificationMessage('Batch created successfully');
                 setShowNotification(true);
                 setTimeout(() => {
-                    router.push('/batch-management');
+                    router.push('/batch-management/talent-solution-2');
                 }, 2000);
             } else {
                 alert('Failed to create some batches: ' + failures.map(f => f.error).join(', '));
@@ -569,7 +568,7 @@ export default function TalentManagementPage() {
                 setNewEmployee({
                     nama: '',
                     nik: '',
-                    bp: 1,
+                    bp: 3,
                     posisi: '',
                     phone: '',
                     eligible: 'Eligible',
@@ -877,42 +876,49 @@ export default function TalentManagementPage() {
 
             {/* Tabs */}
             <div className="mb-6 flex space-x-6 border-b border-zinc-200">
-                <button
-                    onClick={() => setActiveTab('bp1')}
-                    className={`pb-3 px-2 font-bold text-lg transition-all border-b-2 ${activeTab === 'bp1' ? 'border-red-600 text-red-600' : 'border-transparent text-zinc-500 hover:text-zinc-700'}`}
-                >
-                    BP 1 List
-                </button>
-                <button
-                    onClick={() => setActiveTab('bp2')}
-                    className={`pb-3 px-2 font-bold text-lg transition-all border-b-2 ${activeTab === 'bp2' ? 'border-red-600 text-red-600' : 'border-transparent text-zinc-500 hover:text-zinc-700'}`}
-                >
-                    BP 2 List
-                </button>
+                {[3, 4, 5, 6].map(bp => (
+                    <button
+                        key={bp}
+                        onClick={() => setActiveTab(('bp' + bp) as any)}
+                        className={'pb-3 px-2 font-bold text-lg transition-all border-b-2 ' + (activeTab === ('bp' + bp) ? 'border-red-600 text-red-600' : 'border-transparent text-zinc-500 hover:text-zinc-700')}
+                    >
+                        BP {bp} List
+                    </button>
+                ))}
             </div>
 
             {/* Tables */}
-            {activeTab === 'bp1' && (
-                <TalentTable title="BP 1 Candidates" employees={bp1Employees} selectedSet={selectedBP1} quota={QUOTA_BP1} bp={1} onToggleSelection={toggleSelection} onRowClick={handleEmployeeClick} onDeleteRow={handleDeleteEmployee} isEditMode={isEditMode} />
+            {activeTab === 'bp3' && (
+                <TalentTable title="BP 3 Candidates" employees={bp3Employees} selectedSet={selectedBP3} quota={QUOTA_BP3} bp={3} onToggleSelection={toggleSelection} onRowClick={handleEmployeeClick} onDeleteRow={handleDeleteEmployee} isEditMode={isEditMode} />
             )}
-            {activeTab === 'bp2' && (
-                <TalentTable title="BP 2 Candidates" employees={bp2Employees} selectedSet={selectedBP2} quota={QUOTA_BP2} bp={2} onToggleSelection={toggleSelection} onRowClick={handleEmployeeClick} onDeleteRow={handleDeleteEmployee} isEditMode={isEditMode} />
+            {activeTab === 'bp4' && (
+                <TalentTable title="BP 4 Candidates" employees={bp4Employees} selectedSet={selectedBP4} quota={QUOTA_BP4} bp={4} onToggleSelection={toggleSelection} onRowClick={handleEmployeeClick} onDeleteRow={handleDeleteEmployee} isEditMode={isEditMode} />
+            )}
+            {activeTab === 'bp5' && (
+                <TalentTable title="BP 5 Candidates" employees={bp5Employees} selectedSet={selectedBP5} quota={QUOTA_BP5} bp={5} onToggleSelection={toggleSelection} onRowClick={handleEmployeeClick} onDeleteRow={handleDeleteEmployee} isEditMode={isEditMode} />
+            )}
+            {activeTab === 'bp6' && (
+                <TalentTable title="BP 6 Candidates" employees={bp6Employees} selectedSet={selectedBP6} quota={QUOTA_BP6} bp={6} onToggleSelection={toggleSelection} onRowClick={handleEmployeeClick} onDeleteRow={handleDeleteEmployee} isEditMode={isEditMode} />
             )}
 
             {/* Sticky Bar */}
             <div className="fixed bottom-0 left-64 right-0 bg-white border-t border-zinc-200 p-4 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] z-20 flex justify-between items-center">
-                <div className="flex items-center space-x-8 px-4">
-                    <div className="flex items-center space-x-3">
-                        <span className="text-sm font-semibold text-zinc-500">BP 1 Selection</span>
-                        <span className={`text-2xl font-bold ${selectedBP1.size > 0 ? 'text-green-600' : 'text-zinc-900'}`}>{selectedBP1.size}</span>
-                    </div>
-                    <div className="w-px h-10 bg-zinc-200"></div>
-                    <div className="flex items-center space-x-3">
-                        <span className="text-sm font-semibold text-zinc-500">BP 2 Selection</span>
-                        <span className={`text-2xl font-bold ${selectedBP2.size > 0 ? 'text-green-600' : 'text-zinc-900'}`}>{selectedBP2.size}</span>
-                    </div>
+                <div className="flex items-center space-x-8 px-4 overflow-x-auto custom-scrollbar">
+                    {[3, 4, 5, 6].map((bp, idx) => {
+                        const sets = { 3: selectedBP3, 4: selectedBP4, 5: selectedBP5, 6: selectedBP6 };
+                        const size = sets[bp as keyof typeof sets].size;
+                        return (
+                            <React.Fragment key={bp}>
+                                {idx > 0 && <div className="w-px h-10 bg-zinc-200"></div>}
+                                <div className="flex items-center space-x-3 whitespace-nowrap">
+                                    <span className="text-sm font-semibold text-zinc-500">BP {bp} Selection</span>
+                                    <span className={'text-2xl font-bold ' + (size > 0 ? 'text-green-600' : 'text-zinc-900')}>{size}</span>
+                                </div>
+                            </React.Fragment>
+                        );
+                    })}
                 </div>
-                <div className="px-4">
+                <div className="px-4 shrink-0">
                     {/* Duplicate Create Batch button for convenience, optional */}
                     <button
                         onClick={() => setIsModalOpen(true)}
@@ -939,20 +945,19 @@ export default function TalentManagementPage() {
                         </div>
 
                         <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-8 max-h-[70vh] overflow-y-auto">
-                            {/* BP 1 Section */}
-                            {(isBP1Ready) && (
-                                <div className={`space-y-4 ${isBothSelected ? 'border-r pr-4 border-zinc-200' : 'col-span-2'}`}>
+                            {(isBP3Ready) && (
+                                <div className={'space-y-4 ' + (selectedCount > 1 ? 'border-r pr-4 border-zinc-200' : 'col-span-1 md:col-span-2')}>
                                     <h3 className="text-lg font-bold text-zinc-800 flex items-center">
                                         <div className="w-2 h-2 rounded-full bg-red-600 mr-2"></div>
-                                        BP 1 Batch Configuration
+                                        BP 3 Batch Configuration
                                     </h3>
 
                                     <div>
                                         <label className="block text-base font-semibold text-zinc-700 mb-1">Assessment Name</label>
                                         <input
                                             type="text"
-                                            value={assessmentTypeBP1}
-                                            onChange={(e) => setAssessmentTypeBP1(e.target.value)}
+                                            value={assessmentTypeBP3}
+                                            onChange={(e) => setAssessmentTypeBP3(e.target.value)}
                                             className="w-full px-3 py-2 border border-zinc-300 rounded-lg focus:ring-2 focus:ring-red-500/20 focus:border-red-500 text-base text-zinc-900 bg-white"
                                             placeholder="e.g. Assessment Center"
                                         />
@@ -961,8 +966,8 @@ export default function TalentManagementPage() {
                                         <label className="block text-base font-semibold text-zinc-700 mb-1">Location</label>
                                         <input
                                             type="text"
-                                            value={locationBP1}
-                                            onChange={(e) => setLocationBP1(e.target.value)}
+                                            value={locationBP3}
+                                            onChange={(e) => setLocationBP3(e.target.value)}
                                             className="w-full px-3 py-2 border border-zinc-300 rounded-lg focus:ring-2 focus:ring-red-500/20 focus:border-red-500 text-base text-zinc-900 bg-white"
                                             placeholder="e.g. Telkom Hub"
                                         />
@@ -972,8 +977,8 @@ export default function TalentManagementPage() {
                                             <label className="block text-base font-semibold text-zinc-700 mb-1">Assessment Date</label>
                                             <input
                                                 type="date"
-                                                value={assessmentDateBP1}
-                                                onChange={(e) => setAssessmentDateBP1(e.target.value)}
+                                                value={assessmentDateBP3}
+                                                onChange={(e) => setAssessmentDateBP3(e.target.value)}
                                                 className="w-full px-3 py-2 border border-zinc-300 rounded-lg focus:ring-2 focus:ring-red-500/20 focus:border-red-500 text-base text-zinc-900 bg-white accent-red-600"
                                             />
                                         </div>
@@ -981,16 +986,16 @@ export default function TalentManagementPage() {
                                             <label className="block text-base font-semibold text-zinc-700 mb-1">Time</label>
                                             <input
                                                 type="time"
-                                                value={assessmentTimeBP1}
-                                                onChange={(e) => setAssessmentTimeBP1(e.target.value)}
+                                                value={assessmentTimeBP3}
+                                                onChange={(e) => setAssessmentTimeBP3(e.target.value)}
                                                 className="w-full px-3 py-2 border border-zinc-300 rounded-lg focus:ring-2 focus:ring-red-500/20 focus:border-red-500 text-base text-zinc-900 bg-white accent-red-600"
                                             />
                                         </div>
                                     </div>
                                     <div className="bg-zinc-50 rounded-lg p-3 border border-zinc-100">
-                                        <p className="text-xs font-semibold text-zinc-500 mb-2">Selected Candidates ({selectedBP1.size})</p>
+                                        <p className="text-xs font-semibold text-zinc-500 mb-2">Selected Candidates ({selectedBP3.size})</p>
                                         <ul className="text-sm text-zinc-700 space-y-1 max-h-[100px] overflow-y-auto custom-scrollbar">
-                                            {Array.from(selectedBP1).map(nik => {
+                                            {Array.from(selectedBP3).map(nik => {
                                                 const emp = tableData?.data.find((e: any) => e.nik === nik);
                                                 return <li key={nik} className="truncate text-xs">• {emp?.nama}</li>
                                             })}
@@ -999,20 +1004,19 @@ export default function TalentManagementPage() {
                                 </div>
                             )}
 
-                            {/* BP 2 Section */}
-                            {(isBP2Ready) && (
-                                <div className={`space-y-4 ${isBothSelected ? '' : 'col-span-2'}`}>
+                            {(isBP4Ready) && (
+                                <div className={'space-y-4 ' + (selectedCount > 1 ? 'border-r pr-4 border-zinc-200' : 'col-span-1 md:col-span-2')}>
                                     <h3 className="text-lg font-bold text-zinc-800 flex items-center">
-                                        <div className="w-2 h-2 rounded-full bg-zinc-800 mr-2"></div>
-                                        BP 2 Batch Configuration
+                                        <div className="w-2 h-2 rounded-full bg-red-600 mr-2"></div>
+                                        BP 4 Batch Configuration
                                     </h3>
 
                                     <div>
                                         <label className="block text-base font-semibold text-zinc-700 mb-1">Assessment Name</label>
                                         <input
                                             type="text"
-                                            value={assessmentTypeBP2}
-                                            onChange={(e) => setAssessmentTypeBP2(e.target.value)}
+                                            value={assessmentTypeBP4}
+                                            onChange={(e) => setAssessmentTypeBP4(e.target.value)}
                                             className="w-full px-3 py-2 border border-zinc-300 rounded-lg focus:ring-2 focus:ring-red-500/20 focus:border-red-500 text-base text-zinc-900 bg-white"
                                             placeholder="e.g. Assessment Center"
                                         />
@@ -1021,10 +1025,10 @@ export default function TalentManagementPage() {
                                         <label className="block text-base font-semibold text-zinc-700 mb-1">Location</label>
                                         <input
                                             type="text"
-                                            value={locationBP2}
-                                            onChange={(e) => setLocationBP2(e.target.value)}
+                                            value={locationBP4}
+                                            onChange={(e) => setLocationBP4(e.target.value)}
                                             className="w-full px-3 py-2 border border-zinc-300 rounded-lg focus:ring-2 focus:ring-red-500/20 focus:border-red-500 text-base text-zinc-900 bg-white"
-                                            placeholder="e.g. Grha Merah Putih"
+                                            placeholder="e.g. Telkom Hub"
                                         />
                                     </div>
                                     <div className="grid grid-cols-2 gap-4">
@@ -1032,8 +1036,8 @@ export default function TalentManagementPage() {
                                             <label className="block text-base font-semibold text-zinc-700 mb-1">Assessment Date</label>
                                             <input
                                                 type="date"
-                                                value={assessmentDateBP2}
-                                                onChange={(e) => setAssessmentDateBP2(e.target.value)}
+                                                value={assessmentDateBP4}
+                                                onChange={(e) => setAssessmentDateBP4(e.target.value)}
                                                 className="w-full px-3 py-2 border border-zinc-300 rounded-lg focus:ring-2 focus:ring-red-500/20 focus:border-red-500 text-base text-zinc-900 bg-white accent-red-600"
                                             />
                                         </div>
@@ -1041,16 +1045,16 @@ export default function TalentManagementPage() {
                                             <label className="block text-base font-semibold text-zinc-700 mb-1">Time</label>
                                             <input
                                                 type="time"
-                                                value={assessmentTimeBP2}
-                                                onChange={(e) => setAssessmentTimeBP2(e.target.value)}
+                                                value={assessmentTimeBP4}
+                                                onChange={(e) => setAssessmentTimeBP4(e.target.value)}
                                                 className="w-full px-3 py-2 border border-zinc-300 rounded-lg focus:ring-2 focus:ring-red-500/20 focus:border-red-500 text-base text-zinc-900 bg-white accent-red-600"
                                             />
                                         </div>
                                     </div>
                                     <div className="bg-zinc-50 rounded-lg p-3 border border-zinc-100">
-                                        <p className="text-xs font-semibold text-zinc-500 mb-2">Selected Candidates ({selectedBP2.size})</p>
+                                        <p className="text-xs font-semibold text-zinc-500 mb-2">Selected Candidates ({selectedBP4.size})</p>
                                         <ul className="text-sm text-zinc-700 space-y-1 max-h-[100px] overflow-y-auto custom-scrollbar">
-                                            {Array.from(selectedBP2).map(nik => {
+                                            {Array.from(selectedBP4).map(nik => {
                                                 const emp = tableData?.data.find((e: any) => e.nik === nik);
                                                 return <li key={nik} className="truncate text-xs">• {emp?.nama}</li>
                                             })}
@@ -1058,6 +1062,125 @@ export default function TalentManagementPage() {
                                     </div>
                                 </div>
                             )}
+
+                            {(isBP5Ready) && (
+                                <div className={'space-y-4 ' + (selectedCount > 1 ? 'border-r pr-4 border-zinc-200' : 'col-span-1 md:col-span-2')}>
+                                    <h3 className="text-lg font-bold text-zinc-800 flex items-center">
+                                        <div className="w-2 h-2 rounded-full bg-red-600 mr-2"></div>
+                                        BP 5 Batch Configuration
+                                    </h3>
+
+                                    <div>
+                                        <label className="block text-base font-semibold text-zinc-700 mb-1">Assessment Name</label>
+                                        <input
+                                            type="text"
+                                            value={assessmentTypeBP5}
+                                            onChange={(e) => setAssessmentTypeBP5(e.target.value)}
+                                            className="w-full px-3 py-2 border border-zinc-300 rounded-lg focus:ring-2 focus:ring-red-500/20 focus:border-red-500 text-base text-zinc-900 bg-white"
+                                            placeholder="e.g. Assessment Center"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-base font-semibold text-zinc-700 mb-1">Location</label>
+                                        <input
+                                            type="text"
+                                            value={locationBP5}
+                                            onChange={(e) => setLocationBP5(e.target.value)}
+                                            className="w-full px-3 py-2 border border-zinc-300 rounded-lg focus:ring-2 focus:ring-red-500/20 focus:border-red-500 text-base text-zinc-900 bg-white"
+                                            placeholder="e.g. Telkom Hub"
+                                        />
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div>
+                                            <label className="block text-base font-semibold text-zinc-700 mb-1">Assessment Date</label>
+                                            <input
+                                                type="date"
+                                                value={assessmentDateBP5}
+                                                onChange={(e) => setAssessmentDateBP5(e.target.value)}
+                                                className="w-full px-3 py-2 border border-zinc-300 rounded-lg focus:ring-2 focus:ring-red-500/20 focus:border-red-500 text-base text-zinc-900 bg-white accent-red-600"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-base font-semibold text-zinc-700 mb-1">Time</label>
+                                            <input
+                                                type="time"
+                                                value={assessmentTimeBP5}
+                                                onChange={(e) => setAssessmentTimeBP5(e.target.value)}
+                                                className="w-full px-3 py-2 border border-zinc-300 rounded-lg focus:ring-2 focus:ring-red-500/20 focus:border-red-500 text-base text-zinc-900 bg-white accent-red-600"
+                                            />
+                                        </div>
+                                    </div>
+                                    <div className="bg-zinc-50 rounded-lg p-3 border border-zinc-100">
+                                        <p className="text-xs font-semibold text-zinc-500 mb-2">Selected Candidates ({selectedBP5.size})</p>
+                                        <ul className="text-sm text-zinc-700 space-y-1 max-h-[100px] overflow-y-auto custom-scrollbar">
+                                            {Array.from(selectedBP5).map(nik => {
+                                                const emp = tableData?.data.find((e: any) => e.nik === nik);
+                                                return <li key={nik} className="truncate text-xs">• {emp?.nama}</li>
+                                            })}
+                                        </ul>
+                                    </div>
+                                </div>
+                            )}
+
+                            {(isBP6Ready) && (
+                                <div className={'space-y-4 ' + (selectedCount > 1 ? 'border-r pr-4 border-zinc-200' : 'col-span-1 md:col-span-2')}>
+                                    <h3 className="text-lg font-bold text-zinc-800 flex items-center">
+                                        <div className="w-2 h-2 rounded-full bg-red-600 mr-2"></div>
+                                        BP 6 Batch Configuration
+                                    </h3>
+
+                                    <div>
+                                        <label className="block text-base font-semibold text-zinc-700 mb-1">Assessment Name</label>
+                                        <input
+                                            type="text"
+                                            value={assessmentTypeBP6}
+                                            onChange={(e) => setAssessmentTypeBP6(e.target.value)}
+                                            className="w-full px-3 py-2 border border-zinc-300 rounded-lg focus:ring-2 focus:ring-red-500/20 focus:border-red-500 text-base text-zinc-900 bg-white"
+                                            placeholder="e.g. Assessment Center"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-base font-semibold text-zinc-700 mb-1">Location</label>
+                                        <input
+                                            type="text"
+                                            value={locationBP6}
+                                            onChange={(e) => setLocationBP6(e.target.value)}
+                                            className="w-full px-3 py-2 border border-zinc-300 rounded-lg focus:ring-2 focus:ring-red-500/20 focus:border-red-500 text-base text-zinc-900 bg-white"
+                                            placeholder="e.g. Telkom Hub"
+                                        />
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div>
+                                            <label className="block text-base font-semibold text-zinc-700 mb-1">Assessment Date</label>
+                                            <input
+                                                type="date"
+                                                value={assessmentDateBP6}
+                                                onChange={(e) => setAssessmentDateBP6(e.target.value)}
+                                                className="w-full px-3 py-2 border border-zinc-300 rounded-lg focus:ring-2 focus:ring-red-500/20 focus:border-red-500 text-base text-zinc-900 bg-white accent-red-600"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-base font-semibold text-zinc-700 mb-1">Time</label>
+                                            <input
+                                                type="time"
+                                                value={assessmentTimeBP6}
+                                                onChange={(e) => setAssessmentTimeBP6(e.target.value)}
+                                                className="w-full px-3 py-2 border border-zinc-300 rounded-lg focus:ring-2 focus:ring-red-500/20 focus:border-red-500 text-base text-zinc-900 bg-white accent-red-600"
+                                            />
+                                        </div>
+                                    </div>
+                                    <div className="bg-zinc-50 rounded-lg p-3 border border-zinc-100">
+                                        <p className="text-xs font-semibold text-zinc-500 mb-2">Selected Candidates ({selectedBP6.size})</p>
+                                        <ul className="text-sm text-zinc-700 space-y-1 max-h-[100px] overflow-y-auto custom-scrollbar">
+                                            {Array.from(selectedBP6).map(nik => {
+                                                const emp = tableData?.data.find((e: any) => e.nik === nik);
+                                                return <li key={nik} className="truncate text-xs">• {emp?.nama}</li>
+                                            })}
+                                        </ul>
+                                    </div>
+                                </div>
+                            )}
+
                         </div>
 
                         <div className="p-6 border-t border-zinc-100 bg-zinc-50/50 flex justify-end space-x-3">
@@ -1069,7 +1192,12 @@ export default function TalentManagementPage() {
                             </button>
                             <button
                                 onClick={handleCreateBatch}
-                                disabled={isSubmitting || (isBP1Ready && (!locationBP1 || !assessmentDateBP1 || !assessmentTimeBP1 || !assessmentTypeBP1)) || (isBP2Ready && (!locationBP2 || !assessmentDateBP2 || !assessmentTimeBP2 || !assessmentTypeBP2))}
+                                disabled={isSubmitting ||
+                                    (isBP3Ready && (!locationBP3 || !assessmentDateBP3 || !assessmentTimeBP3 || !assessmentTypeBP3)) ||
+                                    (isBP4Ready && (!locationBP4 || !assessmentDateBP4 || !assessmentTimeBP4 || !assessmentTypeBP4)) ||
+                                    (isBP5Ready && (!locationBP5 || !assessmentDateBP5 || !assessmentTimeBP5 || !assessmentTypeBP5)) ||
+                                    (isBP6Ready && (!locationBP6 || !assessmentDateBP6 || !assessmentTimeBP6 || !assessmentTypeBP6))
+                                }
                                 className="px-6 py-2 bg-red-600 text-white rounded-lg font-medium text-sm hover:bg-red-700 shadow-lg shadow-red-600/20 disabled:opacity-50 disabled:shadow-none transition-all"
                             >
                                 {isSubmitting ? 'Saving...' : 'Save & Create Batch'}
@@ -1341,8 +1469,10 @@ export default function TalentManagementPage() {
                                         onChange={(e) => setNewEmployee({ ...newEmployee, bp: parseInt(e.target.value) })}
                                         className="w-full px-3 py-2 border border-zinc-300 rounded-lg text-sm bg-white text-zinc-900"
                                     >
-                                        <option value={1}>BP 1</option>
-                                        <option value={2}>BP 2</option>
+                                        <option value={3}>BP 3</option>
+                                        <option value={4}>BP 4</option>
+                                        <option value={5}>BP 5</option>
+                                        <option value={6}>BP 6</option>
                                     </select>
                                 </div>
                                 <div>
@@ -1393,13 +1523,16 @@ export default function TalentManagementPage() {
                                 </div>
                                 <div>
                                     <label className="block text-xs font-bold text-zinc-500 mb-1">TC Result</label>
-                                    <input
-                                        type="text"
+                                    <select
                                         value={newEmployee.tc_result}
                                         onChange={(e) => setNewEmployee({ ...newEmployee, tc_result: e.target.value })}
-                                        className="w-full px-3 py-2 border border-zinc-300 rounded-lg text-sm text-zinc-900 placeholder-zinc-400 bg-white"
-                                        placeholder="e.g. High Potential"
-                                    />
+                                        className="w-full px-3 py-2 border border-zinc-300 rounded-lg text-sm bg-white text-zinc-900"
+                                    >
+                                        <option value="">Select...</option>
+                                        <option value="Very High Potential">Very High Potential</option>
+                                        <option value="High Potential">High Potential</option>
+                                        <option value="Promotable">Promotable</option>
+                                    </select>
                                 </div>
                             </div>
                             <div className="grid grid-cols-2 gap-4">

@@ -237,13 +237,16 @@ export default function TalentManagementPage() {
     const getPriorityTier = (employee: any): number | null => {
         const expired = isExpired(employee.expired);
         const tcResult = (employee.tc_result || '').toLowerCase().trim();
-        const isHighPotential = tcResult.includes('high potential');
+        const isVeryHighPotential = tcResult.includes('very high potential');
+        const isHighPotential = tcResult.includes('high potential') && !isVeryHighPotential;
         const isPromotable = tcResult.includes('promotable');
 
-        if (expired && isHighPotential) return 1;
-        if (expired && isPromotable) return 2;
-        if (!expired && isHighPotential) return 3;
-        if (!expired && isPromotable) return 4;
+        if (expired && isVeryHighPotential) return 1;
+        if (expired && isHighPotential) return 2;
+        if (expired && isPromotable) return 3;
+        if (!expired && isVeryHighPotential) return 4;
+        if (!expired && isHighPotential) return 5;
+        if (!expired && isPromotable) return 6;
         return null;
     };
 
@@ -1392,13 +1395,16 @@ export default function TalentManagementPage() {
                                 </div>
                                 <div>
                                     <label className="block text-xs font-bold text-zinc-500 mb-1">TC Result</label>
-                                    <input
-                                        type="text"
+                                    <select
                                         value={newEmployee.tc_result}
                                         onChange={(e) => setNewEmployee({ ...newEmployee, tc_result: e.target.value })}
-                                        className="w-full px-3 py-2 border border-zinc-300 rounded-lg text-sm text-zinc-900 placeholder-zinc-400 bg-white"
-                                        placeholder="e.g. High Potential"
-                                    />
+                                        className="w-full px-3 py-2 border border-zinc-300 rounded-lg text-sm bg-white text-zinc-900"
+                                    >
+                                        <option value="">Select...</option>
+                                        <option value="Very High Potential">Very High Potential</option>
+                                        <option value="High Potential">High Potential</option>
+                                        <option value="Promotable">Promotable</option>
+                                    </select>
                                 </div>
                             </div>
                             <div className="grid grid-cols-2 gap-4">

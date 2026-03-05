@@ -156,12 +156,15 @@ export default function BatchManagementPage() {
     const getPriorityTier = (employee: any): number | null => {
         const expired = isExpired(employee.expired);
         const tcResult = (employee.tc_result || '').toLowerCase().trim();
-        const isHP = tcResult.includes('high potential');
+        const isVHP = tcResult.includes('very high potential');
+        const isHP = tcResult.includes('high potential') && !isVHP;
         const isProm = tcResult.includes('promotable');
-        if (expired && isHP) return 1;
-        if (expired && isProm) return 2;
-        if (!expired && isHP) return 3;
-        if (!expired && isProm) return 4;
+        if (expired && isVHP) return 1;
+        if (expired && isHP) return 2;
+        if (expired && isProm) return 3;
+        if (!expired && isVHP) return 4;
+        if (!expired && isHP) return 5;
+        if (!expired && isProm) return 6;
         return null;
     };
 
@@ -694,191 +697,100 @@ export default function BatchManagementPage() {
                 </p>
             </div>
 
-            {/* BP 1 Batches */}
-            <div className="mb-12">
-                <div className="flex items-center space-x-2 mb-4">
-                    <div className="w-2 h-6 bg-red-600 rounded-full"></div>
-                    <h2 className="text-xl font-bold text-zinc-900">BP 1 Batches</h2>
-                </div>
-                <div className="bg-white rounded-xl shadow-sm border border-zinc-200 overflow-hidden">
-                    <div className="overflow-x-auto">
-                        <table className="w-full text-left">
-                            <thead className="bg-zinc-50 border-b border-zinc-100 text-sm uppercase text-zinc-500 font-semibold">
-                                <tr>
-                                    <th className="px-6 py-4">Batch ID</th>
-                                    <th className="px-6 py-4">Location</th>
-                                    <th className="px-6 py-4">Assessment Date</th>
-                                    <th className="px-6 py-4">Participants</th>
-                                    <th className="px-6 py-4">Created At</th>
-                                    <th className="px-6 py-4">Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-zinc-100">
-                                {batches.filter(b => b.employees?.[0]?.bp === 1).length > 0 ? batches.filter(b => b.employees?.[0]?.bp === 1).map((batch) => (
-                                    <tr key={batch.id} className="hover:bg-zinc-50/50 transition-colors">
-                                        <td className="px-6 py-4 font-medium text-zinc-900">#{batch.id}</td>
-                                        <td className="px-6 py-4 text-zinc-600">{batch.location}</td>
-                                        <td className="px-6 py-4 text-zinc-600">
-                                            <div className="flex flex-col">
-                                                <span className="font-medium">{formatDate(batch.assessmentDate)}</span>
-                                                <span className="text-xs text-zinc-500">{new Date(batch.assessmentDate).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
-                                            </div>
-                                        </td>
-                                        <td className="px-6 py-4">
-                                            <span className="bg-zinc-100 text-zinc-700 text-sm px-2 py-1 rounded-full border border-zinc-200 font-medium">
-                                                {batch._count?.employees || 0} Employees
-                                            </span>
-                                        </td>
-                                        <td className="px-6 py-4 text-zinc-500 text-base">{formatDate(batch.createdAt)}</td>
-                                        <td className="px-6 py-4">
-                                            <div className="flex items-center justify-between w-full">
-                                                <button
-                                                    onClick={() => handleViewDetails(batch.id)}
-                                                    className="text-red-600 hover:text-red-700 font-medium text-base transition-colors"
-                                                >
-                                                    View Details
-                                                </button>
-                                                <div className="flex items-center space-x-4">
-                                                    {(() => {
-                                                        const isDeletable = batch.employees?.every(e => e.availability_status === "Batch Draft");
-                                                        return (
-                                                            <button
-                                                                onClick={(e) => {
-                                                                    e.stopPropagation();
-                                                                    if (isDeletable) handleDeleteClick(batch.id);
-                                                                }}
-                                                                className={`${isDeletable ? 'text-red-500 hover:text-red-700' : 'text-zinc-300 cursor-not-allowed'} transition-colors`}
-                                                                title={isDeletable ? "Delete Batch" : "Cannot delete: Some employees have advanced status"}
-                                                            >
-                                                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
-                                                                    <path strokeLinecap="round" strokeLinejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" />
-                                                                </svg>
-                                                            </button>
-                                                        );
-                                                    })()}
-                                                    {(() => {
-                                                        const isSentOrPending = batch.employees?.some(e => e.availability_status.toLowerCase() === "sent" || e.availability_status.toLowerCase() === "pending");
-                                                        return (
-                                                            <button
-                                                                onClick={() => !isSentOrPending && handleOpenMessageModal(batch.id)}
-                                                                disabled={isSentOrPending}
-                                                                className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${isSentOrPending
-                                                                    ? 'bg-zinc-100 text-zinc-400 cursor-not-allowed border border-zinc-200'
-                                                                    : 'bg-zinc-900 text-white hover:bg-red-600'
-                                                                    }`}
-                                                            >
-                                                                {isSentOrPending ? 'Message Sent' : 'Send Message'}
-                                                            </button>
-                                                        );
-                                                    })()}
-                                                </div>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                )) : (
+                        {/* BP Batches */}
+            {[3, 4, 5, 6].map(bpLevel => (
+                <div key={bpLevel} className="mb-12">
+                    <div className="flex items-center space-x-2 mb-4">
+                        <div className={`w-2 h-6 ${bpLevel % 2 !== 0 ? 'bg-red-600' : 'bg-zinc-800'} rounded-full`}></div>
+                        <h2 className="text-xl font-bold text-zinc-900">BP {bpLevel} Batches</h2>
+                    </div>
+                    <div className="bg-white rounded-xl shadow-sm border border-zinc-200 overflow-hidden">
+                        <div className="overflow-x-auto">
+                            <table className="w-full text-left">
+                                <thead className="bg-zinc-50 border-b border-zinc-100 text-sm uppercase text-zinc-500 font-semibold">
                                     <tr>
-                                        <td colSpan={6} className="px-6 py-8 text-center text-zinc-400 italic">No BP 1 batches found.</td>
+                                        <th className="px-6 py-4">Batch ID</th>
+                                        <th className="px-6 py-4">Location</th>
+                                        <th className="px-6 py-4">Assessment Date</th>
+                                        <th className="px-6 py-4">Participants</th>
+                                        <th className="px-6 py-4">Created At</th>
+                                        <th className="px-6 py-4">Actions</th>
                                     </tr>
-                                )}
-                            </tbody>
-                        </table>
+                                </thead>
+                                <tbody className="divide-y divide-zinc-100">
+                                    {batches.filter(b => b.employees?.[0]?.bp === bpLevel).length > 0 ? batches.filter(b => b.employees?.[0]?.bp === bpLevel).map((batch) => (
+                                        <tr key={batch.id} className="hover:bg-zinc-50/50 transition-colors">
+                                            <td className="px-6 py-4 font-medium text-zinc-900">#{batch.id}</td>
+                                            <td className="px-6 py-4 text-zinc-600">{batch.location}</td>
+                                            <td className="px-6 py-4 text-zinc-600">
+                                                <div className="flex flex-col">
+                                                    <span className="font-medium">{formatDate(batch.assessmentDate)}</span>
+                                                    <span className="text-xs text-zinc-500">{new Date(batch.assessmentDate).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                                                </div>
+                                            </td>
+                                            <td className="px-6 py-4">
+                                                <span className="bg-zinc-100 text-zinc-700 text-sm px-2 py-1 rounded-full border border-zinc-200 font-medium">
+                                                    {batch._count?.employees || 0} Employees
+                                                </span>
+                                            </td>
+                                            <td className="px-6 py-4 text-zinc-500 text-base">{formatDate(batch.createdAt)}</td>
+                                            <td className="px-6 py-4">
+                                                <div className="flex items-center justify-between w-full">
+                                                    <button
+                                                        onClick={() => handleViewDetails(batch.id)}
+                                                        className="text-red-600 hover:text-red-700 font-medium text-base transition-colors"
+                                                    >
+                                                        View Details
+                                                    </button>
+                                                    <div className="flex items-center space-x-4">
+                                                        {(() => {
+                                                            const isDeletable = batch.employees?.every(e => e.availability_status === "Batch Draft");
+                                                            return (
+                                                                <button
+                                                                    onClick={(e) => {
+                                                                        e.stopPropagation();
+                                                                        if (isDeletable) handleDeleteClick(batch.id);
+                                                                    }}
+                                                                    className={`${isDeletable ? 'text-red-500 hover:text-red-700' : 'text-zinc-300 cursor-not-allowed'} transition-colors`}
+                                                                    title={isDeletable ? "Delete Batch" : "Cannot delete: Some employees have advanced status"}
+                                                                >
+                                                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
+                                                                        <path strokeLinecap="round" strokeLinejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" />
+                                                                    </svg>
+                                                                </button>
+                                                            );
+                                                        })()}
+                                                        {(() => {
+                                                            const isSentOrPending = batch.employees?.some(e => e.availability_status.toLowerCase() === "sent" || e.availability_status.toLowerCase() === "pending");
+                                                            return (
+                                                                <button
+                                                                    onClick={() => !isSentOrPending && handleOpenMessageModal(batch.id)}
+                                                                    disabled={isSentOrPending}
+                                                                    className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${isSentOrPending
+                                                                        ? 'bg-zinc-100 text-zinc-400 cursor-not-allowed border border-zinc-200'
+                                                                        : 'bg-zinc-900 text-white hover:bg-red-600'
+                                                                        }`}
+                                                                >
+                                                                    {isSentOrPending ? 'Message Sent' : 'Send Message'}
+                                                                </button>
+                                                            );
+                                                        })()}
+                                                    </div>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    )) : (
+                                        <tr>
+                                            <td colSpan={6} className="px-6 py-8 text-center text-zinc-400 italic">No BP {bpLevel} batches found.</td>
+                                        </tr>
+                                    )}
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
                 </div>
-            </div>
-
-            {/* BP 2 Batches */}
-            <div className="mb-8">
-                <div className="flex items-center space-x-2 mb-4">
-                    <div className="w-2 h-6 bg-zinc-800 rounded-full"></div>
-                    <h2 className="text-xl font-bold text-zinc-900">BP 2 Batches</h2>
-                </div>
-                <div className="bg-white rounded-xl shadow-sm border border-zinc-200 overflow-hidden">
-                    <div className="overflow-x-auto">
-                        <table className="w-full text-left">
-                            <thead className="bg-zinc-50 border-b border-zinc-100 text-sm uppercase text-zinc-500 font-semibold">
-                                <tr>
-                                    <th className="px-6 py-4">Batch ID</th>
-                                    <th className="px-6 py-4">Location</th>
-                                    <th className="px-6 py-4">Assessment Date</th>
-                                    <th className="px-6 py-4">Participants</th>
-                                    <th className="px-6 py-4">Created At</th>
-                                    <th className="px-6 py-4">Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-zinc-100">
-                                {batches.filter(b => b.employees?.[0]?.bp === 2).length > 0 ? batches.filter(b => b.employees?.[0]?.bp === 2).map((batch) => (
-                                    <tr key={batch.id} className="hover:bg-zinc-50/50 transition-colors">
-                                        <td className="px-6 py-4 font-medium text-zinc-900">#{batch.id}</td>
-                                        <td className="px-6 py-4 text-zinc-600">{batch.location}</td>
-                                        <td className="px-6 py-4 text-zinc-600">
-                                            <div className="flex flex-col">
-                                                <span className="font-medium">{formatDate(batch.assessmentDate)}</span>
-                                                <span className="text-xs text-zinc-500">{new Date(batch.assessmentDate).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
-                                            </div>
-                                        </td>
-                                        <td className="px-6 py-4">
-                                            <span className="bg-zinc-100 text-zinc-700 text-sm px-2 py-1 rounded-full border border-zinc-200 font-medium">
-                                                {batch._count?.employees || 0} Employees
-                                            </span>
-                                        </td>
-                                        <td className="px-6 py-4 text-zinc-500 text-base">{formatDate(batch.createdAt)}</td>
-                                        <td className="px-6 py-4">
-                                            <div className="flex items-center justify-between w-full">
-                                                <button
-                                                    onClick={() => handleViewDetails(batch.id)}
-                                                    className="text-red-600 hover:text-red-700 font-medium text-base transition-colors"
-                                                >
-                                                    View Details
-                                                </button>
-                                                <div className="flex items-center space-x-4">
-                                                    {(() => {
-                                                        const isDeletable = batch.employees?.every(e => e.availability_status === "Batch Draft");
-                                                        return (
-                                                            <button
-                                                                onClick={(e) => {
-                                                                    e.stopPropagation();
-                                                                    if (isDeletable) handleDeleteClick(batch.id);
-                                                                }}
-                                                                className={`${isDeletable ? 'text-red-500 hover:text-red-700' : 'text-zinc-300 cursor-not-allowed'} transition-colors`}
-                                                                title={isDeletable ? "Delete Batch" : "Cannot delete: Some employees have advanced status"}
-                                                            >
-                                                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
-                                                                    <path strokeLinecap="round" strokeLinejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" />
-                                                                </svg>
-                                                            </button>
-                                                        );
-                                                    })()}
-                                                    {(() => {
-                                                        const isSentOrPending = batch.employees?.some(e => e.availability_status.toLowerCase() === "sent" || e.availability_status.toLowerCase() === "pending");
-                                                        return (
-                                                            <button
-                                                                onClick={() => !isSentOrPending && handleOpenMessageModal(batch.id)}
-                                                                disabled={isSentOrPending}
-                                                                className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${isSentOrPending
-                                                                    ? 'bg-zinc-100 text-zinc-400 cursor-not-allowed border border-zinc-200'
-                                                                    : 'bg-zinc-900 text-white hover:bg-red-600'
-                                                                    }`}
-                                                            >
-                                                                {isSentOrPending ? 'Message Sent' : 'Send Message'}
-                                                            </button>
-                                                        );
-                                                    })()}
-                                                </div>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                )) : (
-                                    <tr>
-                                        <td colSpan={6} className="px-6 py-8 text-center text-zinc-400 italic">No BP 2 batches found.</td>
-                                    </tr>
-                                )}
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-
-            {/* Details Modal */}
+            ))}
+{/* Details Modal */}
             {isDetailsOpen && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in duration-200">
                     <div className="bg-white rounded-xl shadow-2xl w-full max-w-[75vw] overflow-hidden animate-in zoom-in-95 duration-200 max-h-[90vh] flex flex-col">

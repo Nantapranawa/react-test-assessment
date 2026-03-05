@@ -156,12 +156,15 @@ export default function BatchManagementPage() {
     const getPriorityTier = (employee: any): number | null => {
         const expired = isExpired(employee.expired);
         const tcResult = (employee.tc_result || '').toLowerCase().trim();
-        const isHP = tcResult.includes('high potential');
+        const isVHP = tcResult.includes('very high potential');
+        const isHP = tcResult.includes('high potential') && !isVHP;
         const isProm = tcResult.includes('promotable');
-        if (expired && isHP) return 1;
-        if (expired && isProm) return 2;
-        if (!expired && isHP) return 3;
-        if (!expired && isProm) return 4;
+        if (expired && isVHP) return 1;
+        if (expired && isHP) return 2;
+        if (expired && isProm) return 3;
+        if (!expired && isVHP) return 4;
+        if (!expired && isHP) return 5;
+        if (!expired && isProm) return 6;
         return null;
     };
 
