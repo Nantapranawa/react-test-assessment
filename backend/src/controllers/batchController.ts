@@ -102,7 +102,8 @@ export const listBatches = async (req: Request, res: Response) => {
                         select: {
                             bp: true,
                             availability_status: true,
-                            nik: true
+                            nik: true,
+                            updatedAt: true
                         }
                     }
                 },
@@ -120,7 +121,8 @@ export const listBatches = async (req: Request, res: Response) => {
                         select: {
                             bp: true,
                             availability_status: true,
-                            nik: true
+                            nik: true,
+                            updatedAt: true
                         }
                     }
                 },

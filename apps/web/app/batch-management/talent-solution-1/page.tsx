@@ -753,17 +753,47 @@ export default function BatchManagementPage() {
                                                         );
                                                     })()}
                                                     {(() => {
-                                                        const isSentOrPending = batch.employees?.some(e => e.availability_status.toLowerCase() === "sent" || e.availability_status.toLowerCase() === "pending");
+                                                        const hasTerminalStatus = batch.employees?.some((e: any) => ["accepted", "rejected", "reschedule", "rescheduled"].some(s => e.availability_status.toLowerCase().includes(s)));
+                                                        const pendingOrSentEmps = batch.employees?.filter((e: any) => ["pending", "sent"].some(s => e.availability_status.toLowerCase().includes(s))) || [];
+                                                        const hasPendingOrSent = pendingOrSentEmps.length > 0;
+
+                                                        let isButtonDisabled = false;
+                                                        let buttonText = "Send Message";
+                                                        let waitText = "";
+
+                                                        if (hasTerminalStatus) {
+                                                            isButtonDisabled = true;
+                                                            buttonText = "Message Sent";
+                                                        } else if (hasPendingOrSent) {
+                                                            const mostRecent = [...pendingOrSentEmps].sort((a: any, b: any) => new Date(b.updatedAt || 0).getTime() - new Date(a.updatedAt || 0).getTime())[0];
+
+                                                            if (mostRecent) {
+                                                                let t = new Date((mostRecent as any).updatedAt || 0).getTime();
+                                                                let currentNow = typeof now !== 'undefined' ? now : Date.now();
+                                                                let diff = currentNow - t;
+                                                                if (diff < -300000) diff += 7 * 60 * 60 * 1000;
+                                                                const elapsed = diff / 60000;
+
+                                                                if (elapsed < 15) {
+                                                                    isButtonDisabled = true;
+                                                                    waitText = ` (⏳ ${Math.max(0, Math.ceil(15 - elapsed))}m)`;
+                                                                    buttonText = "Sending";
+                                                                } else {
+                                                                    buttonText = "Resend";
+                                                                }
+                                                            }
+                                                        }
+
                                                         return (
                                                             <button
-                                                                onClick={() => !isSentOrPending && handleOpenMessageModal(batch.id)}
-                                                                disabled={isSentOrPending}
-                                                                className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${isSentOrPending
+                                                                onClick={() => !isButtonDisabled && handleOpenMessageModal(batch.id)}
+                                                                disabled={isButtonDisabled}
+                                                                className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${isButtonDisabled
                                                                     ? 'bg-zinc-100 text-zinc-400 cursor-not-allowed border border-zinc-200'
                                                                     : 'bg-zinc-900 text-white hover:bg-red-600'
                                                                     }`}
                                                             >
-                                                                {isSentOrPending ? 'Message Sent' : 'Send Message'}
+                                                                {buttonText}{waitText}
                                                             </button>
                                                         );
                                                     })()}
@@ -845,17 +875,47 @@ export default function BatchManagementPage() {
                                                         );
                                                     })()}
                                                     {(() => {
-                                                        const isSentOrPending = batch.employees?.some(e => e.availability_status.toLowerCase() === "sent" || e.availability_status.toLowerCase() === "pending");
+                                                        const hasTerminalStatus = batch.employees?.some((e: any) => ["accepted", "rejected", "reschedule", "rescheduled"].some(s => e.availability_status.toLowerCase().includes(s)));
+                                                        const pendingOrSentEmps = batch.employees?.filter((e: any) => ["pending", "sent"].some(s => e.availability_status.toLowerCase().includes(s))) || [];
+                                                        const hasPendingOrSent = pendingOrSentEmps.length > 0;
+
+                                                        let isButtonDisabled = false;
+                                                        let buttonText = "Send Message";
+                                                        let waitText = "";
+
+                                                        if (hasTerminalStatus) {
+                                                            isButtonDisabled = true;
+                                                            buttonText = "Message Sent";
+                                                        } else if (hasPendingOrSent) {
+                                                            const mostRecent = [...pendingOrSentEmps].sort((a: any, b: any) => new Date(b.updatedAt || 0).getTime() - new Date(a.updatedAt || 0).getTime())[0];
+
+                                                            if (mostRecent) {
+                                                                let t = new Date((mostRecent as any).updatedAt || 0).getTime();
+                                                                let currentNow = typeof now !== 'undefined' ? now : Date.now();
+                                                                let diff = currentNow - t;
+                                                                if (diff < -300000) diff += 7 * 60 * 60 * 1000;
+                                                                const elapsed = diff / 60000;
+
+                                                                if (elapsed < 15) {
+                                                                    isButtonDisabled = true;
+                                                                    waitText = ` (⏳ ${Math.max(0, Math.ceil(15 - elapsed))}m)`;
+                                                                    buttonText = "Sending";
+                                                                } else {
+                                                                    buttonText = "Resend";
+                                                                }
+                                                            }
+                                                        }
+
                                                         return (
                                                             <button
-                                                                onClick={() => !isSentOrPending && handleOpenMessageModal(batch.id)}
-                                                                disabled={isSentOrPending}
-                                                                className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${isSentOrPending
+                                                                onClick={() => !isButtonDisabled && handleOpenMessageModal(batch.id)}
+                                                                disabled={isButtonDisabled}
+                                                                className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${isButtonDisabled
                                                                     ? 'bg-zinc-100 text-zinc-400 cursor-not-allowed border border-zinc-200'
                                                                     : 'bg-zinc-900 text-white hover:bg-red-600'
                                                                     }`}
                                                             >
-                                                                {isSentOrPending ? 'Message Sent' : 'Send Message'}
+                                                                {buttonText}{waitText}
                                                             </button>
                                                         );
                                                     })()}
@@ -915,6 +975,7 @@ export default function BatchManagementPage() {
                                     </div>
                                 ) : (
                                     <p className="text-base text-zinc-600 font-medium">
+                                        {selectedBatch?.assessmentType && <span className="font-bold text-red-600 mr-2">{selectedBatch.assessmentType}</span>}
                                         {selectedBatch?.location} - {selectedBatch?.assessmentDate && formatDate(selectedBatch.assessmentDate)}
                                         <span className="ml-2 font-mono bg-zinc-100 px-2.5 py-1 rounded text-sm text-zinc-700 font-bold">
                                             {selectedBatch?.assessmentDate && new Date(selectedBatch.assessmentDate).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
@@ -1056,8 +1117,8 @@ export default function BatchManagementPage() {
                                                             )}
                                                             {lowerStatus.includes("pending") && (() => {
                                                                 const getMinutesPassed = () => {
-                                                                    if (!emp.updatedAt) return 15;
-                                                                    let t = new Date(emp.updatedAt).getTime();
+                                                                    if (!(emp as any).updatedAt) return 15;
+                                                                    let t = new Date((emp as any).updatedAt).getTime();
                                                                     let diff = now - t;
                                                                     if (diff < -300000) diff += 7 * 60 * 60 * 1000;
                                                                     return diff / 60000;
@@ -1175,7 +1236,7 @@ export default function BatchManagementPage() {
                                 <table className="w-full text-left table-fixed">
                                     <thead className="bg-zinc-100 border-b border-zinc-200 text-xs uppercase text-zinc-500 font-bold sticky top-0 z-10">
                                         <tr>
-                                            <th className="px-6 py-3">Candidate Name</th>
+                                            <th className="px-6 py-3 w-[35%]">Candidate Name</th>
                                             <th className="px-6 py-3">NIK</th>
                                             <th className="px-6 py-3">Position</th>
                                             <th className="px-6 py-3">TC Result</th>
@@ -1605,7 +1666,7 @@ PT Telkom Indonesia`}
                                 <table className="w-full text-left table-fixed">
                                     <thead className="bg-zinc-100 border-b border-zinc-200 text-xs uppercase text-zinc-500 font-bold sticky top-0 z-10">
                                         <tr>
-                                            <th className="px-6 py-3">Candidate Name</th>
+                                            <th className="px-6 py-3 w-[35%]">Candidate Name</th>
                                             <th className="px-6 py-3">NIK</th>
                                             <th className="px-6 py-3">Position</th>
                                             <th className="px-6 py-3">TC Result</th>

@@ -101,22 +101,7 @@ export default function NotificationDropdown() {
         }
     };
 
-    const handleResolveAction = async (id: number, ts: number | undefined, action: 'accept' | 'decline', proposedStatus: string) => {
-        try {
-            const queryTs = ts || user?.talent_solution || 1;
-            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/notifications/${id}/resolve`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ talent_solution: queryTs, action, proposedStatus })
-            });
-            const data = await res.json();
-            if (data.success) {
-                fetchNotifications();
-            }
-        } catch (error) {
-            console.error('Error resolving action:', error);
-        }
-    };
+
 
     // Helper for icon based on type
     const getIcon = (type: string) => {
@@ -193,28 +178,7 @@ export default function NotificationDropdown() {
                                             <p className="text-[10px] text-zinc-400 font-medium">
                                                 {new Date(notif.createdAt).toLocaleString()}
                                             </p>
-                                            {notif.type.startsWith('action:') && (
-                                                <div className="flex gap-2 mt-2">
-                                                    <button
-                                                        onClick={(e) => {
-                                                            e.stopPropagation();
-                                                            handleResolveAction(notif.id, notif.talent_solution, 'accept', notif.type.split(':')[1]);
-                                                        }}
-                                                        className="px-3 py-1 bg-blue-600 text-white text-xs font-semibold rounded-md hover:bg-blue-700 transition"
-                                                    >
-                                                        Accept
-                                                    </button>
-                                                    <button
-                                                        onClick={(e) => {
-                                                            e.stopPropagation();
-                                                            handleResolveAction(notif.id, notif.talent_solution, 'decline', notif.type.split(':')[1]);
-                                                        }}
-                                                        className="px-3 py-1 bg-zinc-200 text-zinc-800 text-xs font-semibold rounded-md hover:bg-zinc-300 transition"
-                                                    >
-                                                        Decline
-                                                    </button>
-                                                </div>
-                                            )}
+
                                         </div>
                                         {!notif.isRead && (
                                             <div className="mt-2 w-2 h-2 rounded-full bg-red-600 flex-shrink-0"></div>
