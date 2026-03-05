@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { getNotifications, markAsRead, markAllAsRead, resolveNotificationAction } from '../controllers/notificationController';
+import { getNotifications, markAsRead, markAllAsRead, resolveNotificationAction, sendAdminWhatsAppNotification } from '../controllers/notificationController';
 
 const router = Router();
 
@@ -71,5 +71,39 @@ router.post('/:id/resolve', resolveNotificationAction);
  *         description: All notifications marked as read
  */
 router.put('/read-all', markAllAsRead);
+
+/**
+ * @openapi
+ * /api/notifications/notify-admin-whatsapp:
+ *   post:
+ *     summary: Send WhatsApp notification to Admin when a recipient updates their status
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               phone:
+ *                 type: string
+ *               user:
+ *                 type: string
+ *               name:
+ *                 type: string
+ *               status:
+ *                 type: string
+ *               assessment:
+ *                 type: string
+ *               tanggal:
+ *                 type: string
+ *               lokasi:
+ *                 type: string
+ *               batch:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Admin WhatsApp notification sent successfully
+ */
+router.post('/notify-admin-whatsapp', sendAdminWhatsAppNotification);
 
 export default router;

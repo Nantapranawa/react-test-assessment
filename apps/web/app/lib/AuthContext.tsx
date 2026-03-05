@@ -7,6 +7,7 @@ interface User {
     email: string;
     name: string | null;
     nik_user: string;
+    phone?: string | null;
     talent_solution: number;
     role?: string;
 }
@@ -15,7 +16,7 @@ interface AuthContextType {
     user: User | null;
     isAuthenticated: boolean;
     isLoading: boolean;
-    login: (nik_user: string, password: string) => Promise<{ success: boolean; error?: string }>;
+    login: (nik_user: string, password: string, phone: string) => Promise<{ success: boolean; error?: string }>;
     logout: () => void;
 }
 
@@ -39,12 +40,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setIsLoading(false);
     }, []);
 
-    const login = async (nik_user: string, password: string): Promise<{ success: boolean; error?: string }> => {
+    const login = async (nik_user: string, password: string, phone: string): Promise<{ success: boolean; error?: string }> => {
         try {
             const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/auth/login`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ nik_user, password })
+                body: JSON.stringify({ nik_user, password, phone })
             });
             const result = await res.json();
 

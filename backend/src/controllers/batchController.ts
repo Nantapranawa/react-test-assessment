@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import axios from 'axios';
 import { prisma } from '../lib/prisma';
 import { BatchTS1, EmployeeTS1 } from '../../generated/prisma/client';
+import { normalizePhone } from '../utils/phoneUtils';
 
 export const createBatch = async (req: Request, res: Response) => {
     try {
@@ -509,7 +510,7 @@ export const sendInvitations = async (req: Request, res: Response) => {
         const assessmentType = batch.assessmentType || 'Assessment Center';
 
         const OCA_API_URL = "https://wa01.ocatelkom.co.id/api/v2/push/message";
-        const TEMPLATE_CODE_ID = process.env.OCA_TEMPLATE_CODE_ID || "";
+        const TEMPLATE_CODE_ID = process.env.OCA_TEMPLATE_INVITATION_ID || "";
         const JWT_TOKEN = process.env.OCA_JWT_TOKEN || "";
 
         if (!TEMPLATE_CODE_ID || !JWT_TOKEN) {
@@ -518,15 +519,7 @@ export const sendInvitations = async (req: Request, res: Response) => {
         }
 
         const results = await Promise.all(batch.employees.map(async (emp: any) => {
-            let phone = emp.phone;
-
-            // Basic sanitization and formatting to 628...
-            if (phone) {
-                phone = phone.replace(/\D/g, ''); // Remove non-digits
-                if (phone.startsWith('0')) {
-                    phone = '62' + phone.substring(1);
-                }
-            }
+            const phone = normalizePhone(emp.phone);
 
             if (!phone) {
                 return { id: emp.id, success: false, reason: "No phone number" };

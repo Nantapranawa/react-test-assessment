@@ -1,4 +1,5 @@
 import { prisma } from '../lib/prisma';
+import { notificationService } from './notificationService';
 
 export interface AIAnalysisResult {
     status: string;
@@ -58,7 +59,7 @@ export const employeeStatusService = {
 
         if (employeeType === 'TS1') {
             if (updateStatusDirectly) {
-                return await prisma.$transaction([
+                await prisma.$transaction([
                     prisma.employeeTS1.update({
                         where: { id: employee.id },
                         data: { availability_status: proposedStatus }
@@ -73,7 +74,7 @@ export const employeeStatusService = {
                     })
                 ]);
             } else {
-                return await prisma.notificationTS1.create({
+                await prisma.notificationTS1.create({
                     data: {
                         message,
                         type: notifType,
@@ -84,7 +85,7 @@ export const employeeStatusService = {
             }
         } else {
             if (updateStatusDirectly) {
-                return await prisma.$transaction([
+                await prisma.$transaction([
                     prisma.employeeTS2.update({
                         where: { id: employee.id },
                         data: { availability_status: proposedStatus }
@@ -99,7 +100,7 @@ export const employeeStatusService = {
                     })
                 ]);
             } else {
-                return await prisma.notificationTS2.create({
+                await prisma.notificationTS2.create({
                     data: {
                         message,
                         type: notifType,
@@ -109,5 +110,55 @@ export const employeeStatusService = {
                 });
             }
         }
+
+        // Trigger Admin WhatsApp Notification if status changed to something meaningful
+        if (proposedStatus !== "No Invitation") {
+            try {
+                let batch: any = null;
+                if (employeeType === 'TS1') {
+                    batch = await prisma.batchTS1.findFirst({
+                        where: { employees: { some: { nik: employeeNik } } },
+                        orderBy: { createdAt: 'desc' }
+                    });
+                } else {
+                    batch = await prisma.batchTS2.findFirst({
+                        where: { employees: { some: { nik: employeeNik } } },
+                        orderBy: { createdAt: 'desc' }
+                    });
+                }
+
+                const talent_solution = employeeType === 'TS1' ? 1 : 2;
+                let admin = await prisma.user.findFirst({
+                    where: { role: 'ADMIN', talent_solution, phone: { not: null } }
+                });
+
+                if (!admin) {
+                    admin = await prisma.user.findFirst({
+                        where: { role: 'ADMIN', talent_solution: 0, phone: { not: null } }
+                    });
+                }
+
+                if (admin && admin.phone && batch) {
+                    const assessmentDate = batch.assessmentDate
+                        ? new Date(batch.assessmentDate).toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
+                        : 'TBD';
+
+                    await notificationService.sendAdminWhatsAppNotification({
+                        phone: admin.phone,
+                        user: admin.name || 'Admin',
+                        name: employee.nama,
+                        status: proposedStatus, // This is the categorical status
+                        assessment: batch.assessmentType || 'Assessment',
+                        tanggal: assessmentDate,
+                        lokasi: batch.location || 'Sudah Ditentukan',
+                        batch: batch.batchName || 'Batch No Name'
+                    });
+                }
+            } catch (notifErr: any) {
+                console.error("Failed to trigger admin notification:", notifErr.message);
+            }
+        }
+
+        return true;
     }
 };

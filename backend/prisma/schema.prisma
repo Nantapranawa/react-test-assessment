@@ -13,6 +13,7 @@ model User {
   name            String?
   nik_user        String  @unique
   password        String  @default("password123")
+  phone           String?
   talent_solution Int
   role            String  @default("USER")
 }

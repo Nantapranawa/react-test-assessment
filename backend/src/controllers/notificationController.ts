@@ -1,5 +1,7 @@
 import { Request, Response } from 'express';
 import { prisma } from '../lib/prisma';
+import axios from 'axios';
+import { notificationService } from '../services/notificationService';
 
 // Get all notifications
 export const getNotifications = async (req: Request, res: Response) => {
@@ -174,5 +176,30 @@ export const resolveNotificationAction = async (req: Request, res: Response) => 
 
     } catch (err: any) {
         res.status(500).json({ success: false, error: err.message });
+    }
+};
+
+// Send admin WhatsApp notification (accessible via API)
+export const sendAdminWhatsAppNotification = async (req: Request, res: Response) => {
+    try {
+        const { phone, user, name, status, assessment, tanggal, lokasi, batch } = req.body;
+
+        if (!phone || !user || !name || !status || !assessment || !tanggal || !lokasi || !batch) {
+            return res.status(400).json({ success: false, error: "Missing required fields" });
+        }
+
+        const result = await notificationService.sendAdminWhatsAppNotification({
+            phone, user, name, status, assessment, tanggal, lokasi, batch
+        });
+
+        if (result.success) {
+            res.json({ success: true, message: "Admin WhatsApp notification sent successfully", msgid: result.data?.msgid });
+        } else {
+            res.status(500).json({ success: false, error: "Notification service failed", details: result.error });
+        }
+
+    } catch (error: any) {
+        console.error("Error sending admin WhatsApp notification:", error.message);
+        res.status(500).json({ success: false, error: error.message });
     }
 };

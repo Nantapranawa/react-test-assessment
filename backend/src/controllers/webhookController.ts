@@ -4,6 +4,7 @@ import { aiService } from '../services/aiService';
 import { keywordAnalysisService } from '../services/keywordAnalysisService';
 import { employeeStatusService } from '../services/employeeStatusService';
 import { getIO } from '../socket';
+import { normalizePhone } from '../utils/phoneUtils';
 
 export const webhookController = {
     // WhatsApp webhook ingestion
@@ -22,20 +23,19 @@ export const webhookController = {
                 return res.status(200).json({ success: true, message: 'Message type not supported for analysis' });
             }
 
-            const phoneStr = from.toString().replace(/\D/g, '');
-            const searchPhone = phoneStr.replace(/^(62|0)/, '');
+            const searchPhone = normalizePhone(from);
 
             let employee = null;
 
             if (searchPhone.length > 5) {
                 let emp1 = await prisma.employeeTS1.findFirst({
-                    where: { phone: { endsWith: searchPhone } }
+                    where: { phone: { endsWith: searchPhone.slice(-10) } }
                 });
                 if (emp1) {
                     employee = emp1;
                 } else {
                     let emp2 = await prisma.employeeTS2.findFirst({
-                        where: { phone: { endsWith: searchPhone } }
+                        where: { phone: { endsWith: searchPhone.slice(-10) } }
                     });
                     if (emp2) {
                         employee = emp2;
@@ -110,22 +110,21 @@ export const webhookController = {
                 return res.status(400).json({ success: false, error: 'Invalid payload format' });
             }
 
-            const phoneStr = phone_number.toString().replace(/\D/g, '');
-            const searchPhone = phoneStr.replace(/^(62|0)/, '');
+            const searchPhone = normalizePhone(phone_number);
 
             let employee = null;
             let isTS2 = false;
 
             if (searchPhone.length > 5) {
                 let emp1 = await prisma.employeeTS1.findFirst({
-                    where: { phone: { endsWith: searchPhone } }
+                    where: { phone: { endsWith: searchPhone.slice(-10) } }
                 });
                 if (emp1) {
                     employee = emp1;
                     isTS2 = false;
                 } else {
                     let emp2 = await prisma.employeeTS2.findFirst({
-                        where: { phone: { endsWith: searchPhone } }
+                        where: { phone: { endsWith: searchPhone.slice(-10) } }
                     });
                     if (emp2) {
                         employee = emp2;

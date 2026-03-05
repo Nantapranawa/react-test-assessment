@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import { prisma } from '../lib/prisma';
+import { comparePhones } from '../utils/phoneUtils';
 
 export const authController = {
     /**
@@ -9,24 +10,24 @@ export const authController = {
      */
     login: async (req: Request, res: Response) => {
         try {
-            const { nik_user, password } = req.body;
+            const { nik_user, password, phone } = req.body;
 
-            if (!nik_user || !password) {
+            if (!nik_user || !password || !phone) {
                 return res.status(400).json({
                     success: false,
-                    error: 'NIK and password are required'
+                    error: 'NIK, password, and WhatsApp number are required'
                 });
             }
 
             // Find user by NIK
-            const user = await prisma.user.findUnique({
+            let user = await prisma.user.findUnique({
                 where: { nik_user: nik_user }
             });
 
             if (!user) {
                 return res.status(401).json({
                     success: false,
-                    error: 'Invalid NIK or password'
+                    error: 'Invalid NIK, password, or phone number'
                 });
             }
 
@@ -34,7 +35,15 @@ export const authController = {
             if (user.password !== password) {
                 return res.status(401).json({
                     success: false,
-                    error: 'Invalid NIK or password'
+                    error: 'Invalid NIK, password, or phone number'
+                });
+            }
+
+            // Check phone number with normalization (08/628/etc)
+            if (!comparePhones(user.phone, phone)) {
+                return res.status(401).json({
+                    success: false,
+                    error: 'Invalid NIK, password, or phone number'
                 });
             }
 
