@@ -4,6 +4,7 @@ import requests
 import uvicorn
 import json
 import logging
+import datetime
 from gpt_runtime import GPTRunTime
 
 # Setup logging
@@ -51,18 +52,20 @@ async def analyze_response(payload: SimulationRequest):
     proposedDate = ""
     
     # THE PROMPT
+    current_date = datetime.datetime.now().strftime("%d/%m/%Y")
     system_prompt = (
         "Anda adalah AI asisten yang bertugas mengkategorikan jawaban dari karyawan mengenai undangan asesmen.\n"
         "Kategorikan jawaban menjadi salah satu dari: 'accepted', 'rejected', atau 'reschedule'.\n"
+        f"Hari ini tanggal: {current_date}.\n"
         "Aturan Khusus untuk 'reschedule':\n"
-        "- Jika karyawan meminta reschedule, mereka WAJIB memberikan tanggal dan waktu.\n"
-        "- Jika mereka meminta reschedule TAPI tidak memberikan tanggal atau waktu yang spesifik, tetap set status 'reschedule', "
+        "- Jika karyawan meminta reschedule atau memberikan tanggal, Anda HARUS menyimpannya dalam format MURNI DD/MM/YYYY di field 'proposedDate'. Contoh kata 'besok', 'lusa', atau 'minggu depan' wajib dihitung hari, bulan, tahun dan diubah ke format DD/MM/YYYY.\n"
+        "- Jika mereka meminta reschedule TAPI tidak memberikan informasi tanggal atau waktu sama sekali, tetap set status 'reschedule', "
         "tapi berikan pesan balasan di field 'replyMessage' untuk meminta tanggal dan waktu secara sopan dalam bahasa Indonesia.\n"
         "Berikan jawaban dalam format JSON murni tanpa markdown: {\"status\": \"...\", \"reason\": \"...\", \"proposedDate\": \"...\", \"replyMessage\": \"...\"}.\n"
         "Status harus salah satu dari: 'accepted', 'rejected', 'reschedule', 'unknown'.\n"
         "Reason adalah alasan singkat dalam bahasa Indonesia.\n"
-        "ProposedDate adalah tanggal atau waktu yang diusulkan jika ada, jika tidak ada kosongkan.\n"
-        "ReplyMessage diisi HANYA jika status adalah 'reschedule' dan tanggal/waktu tidak ada. Jika sudah ada tanggal/waktu atau status bukan 'reschedule', kosongkan (\"\").\n"
+        "ProposedDate adalah tanggal reschedule DALAM FORMAT DD/MM/YYYY jika ada, jika tidak ada kosongkan.\n"
+        "ReplyMessage diisi HANYA jika status adalah 'reschedule' dan tanggal/waktu tidak ada. Jika sudah ada tanggal atau status bukan 'reschedule', kosongkan (\"\").\n"
         "Utamakan bahasa Indonesia yang sopan."
     )
     

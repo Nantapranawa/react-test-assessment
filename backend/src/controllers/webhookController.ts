@@ -1,10 +1,9 @@
 import { Request, Response } from 'express';
 import { prisma } from '../lib/prisma';
-import { aiService } from '../services/aiService';
-import { keywordAnalysisService } from '../services/keywordAnalysisService';
 import { employeeStatusService } from '../services/employeeStatusService';
 import { getIO } from '../socket';
 import { normalizePhone } from '../utils/phoneUtils';
+import { aiService } from '../services/aiService';
 
 export const webhookController = {
     // WhatsApp webhook ingestion
@@ -50,40 +49,69 @@ export const webhookController = {
 
             console.log(`Ingested message from ${employee.nama} (${employee.nik}). Content: ${message.content.text}`);
 
-            // AUTOMATIC AI TRIGGER from Webhook (BACKGROUND)
-            aiService.analyzeResponse(employee.nik, message.content.text)
-                .then(() => {
-                    console.log(`AI completely finished processing for ${employee.nik}`);
-                })
-                .catch(async (err: any) => {
-                    console.error(`AI Analysis failed for ${employee.nik}:`, err.message);
-                    console.log(`Falling back to backend keyword logic for ${employee.nik}...`);
+            const exactMsg = message.content.text.trim();
+
+            let statusAction = {
+                status: 'unknown',
+                reason: 'No strict keyword matched',
+                proposedDate: '',
+                replyMessage: ''
+            };
+
+            if (exactMsg === 'IYA') {
+                statusAction.status = 'accepted';
+                statusAction.reason = 'Exact match: IYA';
+            } else if (exactMsg === 'TIDAK') {
+                statusAction.status = 'rejected';
+                statusAction.reason = 'Exact match: TIDAK';
+            } else if (exactMsg === 'RESCHEDULE') {
+                statusAction.status = 'reschedule';
+                statusAction.reason = 'Exact match: RESCHEDULE';
+            } else if (employee.availability_status === 'Reschedule Requested') {
+                const dateRegex = /^(0[1-9]|[12][0-9]|3[01])\/(0[1-9]|1[0-2])\/\d{4}$/;
+                if (dateRegex.test(exactMsg)) {
+                    statusAction.status = 'reschedule';
+                    statusAction.proposedDate = exactMsg;
+                    statusAction.reason = 'Provided valid reschedule date format';
+                } else {
+                    console.log(`Sending to AI Service to parse date for ${employee.nik}`);
                     try {
-                        const fallbackResult = keywordAnalysisService.analyze(message.content.text);
-                        await employeeStatusService.updateStatus(employee.nik, message.content.text, fallbackResult);
-                        console.log(`Fallback keyword analysis completed for ${employee.nik} with status: ${fallbackResult.status}`);
-                    } catch (fallbackErr: any) {
-                        console.error(`Fallback keyword analysis also failed for ${employee.nik}:`, fallbackErr.message);
+                        await aiService.analyzeResponse(employee.nik, message.content.text);
+                        return res.status(200).json({ success: true, message: 'Message sent to AI' });
+                    } catch (err: any) {
+                        console.error('Failed to parse date with AI Service:', err.message);
                     }
-                })
-                .finally(() => {
-                    // Emit to frontend clients via Socket.io AFTER AI finishes (or fails)
-                    try {
-                        const io = getIO();
-                        io.emit('whatsapp_message_received', {
-                            employee: {
-                                nik: employee.nik,
-                                nama: employee.nama,
-                                phone: employee.phone
-                            },
-                            message: message.content.text,
-                            timestamp: timestamp || new Date().toISOString()
-                        });
-                        console.log(`Websocket emitted for ${employee.nik} because AI is done.`);
-                    } catch (socketError) {
-                        console.error("Socket error on webhook emission:", socketError);
+                }
+            }
+
+            try {
+                await employeeStatusService.updateStatus(employee.nik, message.content.text, statusAction);
+                console.log(`Processed message for ${employee.nik}: ${statusAction.status}`);
+            } catch (err: any) {
+                console.error(`Status update failed for ${employee.nik}:`, err.message);
+            } finally {
+                // Emit to frontend clients via Socket.io
+                try {
+                    const io = getIO();
+                    io.emit('whatsapp_message_received', {
+                        employee: {
+                            nik: employee.nik,
+                            nama: employee.nama,
+                            phone: employee.phone
+                        },
+                        message: message.content.text,
+                        timestamp: timestamp || new Date().toISOString()
+                    });
+
+                    if (statusAction.status !== 'unknown') {
+                        // Also trigger a full table refresh if status changed
+                        io.emit('data_updated');
                     }
-                });
+                    console.log(`Websocket emitted for ${employee.nik}.`);
+                } catch (socketError) {
+                    console.error("Socket error on webhook emission:", socketError);
+                }
+            }
 
             return res.status(200).json({
                 success: true,
