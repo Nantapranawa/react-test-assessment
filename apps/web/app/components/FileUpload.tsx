@@ -100,7 +100,7 @@ export default function FileUpload({ onDataLoaded }: { onDataLoaded: (data: any)
               : 'bg-zinc-100 text-zinc-500 hover:bg-zinc-200'
               }`}
           >
-            Organizing Committee
+            Talent Solution II
           </button>
         </div>
       )}
@@ -128,11 +128,11 @@ export default function FileUpload({ onDataLoaded }: { onDataLoaded: (data: any)
             </svg>
             Uploading to {(() => {
               const tsId = user?.role === 'ADMIN' ? selectedTS : user?.talent_solution;
-              return tsId === 1 ? 'Talent Solution I' : (tsId === 2 ? 'Organizing Committee' : `TS ${tsId}`);
+              return tsId === 1 ? 'Talent Solution I' : (tsId === 2 ? 'Talent Solution II' : `TS ${tsId}`);
             })()}...
           </>
         ) : (
-          `Choose File ${user?.role === 'ADMIN' ? `(${selectedTS === 1 ? 'Talent Solution I' : 'Organizing Committee'})` : ''}`
+          `Choose File ${user?.role === 'ADMIN' ? `(${selectedTS === 1 ? 'Talent Solution I' : 'Talent Solution II'})` : ''}`
         )}
       </label>
 

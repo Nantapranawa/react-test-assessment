@@ -675,7 +675,7 @@ export default function TalentManagementPage() {
             {/* Header */}
             <div className="flex justify-between items-start mb-10">
                 <div>
-                    <h1 className="text-3xl font-bold text-zinc-900 tracking-tight">Organizing Committee</h1>
+                    <h1 className="text-3xl font-bold text-zinc-900 tracking-tight">Talent Solution II</h1>
                     <p className="text-zinc-500 text-xl">Select candidates for the new batch.</p>
                 </div>
 
