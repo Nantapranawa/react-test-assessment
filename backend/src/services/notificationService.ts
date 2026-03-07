@@ -98,7 +98,6 @@ export const notificationService = {
                             {
                                 "position": "body",
                                 "parameters": [
-                                    { "type": "text", "text": String(name) },
                                     { "type": "text", "text": String(assessment) },
                                     { "type": "text", "text": String(tanggal) }
                                 ]
