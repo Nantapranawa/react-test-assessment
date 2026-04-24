@@ -1,6 +1,6 @@
 # Assessment Planning Platform - Technical Documentation
 
-Welcome to the technical documentation for the Assessment Planning Platform. This guide is intended for developers and engineers to understand the architecture, tech stacks, directory structure, and main API endpoints of the system.
+Technical documentation for the Assessment Planning Platform (TELKOM HCSP). This guide is intended for developers and engineers to understand the architecture, tech stacks, directory structure, and main API endpoints of the system.
 
 ## 1. System Architecture & Tech Stack
 
